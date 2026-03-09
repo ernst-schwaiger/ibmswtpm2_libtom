@@ -40,7 +40,7 @@
 
 .SUFFIXES: .o
 
-CCFLAGS += -DUSE_BIT_FIELD_STRUCTURES=NO -DSYM_LIB=Ossl -DHASH_LIB=Ossl -DMATH_LIB=TpmBigNum -DBN_MATH_LIB=Ossl
+CCFLAGS += -DUSE_BIT_FIELD_STRUCTURES=NO -DSYM_LIB=Tom -DHASH_LIB=Tom -DMATH_LIB=TpmBigNum -DBN_MATH_LIB=Tom
 
 # add this for big endian machines
 # CCFLAGS += -DBIG_ENDIAN_TPM=YES 
@@ -58,14 +58,15 @@ HEADERS = 				\
 	BnConvert_fp.h			\
 	BnMath_fp.h			\
 	BnMemory_fp.h			\
-	BnOssl.h			\
-	BnToOsslMath_fp.h		\
+	BnTom.h			\
+	BnToTomMath_fp.h		\
 	BnUtil_fp.h			\
 	BnSupport_Interface.h		\
-	BnToOsslMath.h			\
-	BnToOsslMath_fp.h		\
-	BnToOsslSupport.h		\
-	BnToOsslSym.h			\
+	BnTom.h					\
+	BnToTomMath.h			\
+	BnToTomMath_fp.h		\
+	BnToTomSupport.h		\
+	BnToTomSym.h			\
 	BnValues.h			\
 	Capabilities.h			\
 	Certify_fp.h			\
@@ -304,9 +305,9 @@ HEADERS = 				\
 	TpmSizeChecks_fp.h		\
 	TpmTcpProtocol.h		\
 	TpmToTpmBigNumMath.h		\
-	TpmToOsslHash.h			\
-	TpmToOsslSupport_fp.h		\
-	TpmToOsslSym.h			\
+	TpmToTomHash.h			\
+	TpmToTomSupport_fp.h		\
+	TpmToTomSym.h			\
 	tpm_to_platform_interface.h	\
 	tpm_to_tpm_interface.h		\
 	TpmTypes.h			\
@@ -344,7 +345,7 @@ OBJFILES = \
 	BnMath.o			\
 	BnMemory.o			\
 	BnUtil.o			\
-	BnToOsslMath.o			\
+	BnToTomMath.o			\
 	Cancel.o			\
 	CapabilityCommands.o		\
 	Clock.o				\
@@ -442,7 +443,7 @@ OBJFILES = \
 	TpmMath_Util.o			\
 	TpmFail.o			\
 	TpmSizeChecks.o			\
-	TpmToOsslSupport.o		\
+	TpmToTomSupport.o		\
 	Unique.o			\
 	Unmarshal.o			\
 	VendorInfo.o			\
@@ -468,7 +469,7 @@ BnEccConstantst.o		: $(HEADERS)
 BnMath.o			: $(HEADERS)
 BnMemory.o			: $(HEADERS)
 BnUtil.o			: $(HEADERS)
-BnToOsslMath.o			: $(HEADERS)
+BnToTomMath.o			: $(HEADERS)
 Cancel.o			: $(HEADERS)
 CapabilityCommands.o		: $(HEADERS)
 Clock.o				: $(HEADERS)
@@ -565,7 +566,7 @@ TpmMath_Debug.o			: $(HEADERS)
 TpmMath_Util.o			: $(HEADERS)
 TpmFail.o			: $(HEADERS)
 TpmSizeChecks.o			: $(HEADERS)
-TpmToOsslSupport.o		: $(HEADERS)
+TpmToTomSupport.o		: $(HEADERS)
 Unique.o			: $(HEADERS)
 Unmarshal.o			: $(HEADERS)
 Vendor_TCG_Test.o		: $(HEADERS)

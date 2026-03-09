@@ -44,10 +44,14 @@ CCFLAGS = -Wall  			\
 	-Wmissing-declarations -Wmissing-prototypes -Wnested-externs \
 	-Werror -Wsign-compare \
 	-Wno-deprecated-declarations	\
+	-fsanitize=address \
 	 -c -ggdb -O0 			\
 	-DTPM_POSIX			\
 	-D_POSIX_			\
-	-DTPM_NUVOTON $(CFLAGS)
+	-DTPM_NUVOTON $(CFLAGS) \
+	-I$(HOME)/openssl-local/include \
+	-I$(HOME)/projects/PortSwTpm2LibTom/libtommath \
+	-I$(HOME)/projects/PortSwTpm2LibTom/libtomcrypt/src/headers
 
 # add this line for big endian platforms
 #	-DBIG_ENDIAN_TPM=YES
@@ -58,8 +62,14 @@ CCFLAGS = -Wall  			\
 LNFLAGS = -ggdb 			\
 	-lcrypto			\
 	-lpthread			\
+	-ltommath			\
+	-ltomcrypt			\
 	-lrt				\
-	-I. $(LDFLAGS)
+	-I. $(LDFLAGS) \
+	-fsanitize=address \
+	-L$(HOME)/openssl-local/lib64 \
+	-L$(HOME)/projects/PortSwTpm2LibTom/libtommath/build \
+	-L$(HOME)/projects/PortSwTpm2LibTom/libtomcrypt/build
 
 #	--coverage -lgcov
 
