@@ -42,6 +42,7 @@ typedef struct
 {
     const TPMBN_ECC_CURVE_CONSTANTS* C;  // the TPM curve values
     ltc_ecc_curve*                        G;  // group parameters
+    char *pParams; // common buffer for all libtomcrypt parameters;
     //BN_CTX* CTX;  // the context for the math (this might not be
     // the context in which the curve was created>;
 } TOM_CURVE_DATA;

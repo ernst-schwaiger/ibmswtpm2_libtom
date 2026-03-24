@@ -1,16 +1,44 @@
 /********************************************************************************/
 /* FIXME: Proper header */
 /********************************************************************************/
-
 #include "BnTom.h"
-
+#include <tomcrypt.h>
+#include <tomcrypt_private.h>
+#include "CompilerDependencies.h"
 #ifdef MATH_LIB_TOM
 #include "BnToTomMath_fp.h"
 
 // FIXME: Check this macro, should return the number of used mp_digit elements in mp_int!
 #define BN_FIELD_SIZE(a) (((a)->used) + 1)
 
+#define CONST_RADIX_BUF_SIZE (64U)
+
+
 //** Functions
+
+static void revertUWordArray(crypt_uword_t *pArray, size_t numElements)
+{
+    for (size_t i = 0; i < numElements / 2; i++)
+    {
+        crypt_uword_t tmp = SWAP_CRYPT_WORD(pArray[i]);
+        pArray[i] = SWAP_CRYPT_WORD(pArray[numElements - (i + 1)]);
+        pArray[numElements - (i + 1)] = tmp;
+    }
+
+    // If the number of used words is odd, we must swap the element in the middle
+    if (numElements % 2)
+    {
+        pArray[numElements / 2 + 1] = SWAP_CRYPT_WORD(pArray[numElements / 2 + 1]);
+    }
+}
+
+// Since LibTomMath uses BigEndian notation, and BigNum LittleEndian, we have to
+// revert the values here!
+static void revert(bignum_t *bn)
+{
+    revertUWordArray(BnGetArray(bn), BnGetSize(bn));
+}
+
 
 //*** TomToTpmBn()
 // This function converts an LibTomMath mp_int to a TPM bigNum.
@@ -20,7 +48,17 @@
 //                      exist
 BOOL TomToTpmBn(bigNum bn, mp_int* tomBn)
 {
-    // FIXME: Implement this
+    assert(!tomBn->sign);
+    size_t numOctetsAvail = BnGetAllocated(bn) * RADIX_BYTES;
+    size_t writtenOctets;
+    
+    if (mp_to_ubin(tomBn, (uint8_t *)BnGetArray(bn), numOctetsAvail, &writtenOctets) == MP_OKAY)
+    {
+        revert(bn); // BigEndian to Little Endian
+        bn->size = (writtenOctets + RADIX_BYTES - 1) / RADIX_BYTES;
+        return TRUE;
+    }
+
     return FALSE;
 }
 
@@ -30,7 +68,21 @@ BOOL TomToTpmBn(bigNum bn, mp_int* tomBn)
 // function prototype. Instead, use BnNewVariable().
 mp_int* BigInitialized(mp_int* toInit, bigConst initializer)
 {
-    // FIXME: Implement this
+    // We have to completely swap the whole word...
+    crypt_uword_t buf[1024 / RADIX_BYTES]; // FIXME: Stack Size!
+    assert(sizeof(buf) >= BnGetSize(initializer) * RADIX_BYTES );
+
+    for (size_t idx = 0; idx < BnGetSize(initializer); idx++)
+    {
+        buf[idx] = SWAP_CRYPT_WORD(BnGetWord(initializer, BnGetSize(initializer) - (idx + 1)));
+    }
+
+    // Before we can initialize the mp_int
+    if (mp_from_ubin(toInit, (uint8_t *)buf, BnGetSize(initializer) * RADIX_BYTES) != MP_OKAY)
+    {
+        return NULL;
+    }
+
     return toInit;
 }
 
@@ -41,24 +93,25 @@ mp_int* BigInitialized(mp_int* toInit, bigConst initializer)
 //*** BnNewVariable()
 // This function allocates a new variable. If the allocation fails, 
 // it is a catastrophic failure.
-static mp_int* BnNewVariable()
-{
-    mp_int* new = malloc(sizeof(mp_int));
+// static mp_int* BnNewVariable()
+// {
+//     // FIXME: Test this!
+//     mp_int* new = malloc(sizeof(mp_int));
 
-    if (new != NULL)
-    {
-        if (mp_init(new) == MP_OKAY)
-        {
-            return new;
-        }
-        else
-        {
-            free(new);
-        }
-    }
-	FAIL(FATAL_ERROR_ALLOCATION);
-    return NULL; // should not be reached
-}
+//     if (new != NULL)
+//     {
+//         if (mp_init(new) == MP_OKAY)
+//         {
+//             return new;
+//         }
+//         else
+//         {
+//             free(new);
+//         }
+//     }
+// 	FAIL(FATAL_ERROR_ALLOCATION);
+//     return NULL; // should not be reached
+// }
 
 #  if LIBRARY_COMPATIBILITY_CHECK
 //*** MathLibraryCompatibilityCheck()
@@ -66,7 +119,7 @@ BOOL BnMathLibraryCompatibilityCheck(void)
 {
     // returns 1 on success, 0 on failure
     // FIXME: Implement
-    return 0;
+    return 1;
 }
 #  endif
 
@@ -78,12 +131,41 @@ BOOL BnMathLibraryCompatibilityCheck(void)
 //      FALSE(0)        failure in operation
 LIB_EXPORT BOOL BnModMult(bigNum result, bigConst op1, bigConst op2, bigConst modulus)
 {
-    // FIXME: Implement this
-    BOOL    OK       = FALSE;
-    mp_int *pNewVar = BnNewVariable();
-    mp_clear(pNewVar);
-    free(pNewVar);
-    return OK;
+    mp_int num1, num2, num3;
+    
+    if (mp_init_multi(&num1, &num2, &num3, NULL) != MP_OKAY)
+    {
+        return FALSE;
+    }
+
+    mp_int* mp_op1 = BigInitialized(&num1, op1);
+    mp_int* mp_op2 = BigInitialized(&num2, op2);
+    mp_int* mp_modulus = BigInitialized(&num3, modulus);
+
+    if ((mp_op1 == NULL) || (mp_op2 == NULL) || (modulus == NULL))
+    {
+        mp_clear_multi(&num1, &num2, &num3, NULL);
+        return FALSE;
+    }
+
+    // mp_op1 := mp_op1 * mp_op2
+    if (mp_mul(mp_op1, mp_op2, mp_op1) != MP_OKAY)
+    { 
+        mp_clear_multi(&num1, &num2, &num3, NULL);
+        return FALSE;
+    }
+
+    // mp_op1 := mp_op1 mod mp_modulus
+    if (mp_div(mp_op1, mp_modulus, NULL, mp_op1) != MP_OKAY)
+    {
+        mp_clear_multi(&num1, &num2, &num3, NULL);
+        return FALSE;
+    }
+
+    // convert result back to bigNum
+    BOOL ret = TomToTpmBn(result, mp_op1);
+    mp_clear_multi(&num1, &num2, &num3, NULL);
+    return ret;
 }
 
 //*** BnMult()
@@ -93,9 +175,33 @@ LIB_EXPORT BOOL BnModMult(bigNum result, bigConst op1, bigConst op2, bigConst mo
 //      FALSE(0)        failure in operation
 LIB_EXPORT BOOL BnMult(bigNum result, bigConst multiplicand, bigConst multiplier)
 {
-    // FIXME: Implement this
-    BOOL    OK       = FALSE;
-    return OK;
+    mp_int num1, num2;
+    
+    if (mp_init_multi(&num1, &num2, NULL) != MP_OKAY)
+    {
+        return FALSE;
+    }
+
+    mp_int* mp_op1 = BigInitialized(&num1, multiplicand);
+    mp_int* mp_op2 = BigInitialized(&num2, multiplier);
+
+    if ((mp_op1 == NULL) || (mp_op2 == NULL))
+    {
+        mp_clear_multi(&num1, &num2, NULL);
+        return FALSE;
+    }
+
+    // mp_op1 := mp_op1 * mp_op2
+    if (mp_mul(mp_op1, mp_op2, mp_op1) != MP_OKAY)
+    { 
+        mp_clear_multi(&num1, &num2, NULL);
+        return FALSE;
+    }
+    
+    // convert result back to bigNum
+    BOOL ret = TomToTpmBn(result, mp_op1);
+    mp_clear_multi(&num1, &num2, NULL);
+    return ret;
 }
 
 //*** BnDiv()
@@ -107,9 +213,32 @@ LIB_EXPORT BOOL BnMult(bigNum result, bigConst multiplicand, bigConst multiplier
 LIB_EXPORT BOOL BnDiv(
 		      bigNum quotient, bigNum remainder, bigConst dividend, bigConst divisor)
 {
-    // FIXME: Implement this
-    BOOL    OK       = FALSE;
-    return OK;
+    mp_int num1, num2, quot, rem;
+    
+    if (mp_init_multi(&num1, &num2, &quot, &rem, NULL) != MP_OKAY)
+    {
+        return FALSE;
+    }
+
+    mp_int* mp_op1 = BigInitialized(&num1, dividend);
+    mp_int* mp_op2 = BigInitialized(&num2, divisor);
+
+    if ((mp_op1 == NULL) || (mp_op2 == NULL))
+    {
+        mp_clear_multi(&num1, &num2, &quot, &rem, NULL);
+        return FALSE;
+    }    
+
+    if (mp_div(mp_op1, mp_op2, &quot, &rem) != MP_OKAY)
+    {
+        mp_clear_multi(&num1, &num2, &quot, &rem, NULL);
+        return FALSE;
+    }
+
+    // convert results back to bigNum
+    BOOL ret = TomToTpmBn(quotient, &quot) && TomToTpmBn(remainder, &rem);
+    mp_clear_multi(&num1, &num2, &quot, &rem, NULL);
+    return ret;
 }
 
 #  if ALG_RSA
@@ -123,9 +252,31 @@ LIB_EXPORT BOOL BnGcd(bigNum   gcd,      // OUT: the common divisor
 		      bigConst number2   // IN:
 		      )
 {
-    // FIXME: Implement this
-    BOOL    OK       = FALSE;
-    return OK;
+    mp_int num1, num2, num3;
+    
+    if (mp_init_multi(&num1, &num2, &num3, NULL) != MP_OKAY)
+    {
+        return FALSE;
+    }
+
+    mp_int* mp_op1 = BigInitialized(&num1, number1);
+    mp_int* mp_op2 = BigInitialized(&num2, number2);
+
+    if ((mp_op1 == NULL) || (mp_op2 == NULL))
+    {
+        mp_clear_multi(&num1, &num2, &num3, NULL);
+        return FALSE;
+    } 
+    
+    if (mp_gcd(mp_op1, mp_op2, &num3) != MP_OKAY)
+    {
+        mp_clear_multi(&num1, &num2, &num3, NULL);
+    }
+
+    BOOL ret = TomToTpmBn(gcd, &num3);
+    mp_clear_multi(&num1, &num2, &num3, NULL);
+
+    return ret;
 }
 
 //***BnModExp()
@@ -140,9 +291,33 @@ LIB_EXPORT BOOL BnModExp(bigNum   result,    // OUT: the result
 			 bigConst modulus    // IN:
 			 )
 {
-    // FIXME: Implement this
-    BOOL    OK       = FALSE;
-    return OK;
+    mp_int num1, num2, num3, num4;
+    
+    if (mp_init_multi(&num1, &num2, &num3, &num4, NULL) != MP_OKAY)
+    {
+        return FALSE;
+    }
+
+    mp_int* mp_base = BigInitialized(&num1, number);
+    mp_int* mp_exp = BigInitialized(&num2, exponent);    
+    mp_int* mp_mod = BigInitialized(&num3, modulus); 
+
+    if ((mp_base == NULL) || (mp_exp == NULL) || (mp_mod == NULL))
+    {
+        mp_clear_multi(&num1, &num2, &num3, &num4, NULL);
+        return FALSE;
+    } 
+
+    if (mp_exptmod(mp_base, mp_exp, mp_mod, &num4) != MP_OKAY)
+    {
+        mp_clear_multi(&num1, &num2, &num3, &num4, NULL);
+        return false;
+    }
+
+    BOOL ret = TomToTpmBn(result, &num4);
+    mp_clear_multi(&num1, &num2, &num3, &num4, NULL);
+
+    return ret;
 }
 #  endif  // ALG_RSA
 
@@ -153,9 +328,32 @@ LIB_EXPORT BOOL BnModExp(bigNum   result,    // OUT: the result
 //      FALSE(0)        failure in operation
 LIB_EXPORT BOOL BnModInverse(bigNum result, bigConst number, bigConst modulus)
 {
-    // FIXME: Implement this
-    BOOL    OK       = FALSE;
-    return OK;
+    mp_int num1, num2, num3;
+    
+    if (mp_init_multi(&num1, &num2, &num3, NULL) != MP_OKAY)
+    {
+        return FALSE;
+    }
+
+    mp_int* mp_number = BigInitialized(&num1, number);
+    mp_int* mp_modulus = BigInitialized(&num2, modulus);
+
+    if ((mp_number == NULL) || (mp_modulus == NULL))
+    {
+        mp_clear_multi(&num1, &num2, &num3, NULL);
+        return FALSE;
+    }
+
+    if(mp_invmod(mp_number, mp_modulus, &num3) != MP_OKAY)
+    {
+        mp_clear_multi(&num1, &num2, &num3, NULL);
+        return FALSE;
+    }
+
+    BOOL ret = TomToTpmBn(result, &num3);
+    mp_clear_multi(&num1, &num2, &num3, NULL);
+
+    return ret;
 }
 
 #  if ALG_ECC
@@ -200,8 +398,89 @@ LIB_EXPORT bigCurveData* BnCurveInitialize(
 					   TPM_ECC_CURVE curveId  // IN: curve identifier
 					   )
 {
-    // FIXME: Implent this!
-    return NULL;
+    bigCurveData *pRet = NULL;
+
+    if (E != NULL)
+    {
+        const TPMBN_ECC_CURVE_CONSTANTS* C = BnGetCurveData(curveId);
+        if (C != NULL)
+        {
+            mp_int prime, A, B, order, Gx, Gy;
+            if (mp_init_multi(&prime, &A, &B, &order, &Gx, &Gy, NULL) != MP_OKAY)
+            {
+                return NULL;
+            }
+            
+            mp_int* mp_prime = BigInitialized(&prime, C->prime);
+            mp_int* mp_A = BigInitialized(&A, C->a);
+            mp_int* mp_B = BigInitialized(&B, C->b);
+            mp_int* mp_order = BigInitialized(&order, C->order);
+            mp_int* mp_Gx = BigInitialized(&Gx, C->base.x);
+            mp_int* mp_Gy = BigInitialized(&Gx, C->base.y);
+
+            if ((mp_prime == NULL) || (mp_A == NULL) || (mp_B == NULL) || 
+                (mp_order == NULL) || (mp_Gx == NULL) || (mp_Gy == NULL))
+            {
+                mp_clear_multi(&prime, &A, &B, &order, &Gx, &Gy, NULL);
+                return NULL;                
+            }
+
+            size_t radixSizesTotal = 0;
+            size_t radixSize;
+            mp_err status = MP_OKAY;
+            status |= mp_radix_size (mp_prime, 16, &radixSize); radixSizesTotal += radixSize;
+            status |= mp_radix_size (mp_A, 16, &radixSize); radixSizesTotal += radixSize;
+            status |= mp_radix_size (mp_B, 16, &radixSize); radixSizesTotal += radixSize;
+            status |= mp_radix_size (mp_order, 16, &radixSize); radixSizesTotal += radixSize;
+            status |= mp_radix_size (mp_Gx, 16, &radixSize); radixSizesTotal += radixSize;
+            status |= mp_radix_size (mp_Gy, 16, &radixSize); radixSizesTotal += radixSize;
+
+            if (status != MP_OKAY)
+            {
+                mp_clear_multi(&prime, &A, &B, &order, &Gx, &Gy, NULL);
+                return NULL;
+            }
+
+            bigCurveData *pRet = malloc(sizeof(bigCurveData));
+            pRet->G = malloc(sizeof(ltc_ecc_curve));
+            pRet->pParams = malloc(radixSizesTotal);
+            char *pCurr = pRet->pParams;
+
+            status |= mp_to_radix(mp_prime, pCurr, radixSizesTotal, &radixSize, 16);
+            pRet->G->prime = pCurr; pCurr = &pCurr[radixSize];
+            status |= mp_to_radix(mp_A, pCurr, radixSizesTotal, &radixSize, 16); 
+            pRet->G->A = pCurr; pCurr = &pCurr[radixSize];
+            status |= mp_to_radix(mp_B, pCurr, radixSizesTotal, &radixSize, 16);
+            pRet->G->B = pCurr; pCurr = &pCurr[radixSize];
+            status |= mp_to_radix(mp_order, pCurr, radixSizesTotal, &radixSize, 16);
+            pRet->G->order = pCurr; pCurr = &pCurr[radixSize];
+            status |= mp_to_radix(mp_Gx, pCurr, radixSizesTotal, &radixSize, 16);
+            pRet->G->Gx = pCurr; pCurr = &pCurr[radixSize];
+            status |= mp_to_radix(mp_Gy, pCurr, radixSizesTotal, &radixSize, 16);
+            pRet->G->Gy = pCurr; pCurr = &pCurr[radixSize];
+
+            if (status != MP_OKAY)
+            {
+                BnCurveFree(pRet);
+                mp_clear_multi(&prime, &A, &B, &order, &Gx, &Gy, NULL);
+                return NULL;
+            }
+
+            assert(BnGetSize(C->h) == 1);
+            // FIXME: For BigEndian platforms, we have to convert to BE
+            // FIXME: Ensure that sizeof(unsigned long) and sizeof(crypt_uword_t)) are
+            // the same
+#if BIG_ENDIAN_TPM
+            pRet->G->cofactor = SWAP_CRYPT_WORD(BnGetWord(C->h, 0));
+#else
+            pRet->G->cofactor = BnGetWord(C->h, 0);
+#endif            
+            pRet->G->OID = NULL;
+            pRet->C = C;
+        }
+    }
+
+    return pRet;
 }
 
 //*** BnCurveFree()
@@ -209,8 +488,59 @@ LIB_EXPORT bigCurveData* BnCurveInitialize(
 // frame in which the curve data exists
 LIB_EXPORT void BnCurveFree(bigCurveData* E)
 {
-    // FIXME Implement this
+    free(E->pParams);
+    free(E->G);
+    free(E);
 }
+
+
+static BOOL convertBigPointToTomCryptPoint(ecc_point *pTomCrypt, pointConst S)
+{   
+    mp_int* mp_x = BigInitialized(pTomCrypt->x, S->x);
+    mp_int* mp_y = BigInitialized(pTomCrypt->y, S->y);
+    mp_int* mp_z = BigInitialized(pTomCrypt->z, S->z);
+
+    if ((mp_x == NULL) || (mp_y == NULL) || (mp_z == NULL))
+    {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+static BOOL convertTomCryptPointToBigPoint(bigPoint R, const ecc_point *pTomCrypt)
+{
+    return (TomToTpmBn(R->x, pTomCrypt->x) && TomToTpmBn(R->y, pTomCrypt->y) && TomToTpmBn(R->z, pTomCrypt->z));
+}
+
+
+static void freeTomCryptPoint(ecc_point *pTomCrypt)
+{
+    ltc_ecc_del_point(pTomCrypt);
+}
+
+static BOOL convertBigNumToString(char *pBuf, size_t buflen, bigConst  c)
+{
+    mp_int b;
+    if (mp_init(&b) != MP_OKAY)
+    {
+        return FALSE;
+    }
+
+    mp_int* mp_b = BigInitialized(&b, c);
+
+    if ((mp_b == NULL))
+    {
+        mp_clear(&b);
+        return FALSE;
+    }
+    
+    size_t radixSize;
+    BOOL ret = (mp_to_radix(mp_b, pBuf, buflen, &radixSize, 16) == MP_OKAY);
+    mp_clear(&b);
+    return ret;
+}
+
 
 //*** BnEccModMult()
 // This function does a point multiply of the form R = [d]S
@@ -222,9 +552,45 @@ LIB_EXPORT BOOL BnEccModMult(bigPoint   R,  // OUT: computed point
 			     bigConst   d,  // IN: scalar for [d]S
 			     const bigCurveData* E)
 {
-    // FIXME: Implement this
-    BOOL    OK       = FALSE;
-    return OK;
+    char kBuf[CONST_RADIX_BUF_SIZE];
+    if (convertBigNumToString(kBuf, sizeof(kBuf), d) == FALSE)
+    {
+        return FALSE;
+    }
+
+    ecc_point *pR = ltc_ecc_new_point();
+
+    if (pR == NULL)
+    {
+        return FALSE;
+    }
+
+    ecc_point *pG = ltc_ecc_new_point();
+    if (pG == NULL)
+    {
+        freeTomCryptPoint(pR);
+        return FALSE;
+    }
+
+    if (convertBigPointToTomCryptPoint(pG, S) == FALSE)
+    {
+        freeTomCryptPoint(pR);
+        freeTomCryptPoint(pG);
+        return FALSE;
+    }
+    
+    if (ltc_mp.ecc_ptmul(kBuf, pG, pR, E->G->A, E->G->prime, 1) != CRYPT_OK)
+    {
+        freeTomCryptPoint(pR);
+        freeTomCryptPoint(pG);
+        return FALSE;
+    }
+
+    BOOL ret = convertTomCryptPointToBigPoint(R, pR);
+    freeTomCryptPoint(pR);
+    freeTomCryptPoint(pG);
+
+    return ret;
 }
 
 //*** BnEccModMult2()
@@ -240,9 +606,73 @@ LIB_EXPORT BOOL BnEccModMult2(bigPoint            R,  // OUT: computed point
 			      const bigCurveData* E   // IN: curve
 			      )
 {
-    // FIXME: Implement this
-    BOOL    OK       = FALSE;
-    return OK;
+
+    // FIXME: S can be optional, handle this!
+    char kaBuf[CONST_RADIX_BUF_SIZE];
+    char kbBuf[CONST_RADIX_BUF_SIZE];
+
+    if (convertBigNumToString(kaBuf, sizeof(kaBuf), d) == FALSE)
+    {
+        return false;
+    }
+
+    if (convertBigNumToString(kbBuf, sizeof(kbBuf), u) == FALSE)
+    {
+        return false;
+    }
+
+    ecc_point *pR = ltc_ecc_new_point();
+    ecc_point *pA = ltc_ecc_new_point();
+    ecc_point *pB = ltc_ecc_new_point();
+    
+    if ((pR == NULL) || (pA == NULL) || (pB == NULL))
+    {
+        freeTomCryptPoint(pR);
+        freeTomCryptPoint(pA);
+        freeTomCryptPoint(pB);
+        return FALSE;
+    }
+
+    if ((convertBigPointToTomCryptPoint(pA, S) == FALSE) || (convertBigPointToTomCryptPoint(pB, Q) == FALSE))
+    {
+        freeTomCryptPoint(pR);
+        freeTomCryptPoint(pA);
+        freeTomCryptPoint(pB);
+        return FALSE;
+    }
+
+    // Bring a into Montgomery form "ma"
+    void *mp;
+    void *mu;
+    void *ma;    
+    if (ltc_mp_init_multi(&mu, &ma, LTC_NULL) != MP_OKAY)
+    {
+        return FALSE;
+    }    
+    ltc_mp.montgomery_setup(E->G->prime, &mp);
+    ltc_mp.montgomery_normalization(mu, E->G->prime);
+    ltc_mp.mulmod(E->G->A, mu, E->G->prime, ma);
+
+
+    // FIXME: We have to convert E->G->A into Montgomery form.
+    // Code taken from:
+    // /home/ernst/projects/PortSwTpm2LibTom/libtomcrypt/tests/ecc_test.c
+    // static int s_ecc_test_shamir(void)
+    if (ltc_ecc_mul2add(pA, kaBuf, pB, kbBuf, pR, /*E->G->A*/ma, E->G->prime) != CRYPT_OK)
+    {
+        freeTomCryptPoint(pR);
+        freeTomCryptPoint(pA);
+        freeTomCryptPoint(pB);
+        ltc_mp_deinit_multi(&mu, &ma, LTC_NULL);
+        return FALSE;        
+    }
+
+    BOOL ret = convertTomCryptPointToBigPoint(R, pR);
+    freeTomCryptPoint(pR);
+    freeTomCryptPoint(pA);
+    freeTomCryptPoint(pB);
+    ltc_mp_deinit_multi(&mu, &ma, LTC_NULL);
+    return ret;
 }
 
 //** BnEccAdd()
@@ -256,9 +686,10 @@ LIB_EXPORT BOOL BnEccAdd(bigPoint            R,  // OUT: computed point
 			 const bigCurveData* E   // IN: curve
 			 )
 {
-    // FIXME: Implement this
-    BOOL    OK       = FALSE;
-    return OK;
+    // FIXME: Using BnEccModMult2() for that purpose. Check if there is a cheaper option
+    // FIXME: Endianess conversion
+    bignum_t BIG_ONE = { 1, 1, { 1 } };
+    return BnEccModMult2(R, S, &BIG_ONE, Q, &BIG_ONE, E);
 }
 #  endif  // ALG_ECC
 
