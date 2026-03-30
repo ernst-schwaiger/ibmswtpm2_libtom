@@ -65,7 +65,9 @@
 // Requires basic YES/NO defines are already set (by TpmBuildSwitches.h)
 // Less frequently changed items are in other TpmProfile Headers.
 
+#ifndef NO_OPENSSL
 #include <openssl/opensslconf.h>
+#endif
 
 #ifndef _TPM_PROFILE_COMMON_H_
 #define _TPM_PROFILE_COMMON_H_

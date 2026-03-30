@@ -11,34 +11,101 @@
 // FIXME: Check this macro, should return the number of used mp_digit elements in mp_int!
 #define BN_FIELD_SIZE(a) (((a)->used) + 1)
 
-#define CONST_RADIX_BUF_SIZE (64U)
+#define CONST_RADIX_BUF_SIZE (512U)
+
+static int debugCounter = 0;
+
+static void printLibTomMathMpInt(const mp_int* val)
+{
+    printf("libtom =\n");
+    if (mp_fwrite(val, 16, stdout) != MP_OKAY)
+    {
+        printf("<cannot print>");
+    }
+    printf("\n");
+}
+
+static void print_bn_bytes(const bignum_t *bn) {
+    
+    printf("ibmswtpm =\n");
+    for (int i = bn->size - 1; i >= 0 ; i--)
+    {
+        const unsigned char * pDigit = (const unsigned char *)&bn->d[i];
+        for (int j = sizeof(bn->d[0]) - 1; j >= 0 ; j--)
+        {
+            printf("%02X", pDigit[j]);
+        }
+    }        
+    printf("\n");
+}
+
+static void printBigInts(const mp_int* val, const bignum_t *bn)
+{
+    printf("Debug Counter = %d\n", debugCounter);
+    printLibTomMathMpInt(val);
+    print_bn_bytes(bn);
+    debugCounter++;
+}
+
+static void printLibTomCryptEccPoint(const ecc_point *pTomCrypt)
+{
+    printLibTomMathMpInt((const mp_int*)pTomCrypt->x);
+    printLibTomMathMpInt((const mp_int*)pTomCrypt->y);
+    printLibTomMathMpInt((const mp_int*)pTomCrypt->z);
+}
+
+static void printTpmBigPoint(pointConst R)
+{
+    print_bn_bytes(R->x);
+    print_bn_bytes(R->y);
+    print_bn_bytes(R->z);
+}
+
+static void printPoints(pointConst R, const ecc_point *pTomCrypt)
+{
+    printf("Debug Counter = %d\n", debugCounter);
+    printLibTomCryptEccPoint(pTomCrypt);
+    printTpmBigPoint(R);
+    debugCounter++;
+}
 
 
 //** Functions
 
-static void revertUWordArray(crypt_uword_t *pArray, size_t numElements)
+static void revertUWordArray(crypt_uword_t *pArray, size_t writtenOctets)
 {
-    for (size_t i = 0; i < numElements / 2; i++)
+    unsigned char *pBuf = (unsigned char *)pArray;
+    for (size_t idx = 0; idx < writtenOctets / 2; idx++)
     {
-        crypt_uword_t tmp = SWAP_CRYPT_WORD(pArray[i]);
-        pArray[i] = SWAP_CRYPT_WORD(pArray[numElements - (i + 1)]);
-        pArray[numElements - (i + 1)] = tmp;
+        unsigned char tmp = pBuf[idx];
+        pBuf[idx] = pBuf[writtenOctets - (idx + 1)];
+        pBuf[writtenOctets - (idx + 1)] = tmp;
     }
 
-    // If the number of used words is odd, we must swap the element in the middle
-    if (numElements % 2)
-    {
-        pArray[numElements / 2 + 1] = SWAP_CRYPT_WORD(pArray[numElements / 2 + 1]);
-    }
+    // for (size_t i = 0; i < numElements / 2; i++)
+    // {
+    //     crypt_uword_t tmp = SWAP_CRYPT_WORD(pArray[i]);
+    //     pArray[i] = SWAP_CRYPT_WORD(pArray[numElements - (i + 1)]);
+    //     pArray[numElements - (i + 1)] = tmp;
+    // }
+
+    // // If the number of used words is odd, we must swap the element in the middle
+    // if (numElements % 2)
+    // {
+    //     pArray[numElements / 2 + 1] = SWAP_CRYPT_WORD(pArray[numElements / 2 + 1]);
+    // }
 }
 
 // Since LibTomMath uses BigEndian notation, and BigNum LittleEndian, we have to
 // revert the values here!
-static void revert(bignum_t *bn)
+static void revert(bignum_t *bn, size_t writtenOctets)
 {
-    revertUWordArray(BnGetArray(bn), BnGetSize(bn));
+    // reset any additional bytes
+    // unsigned char *pToZero = (unsigned char *)&(BnGetArray(bn)[writtenOctets]);
+    // size_t numBytesToZero = (BnGetSize(bn) * RADIX_BYTES) - writtenOctets;
+    // memset(pToZero, 0x0, numBytesToZero);
+    revertUWordArray(BnGetArray(bn), writtenOctets);
 }
-
 
 //*** TomToTpmBn()
 // This function converts an LibTomMath mp_int to a TPM bigNum.
@@ -51,11 +118,23 @@ BOOL TomToTpmBn(bigNum bn, mp_int* tomBn)
     assert(!tomBn->sign);
     size_t numOctetsAvail = BnGetAllocated(bn) * RADIX_BYTES;
     size_t writtenOctets;
+
+    memset(BnGetArray(bn), 0x00, BnGetAllocated(bn) * RADIX_BYTES);
     
     if (mp_to_ubin(tomBn, (uint8_t *)BnGetArray(bn), numOctetsAvail, &writtenOctets) == MP_OKAY)
     {
-        revert(bn); // BigEndian to Little Endian
         bn->size = (writtenOctets + RADIX_BYTES - 1) / RADIX_BYTES;
+        revert(bn, writtenOctets);
+
+        // size_t bytesToZeroOut = (bn->size * RADIX_BYTES) - writtenOctets;
+        // if (bytesToZeroOut > 0)
+        // {
+            
+        // }
+
+
+        printBigInts(tomBn, bn);
+
         return TRUE;
     }
 
@@ -82,6 +161,8 @@ mp_int* BigInitialized(mp_int* toInit, bigConst initializer)
     {
         return NULL;
     }
+
+    printBigInts(toInit, initializer);
 
     return toInit;
 }
@@ -236,7 +317,17 @@ LIB_EXPORT BOOL BnDiv(
     }
 
     // convert results back to bigNum
-    BOOL ret = TomToTpmBn(quotient, &quot) && TomToTpmBn(remainder, &rem);
+    BOOL ret = TRUE;
+    if (quotient != NULL)
+    {
+        ret = ret && TomToTpmBn(quotient, &quot);
+    }
+
+    if (remainder != NULL)
+    {
+        ret = ret && TomToTpmBn(remainder, &rem);
+    }
+
     mp_clear_multi(&num1, &num2, &quot, &rem, NULL);
     return ret;
 }
@@ -416,7 +507,7 @@ LIB_EXPORT bigCurveData* BnCurveInitialize(
             mp_int* mp_B = BigInitialized(&B, C->b);
             mp_int* mp_order = BigInitialized(&order, C->order);
             mp_int* mp_Gx = BigInitialized(&Gx, C->base.x);
-            mp_int* mp_Gy = BigInitialized(&Gx, C->base.y);
+            mp_int* mp_Gy = BigInitialized(&Gy, C->base.y);
 
             if ((mp_prime == NULL) || (mp_A == NULL) || (mp_B == NULL) || 
                 (mp_order == NULL) || (mp_Gx == NULL) || (mp_Gy == NULL))
@@ -441,7 +532,7 @@ LIB_EXPORT bigCurveData* BnCurveInitialize(
                 return NULL;
             }
 
-            bigCurveData *pRet = malloc(sizeof(bigCurveData));
+            pRet = malloc(sizeof(bigCurveData));
             pRet->G = malloc(sizeof(ltc_ecc_curve));
             pRet->pParams = malloc(radixSizesTotal);
             char *pCurr = pRet->pParams;
@@ -505,12 +596,20 @@ static BOOL convertBigPointToTomCryptPoint(ecc_point *pTomCrypt, pointConst S)
         return FALSE;
     }
 
+    printPoints(S, pTomCrypt);
     return TRUE;
 }
 
 static BOOL convertTomCryptPointToBigPoint(bigPoint R, const ecc_point *pTomCrypt)
 {
-    return (TomToTpmBn(R->x, pTomCrypt->x) && TomToTpmBn(R->y, pTomCrypt->y) && TomToTpmBn(R->z, pTomCrypt->z));
+    BOOL ret = (TomToTpmBn(R->x, pTomCrypt->x) && TomToTpmBn(R->y, pTomCrypt->y) && TomToTpmBn(R->z, pTomCrypt->z));
+    
+    if (ret == TRUE)
+    {
+        printPoints(R, pTomCrypt);
+    }
+
+    return ret;
 }
 
 
@@ -519,28 +618,46 @@ static void freeTomCryptPoint(ecc_point *pTomCrypt)
     ltc_ecc_del_point(pTomCrypt);
 }
 
-static BOOL convertBigNumToString(char *pBuf, size_t buflen, bigConst  c)
+// static BOOL convertBigNumToString(char *pBuf, size_t buflen, bigConst  c)
+// {
+//     mp_int b;
+//     if (mp_init(&b) != MP_OKAY)
+//     {
+//         return FALSE;
+//     }
+
+//     mp_int* mp_b = BigInitialized(&b, c);
+
+//     if ((mp_b == NULL))
+//     {
+//         mp_clear(&b);
+//         return FALSE;
+//     }
+    
+//     size_t radixSize;
+//     BOOL ret = (mp_to_radix(mp_b, pBuf, buflen, &radixSize, 16) == MP_OKAY);
+//     mp_clear(&b);
+//     return ret;
+// }
+
+
+static BOOL getGeneratorPoint(ecc_point *pR, const bigCurveData* C)
 {
-    mp_int b;
-    if (mp_init(&b) != MP_OKAY)
+    if (mp_init_multi(pR->x, pR->y, pR->z, LTC_NULL) != MP_OKAY)
     {
         return FALSE;
     }
 
-    mp_int* mp_b = BigInitialized(&b, c);
-
-    if ((mp_b == NULL))
+    if ((mp_read_radix (pR->x, C->G->Gx, 16) != MP_OKAY) ||
+        (mp_read_radix (pR->y, C->G->Gy, 16) != MP_OKAY) ||
+        (mp_init_ul(pR->z, 1) != MP_OKAY)) // 1 used for affine coordinates
     {
-        mp_clear(&b);
-        return FALSE;
+        ltc_mp_deinit_multi(pR->x, pR->y, pR->z, LTC_NULL);
+        return FALSE;        
     }
     
-    size_t radixSize;
-    BOOL ret = (mp_to_radix(mp_b, pBuf, buflen, &radixSize, 16) == MP_OKAY);
-    mp_clear(&b);
-    return ret;
+    return TRUE;
 }
-
 
 //*** BnEccModMult()
 // This function does a point multiply of the form R = [d]S
@@ -552,41 +669,89 @@ LIB_EXPORT BOOL BnEccModMult(bigPoint   R,  // OUT: computed point
 			     bigConst   d,  // IN: scalar for [d]S
 			     const bigCurveData* E)
 {
-    char kBuf[CONST_RADIX_BUF_SIZE];
-    if (convertBigNumToString(kBuf, sizeof(kBuf), d) == FALSE)
+    // char kBuf[CONST_RADIX_BUF_SIZE];
+    // if (convertBigNumToString(kBuf, sizeof(kBuf), d) == FALSE)
+    // {
+    //     return FALSE;
+    // }
+
+    mp_int prime, k, a;
+    if (mp_init_multi(&prime, &k, &a, LTC_NULL) != MP_OKAY)
     {
         return FALSE;
     }
 
-    ecc_point *pR = ltc_ecc_new_point();
+    if (mp_read_radix (&prime, E->G->prime, 16) != MP_OKAY)
+    {
+        mp_clear_multi(&prime, &k, &a, LTC_NULL);
+        return FALSE;        
+    }
 
+    if (mp_read_radix (&a, E->G->A, 16) != MP_OKAY)
+    {
+        mp_clear_multi(&prime, &k, &a, LTC_NULL);
+        return FALSE;        
+    }
+
+    mp_int* mp_k = BigInitialized(&k, d);    
+    if (mp_k == NULL)
+    {
+        mp_clear_multi(&prime, &k, &a, LTC_NULL);
+    }
+
+    ecc_point *pR = ltc_ecc_new_point();
     if (pR == NULL)
     {
+        mp_clear_multi(&prime, &k, &a, LTC_NULL);
         return FALSE;
     }
 
     ecc_point *pG = ltc_ecc_new_point();
     if (pG == NULL)
     {
+        mp_clear_multi(&prime, &k, &a, LTC_NULL);
         freeTomCryptPoint(pR);
         return FALSE;
     }
 
-    if (convertBigPointToTomCryptPoint(pG, S) == FALSE)
+    if (S == NULL)
     {
-        freeTomCryptPoint(pR);
-        freeTomCryptPoint(pG);
-        return FALSE;
+        // My assumption: Use the curve generator as the point to multiply
+        if (getGeneratorPoint(pG, E) == FALSE)
+        {
+            mp_clear_multi(&prime, &k, &a, LTC_NULL);
+            freeTomCryptPoint(pR);
+            freeTomCryptPoint(pG);
+            return FALSE;
+        }
+    }
+    else
+    {
+        if (convertBigPointToTomCryptPoint(pG, S) == FALSE)
+        {
+            mp_clear_multi(&prime, &k, &a, LTC_NULL);
+            freeTomCryptPoint(pR);
+            freeTomCryptPoint(pG);
+            return FALSE;
+        }
     }
     
-    if (ltc_mp.ecc_ptmul(kBuf, pG, pR, E->G->A, E->G->prime, 1) != CRYPT_OK)
+    printf("k:\n");printLibTomMathMpInt(mp_k);
+    printf("G:\n");printLibTomCryptEccPoint(pG);
+    printf("a:\n");printLibTomMathMpInt(&a);
+    printf("prime:\n");printLibTomMathMpInt(&prime);
+
+    // This method is not accessible via macro.
+    if (ltc_mp.ecc_ptmul(mp_k, pG, pR, &a, &prime, 1) != CRYPT_OK)
     {
+        mp_clear_multi(&prime, &k, &a, LTC_NULL);
         freeTomCryptPoint(pR);
         freeTomCryptPoint(pG);
         return FALSE;
     }
 
     BOOL ret = convertTomCryptPointToBigPoint(R, pR);
+    mp_clear_multi(&prime, &k, &a, LTC_NULL);
     freeTomCryptPoint(pR);
     freeTomCryptPoint(pG);
 
@@ -608,19 +773,6 @@ LIB_EXPORT BOOL BnEccModMult2(bigPoint            R,  // OUT: computed point
 {
 
     // FIXME: S can be optional, handle this!
-    char kaBuf[CONST_RADIX_BUF_SIZE];
-    char kbBuf[CONST_RADIX_BUF_SIZE];
-
-    if (convertBigNumToString(kaBuf, sizeof(kaBuf), d) == FALSE)
-    {
-        return false;
-    }
-
-    if (convertBigNumToString(kbBuf, sizeof(kbBuf), u) == FALSE)
-    {
-        return false;
-    }
-
     ecc_point *pR = ltc_ecc_new_point();
     ecc_point *pA = ltc_ecc_new_point();
     ecc_point *pB = ltc_ecc_new_point();
@@ -642,28 +794,47 @@ LIB_EXPORT BOOL BnEccModMult2(bigPoint            R,  // OUT: computed point
     }
 
     // Bring a into Montgomery form "ma"
-    void *mp;
-    void *mu;
-    void *ma;    
-    if (ltc_mp_init_multi(&mu, &ma, LTC_NULL) != MP_OKAY)
+    void *mu, *ma, *prime, *a, *kA, *kB;
+    if (ltc_mp_init_multi(&mu, &ma, &prime, &a, &kA, &kB, LTC_NULL) != MP_OKAY)
     {
         return FALSE;
     }    
-    ltc_mp.montgomery_setup(E->G->prime, &mp);
-    ltc_mp.montgomery_normalization(mu, E->G->prime);
-    ltc_mp.mulmod(E->G->A, mu, E->G->prime, ma);
 
+    if (mp_read_radix (prime, E->G->prime, 16) != MP_OKAY)
+    {
+        ltc_mp_deinit_multi(mu, ma, prime, a, kA, kB, LTC_NULL);
+        return FALSE;        
+    }
 
     // FIXME: We have to convert E->G->A into Montgomery form.
     // Code taken from:
     // /home/ernst/projects/PortSwTpm2LibTom/libtomcrypt/tests/ecc_test.c
     // static int s_ecc_test_shamir(void)
-    if (ltc_ecc_mul2add(pA, kaBuf, pB, kbBuf, pR, /*E->G->A*/ma, E->G->prime) != CRYPT_OK)
+
+    if (mp_read_radix (a, E->G->A, 16) != MP_OKAY)
+    {
+        ltc_mp_deinit_multi(mu, ma, prime, a, kA, kB, LTC_NULL);
+        return FALSE;        
+    }
+
+    ltc_mp_montgomery_normalization(mu, prime);
+    ltc_mp_mulmod(a, mu, prime, ma);
+
+    mp_int *mp_kA = BigInitialized(kA, d);
+    mp_int *mp_kB = BigInitialized(kB, u);
+
+    if ((mp_kA == NULL) || (mp_kB == NULL))
+    {
+        ltc_mp_deinit_multi(mu, ma, prime, a, kA, kB, LTC_NULL);
+        return FALSE;
+    }
+
+    if (ltc_ecc_mul2add(pA, mp_kA, pB, mp_kB, pR, ma, prime) != CRYPT_OK)
     {
         freeTomCryptPoint(pR);
         freeTomCryptPoint(pA);
         freeTomCryptPoint(pB);
-        ltc_mp_deinit_multi(&mu, &ma, LTC_NULL);
+        ltc_mp_deinit_multi(mu, ma, prime, a, kA, kB, LTC_NULL);
         return FALSE;        
     }
 
@@ -671,7 +842,7 @@ LIB_EXPORT BOOL BnEccModMult2(bigPoint            R,  // OUT: computed point
     freeTomCryptPoint(pR);
     freeTomCryptPoint(pA);
     freeTomCryptPoint(pB);
-    ltc_mp_deinit_multi(&mu, &ma, LTC_NULL);
+    ltc_mp_deinit_multi(mu, ma, prime, a, kA, kB, LTC_NULL);
     return ret;
 }
 
