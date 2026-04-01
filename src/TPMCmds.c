@@ -87,6 +87,10 @@
 #include "TpmProfile.h"		/* kgold */
 #endif
 
+#ifdef COVERAGE
+#include <signal.h>
+#endif
+
 #include "simulatorPrivate.h"
 
 #define PURPOSE							\
@@ -94,6 +98,13 @@
 #define DEFAULT_TPM_PORT 2321
 
 int verbose = 0;
+
+#ifdef COVERAGE
+static void sigterm_handler(int signum)
+{
+	exit(0);
+}
+#endif
 
 /* D.5.3. Functions */
 /* D.5.3.1. Usage() */
@@ -205,6 +216,10 @@ main(
     _rpc__Signal_NvOn();
 
     portNumPlat = portNum + 1;
+
+#ifdef COVERAGE
+	signal(SIGTERM, sigterm_handler);
+#endif
 
     irc = StartTcpServer(&portNum, &portNumPlat);
     if (irc == 0) {

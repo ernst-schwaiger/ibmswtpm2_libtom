@@ -37,50 +37,69 @@
 #										#
 #################################################################################
 
+# DEBUG, RELEASE, COVERAGE
+BUILD_MODE ?= DEBUG
 
 CC = /usr/bin/gcc
 
-CCFLAGS = -Wall  			\
-	-Wmissing-declarations -Wmissing-prototypes -Wnested-externs \
-	-Werror -Wsign-compare \
-	-Wno-deprecated-declarations	\
-	-fsanitize=address \
-	-c -ggdb -O0 			\
-	-DTPM_POSIX			\
-	-D_POSIX_			\
-	-DTPM_NUVOTON $(CFLAGS) \
-	-DDEBUG_TPM \
-	-I$(HOME)/projects/PortSwTpm2LibTom/libtommath \
-	-I$(HOME)/projects/PortSwTpm2LibTom/libtomcrypt/src/headers
+CCFLAGS_WARNINGS =	-Wall 	\
+	-Wmissing-declarations 	\
+	-Wmissing-prototypes 	\
+	-Wnested-externs 		\
+	-Werror -Wsign-compare 	\
+	-Wno-deprecated-declarations
 
-# CCFLAGS = -Wall  			\
-# 	-Wmissing-declarations -Wmissing-prototypes -Wnested-externs \
-# 	-Werror -Wsign-compare \
-# 	-Wno-deprecated-declarations	\
-# 	-c -O2 			\
-# 	-DTPM_POSIX			\
-# 	-D_POSIX_			\
-# 	-DTPM_NUVOTON $(CFLAGS) \
-# 	-I$(HOME)/projects/PortSwTpm2LibTom/libtommath \
-# 	-I$(HOME)/projects/PortSwTpm2LibTom/libtomcrypt/src/headers
+CCFLAGS_SYMBOLS = 	\
+	-DTPM_POSIX		\
+	-D_POSIX_		\
+	-DTPM_NUVOTON
 
 # add this line for big endian platforms
 #	-DBIG_ENDIAN_TPM=YES
 
-#	--coverage			\
-#	-fprofile-arcs -ftest-coverage
+CCFLAGS_INCLUDE =	\
+	-I$(HOME)/projects/PortSwTpm2LibTom/libtommath \
+	-I$(HOME)/projects/PortSwTpm2LibTom/libtomcrypt/src/headers
 
-LNFLAGS = -ggdb 			\
-	-lpthread			\
-	-ltomcrypt			\
-	-ltommath			\
-	-lrt				\
-	-I. $(LDFLAGS) \
-	-fsanitize=address \
-	-L$(HOME)/projects/PortSwTpm2LibTom/libtommath/build \
-	-L$(HOME)/projects/PortSwTpm2LibTom/libtomcrypt/build
+LNFLAGS_LIBS = 	\
+	-lpthread	\
+	-ltomcrypt	\
+	-ltommath	\
+	-lrt
 
-#	--coverage -lgcov
+ifeq ($(BUILD_MODE), DEBUG)
+# DEBUG info, ASAN turned on, optimizations turned off
+	CCFLAGS_OPT = -fsanitize=address -ggdb3 -O0 
+	CCFLAGS_SYMBOLS += 	-DDEBUG_TPM
+	LNFLAGS_OPTS = -fsanitize=address
+
+	LNFLAGS_INCLUDE = 	\
+		-L$(HOME)/projects/PortSwTpm2LibTom/libtommath/buildasan \
+		-L$(HOME)/projects/PortSwTpm2LibTom/libtomcrypt/buildasan		
+else ifeq ($(BUILD_MODE), RELEASE)
+# DEBUG info, ASAN turned off, optimzations turned on
+	CCFLAGS_OPT = 	\
+		-O2
+
+	LNFLAGS_INCLUDE = 	\
+	-L$(HOME)/projects/PortSwTpm2LibTom/libtommath/buildrelease \
+	-L$(HOME)/projects/PortSwTpm2LibTom/libtomcrypt/buildrelease
+else ifeq ($(BUILD_MODE), COVERAGE)
+# Coverage build
+	CCFLAGS_OPT = -ggdb3 -O0 --coverage
+	CCFLAGS_SYMBOLS += 	-DCOVERAGE
+	LNFLAGS_OPTS = --coverage
+
+	LNFLAGS_INCLUDE = 	\
+		-L$(HOME)/projects/PortSwTpm2LibTom/libtommath/build \
+		-L$(HOME)/projects/PortSwTpm2LibTom/libtomcrypt/build		
+
+else
+    $(error "Unknown build configuration: $(BUILD_MODE)")
+endif
+
+CCFLAGS = $(CCFLAGS_WARNINGS) -c $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) $(CCFLAGS_INCLUDE)
+LNFLAGS = $(LNFLAGS_LIBS) $(LDFLAGS) $(LNFLAGS_OPTS) $(LNFLAGS_INCLUDE)
 
 all:	tpm_server
 
@@ -99,11 +118,19 @@ TcpServerPosix.o	: $(HEADERS)
 .PRECIOUS:	%.o
 
 tpm_server:	$(OBJFILES)
-		$(CC) $(OBJFILES) $(LNFLAGS) -o tpm_server
+	$(CC) $(OBJFILES) $(LNFLAGS) -o tpm_server
 
 clean:		
-		rm -f *.o tpm_server *~
+	rm -rf *.o tpm_server *~ *.gcda *.gcno test.tracefile test.lcov coverage
+
+COV_FILES=$(patsubst %.o,%.c,$(OBJFILES))
+
+test.lcov:
+	$(info "GCDA files: $(GCDA_FILES)")
+	$(info "COV files: $(COV_FILES)")
+	lcov --directory . --capture --rc branch_coverage=1 -o test.tracefile
+	lcov --ignore-errors unused -o test.lcov --rc branch_coverage=1 -e test.tracefile $(COV_FILES)
+	genhtml --rc genhtml_hi_limit=0 --rc genhtml_med_limit=0 test.lcov -o ./coverage --branch-coverage
 
 %.o:		%.c
 		$(CC) $(CCFLAGS) $< -o $@
-
