@@ -41,6 +41,7 @@
 BUILD_MODE ?= DEBUG
 
 CC = /usr/bin/gcc
+PROJECT_FOLDER=./..
 
 CCFLAGS_WARNINGS =	-Wall 	\
 	-Wmissing-declarations 	\
@@ -58,8 +59,8 @@ CCFLAGS_SYMBOLS = 	\
 #	-DBIG_ENDIAN_TPM=YES
 
 CCFLAGS_INCLUDE =	\
-	-I$(HOME)/projects/PortSwTpm2LibTom/libtommath \
-	-I$(HOME)/projects/PortSwTpm2LibTom/libtomcrypt/src/headers
+	-I$(PROJECT_FOLDER)/../libtommath \
+	-I$(PROJECT_FOLDER)/../libtomcrypt/src/headers
 
 LNFLAGS_LIBS = 	\
 	-lpthread	\
@@ -74,16 +75,16 @@ ifeq ($(BUILD_MODE), DEBUG)
 	LNFLAGS_OPTS = -fsanitize=address
 
 	LNFLAGS_INCLUDE = 	\
-		-L$(HOME)/projects/PortSwTpm2LibTom/libtommath/buildasan \
-		-L$(HOME)/projects/PortSwTpm2LibTom/libtomcrypt/buildasan		
+		-L$(PROJECT_FOLDER)/../libtommath/buildasan \
+		-L$(PROJECT_FOLDER)/../libtomcrypt/buildasan		
 else ifeq ($(BUILD_MODE), RELEASE)
 # DEBUG info, ASAN turned off, optimzations turned on
 	CCFLAGS_OPT = 	\
 		-O2
 
 	LNFLAGS_INCLUDE = 	\
-	-L$(HOME)/projects/PortSwTpm2LibTom/libtommath/buildrelease \
-	-L$(HOME)/projects/PortSwTpm2LibTom/libtomcrypt/buildrelease
+	-L$(PROJECT_FOLDER)/../libtommath/buildrelease \
+	-L$(PROJECT_FOLDER)/../libtomcrypt/buildrelease
 else ifeq ($(BUILD_MODE), COVERAGE)
 # Coverage build
 	CCFLAGS_OPT = -ggdb3 -O0 --coverage
@@ -91,8 +92,8 @@ else ifeq ($(BUILD_MODE), COVERAGE)
 	LNFLAGS_OPTS = --coverage
 
 	LNFLAGS_INCLUDE = 	\
-		-L$(HOME)/projects/PortSwTpm2LibTom/libtommath/build \
-		-L$(HOME)/projects/PortSwTpm2LibTom/libtomcrypt/build		
+		-L$(PROJECT_FOLDER)/../libtommath/build \
+		-L$(PROJECT_FOLDER)/../libtomcrypt/build		
 
 else
     $(error "Unknown build configuration: $(BUILD_MODE)")

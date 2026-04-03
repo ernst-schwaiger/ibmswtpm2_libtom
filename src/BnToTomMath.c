@@ -13,7 +13,7 @@
 static int debugCounter = 0;
 static void printLibTomMathMpInt(const mp_int* val)
 {
-    printf("libtom =\n");
+    printf("%d libtom = ", debugCounter);
     if (mp_fwrite(val, 16, stdout) != MP_OKAY)
     {
         printf("<cannot print>");
@@ -23,7 +23,7 @@ static void printLibTomMathMpInt(const mp_int* val)
 
 static void print_bn_bytes(const bignum_t *bn) {
     
-    printf("ibmswtpm =\n");
+    printf("%d ibmswtpm = ", debugCounter);
     for (int i = bn->size - 1; i >= 0 ; i--)
     {
         const unsigned char * pDigit = (const unsigned char *)&bn->d[i];
@@ -37,9 +37,12 @@ static void print_bn_bytes(const bignum_t *bn) {
 
 static void printBigInts(const mp_int* val, const bignum_t *bn)
 {
-    printf("Debug Counter = %d\n", debugCounter);
-    printLibTomMathMpInt(val);
-    print_bn_bytes(bn);
+    // if (debugCounter > 179625)
+    // {
+    //     printf("Debug Counter = %d\n", debugCounter);
+        printLibTomMathMpInt(val);
+        print_bn_bytes(bn);
+    // }
     debugCounter++;
 }
 
@@ -59,20 +62,101 @@ static void printTpmBigPoint(pointConst R)
 
 static void printPoints(const ecc_point *pTomCrypt, pointConst R)
 {
-    printf("Debug Counter = %d\n", debugCounter);
-    printLibTomCryptEccPoint(pTomCrypt);
-    printTpmBigPoint(R);
+    // if (debugCounter > 179625)
+    // {
+        printf("Debug Counter = %d\n", debugCounter);
+        printLibTomCryptEccPoint(pTomCrypt);
+        printTpmBigPoint(R);
+    // }
     debugCounter++;
+}
+
+static void printCounter(char const *counterName, int *counterVal)
+{
+    if (debugCounter > 179625)
+    {
+        printf("%s: %d\n", counterName, *counterVal);
+        (*counterVal)++;
+    }
 }
 
 #define PRINT_BIGNUMS(mp_var, bignum_var) printBigInts(mp_var, bignum_var)
 #define PRINT_ECCPOINTS(mp_point, bignum_point) printPoints(mp_point, bignum_point)
+
+#define DEF_COUNTER(x) static int DEBUG_COUNTER_ ## x = 0
+#define PRINT_COUNTER(counterName, x) printCounter(counterName, &DEBUG_COUNTER_ ## x)
+
 #else
 #define PRINT_BIGNUMS(mp_var, bignum_var)
 #define PRINT_ECCPOINTS(mp_point, bignum_point)
+#define DEF_COUNTER(x)
+#define PRINT_COUNTER(counterName, counterVal)
 #endif
 
+#if 0
+/* reads a uint8_t array, assumes the lsb is stored first [little endian] */
+/* adapted from big-endian version mp_from_ubin() */
+static mp_err mp_from_ubin_le(mp_int *a, const uint8_t *buf, size_t size)
+{
+   mp_err err;
+   const uint8_t *buf2 = &buf[size - 1];
 
+   /* make sure there are at least two digits */
+   if ((err = mp_grow(a, 2)) != MP_OKAY) {
+      return err;
+   }
+
+   /* zero the int */
+   mp_zero(a);
+
+   /* read the bytes in */
+   while (size-- > 0u) {
+      if ((err = mp_mul_2d(a, 8, a)) != MP_OKAY) {
+         return err;
+      }
+      a->dp[0] |= *buf2--;
+      a->used += 1;
+   }
+   mp_clamp(a);
+   return MP_OKAY;
+}
+
+/* store in unsigned [little endian] format */
+/* adapted from big-endian version mp_to_ubin() */
+static mp_err mp_to_ubin_le(const mp_int *a, uint8_t *buf, size_t maxlen, size_t *written)
+{
+   size_t  x, count;
+   mp_err  err;
+   mp_int  t;
+
+   count = mp_ubin_size(a);
+   if (count > maxlen) {
+      return MP_BUF;
+   }
+
+   if ((err = mp_init_copy(&t, a)) != MP_OKAY) {
+      return err;
+   }
+
+   //for (x = count; x --> 0u;)
+   for (x = 0; x < count; x++)
+   {
+      buf[x] = (uint8_t)(t.dp[0] & 255u);
+      if ((err = mp_div_2d(&t, 8, &t, NULL)) != MP_OKAY) {
+         goto LBL_ERR;
+      }
+   }
+
+   if (written != NULL) {
+      *written = count;
+   }
+
+LBL_ERR:
+   mp_clear(&t);
+   return err;
+}
+
+#else
 //** Functions
 // Since LibTomMath uses BigEndian notation, and BigNum LittleEndian, we have to
 // revert the values here!
@@ -90,6 +174,7 @@ static void revert(bignum_t *bn, size_t writtenOctets)
         pBuf[writtenOctets - (idx + 1)] = tmp;
     }
 }
+#endif
 
 //*** TomToTpmBn()
 // This function converts an LibTomMath mp_int to a TPM bigNum.
@@ -99,6 +184,7 @@ static void revert(bignum_t *bn, size_t writtenOctets)
 //                      exist
 BOOL TomToTpmBn(bigNum bn, mp_int* tomBn)
 {
+#if 1
     assert(!tomBn->sign);
     size_t numOctetsAlocated = BnGetAllocated(bn) * RADIX_BYTES;
     size_t writtenOctets;
@@ -116,6 +202,21 @@ BOOL TomToTpmBn(bigNum bn, mp_int* tomBn)
     }
 
     return FALSE;
+#else
+    size_t writtenOctets;
+    unsigned char *pBuf = (unsigned char *)BnGetArray(bn);
+    size_t bufsize = BnGetAllocated(bn) * RADIX_BYTES;
+    memset(pBuf, 0x00, bufsize); // zero out the rest
+    if (mp_to_ubin_le(tomBn, pBuf, bufsize, &writtenOctets) == MP_OKAY)
+    {
+        //memset(&pBuf[writtenOctets], 0x00, bufsize - writtenOctets); // zero out the rest
+        bn->size = (writtenOctets + RADIX_BYTES - 1) / RADIX_BYTES;
+        PRINT_BIGNUMS(tomBn, bn);
+        return TRUE;
+    }
+
+    return FALSE;
+#endif
 }
 
 //*** BigInitialized()
@@ -124,6 +225,7 @@ BOOL TomToTpmBn(bigNum bn, mp_int* tomBn)
 // function prototype. Instead, use BnNewVariable().
 mp_int* BigInitialized(mp_int* toInit, bigConst initializer)
 {
+#if 1
     // We have to completely swap the whole word...
     crypt_uword_t buf[1024 / RADIX_BYTES]; // FIXME: Stack Size!
     assert(sizeof(buf) >= BnGetSize(initializer) * RADIX_BYTES );
@@ -143,6 +245,15 @@ mp_int* BigInitialized(mp_int* toInit, bigConst initializer)
     PRINT_BIGNUMS(toInit, initializer);
 
     return toInit;
+#else
+    // Only works for LittleEndian archs, as it assumes the first byte of a RADIX is its least significant one
+    if (mp_from_ubin_le(toInit, (const unsigned char *)BnGetArray(initializer), BnGetSize(initializer) * RADIX_BYTES) != MP_OKAY)
+    {
+        return NULL;
+    }
+    PRINT_BIGNUMS(toInit, initializer);
+    return toInit;
+#endif
 }
 
 // Leave print functions out for now
@@ -166,6 +277,9 @@ BOOL BnMathLibraryCompatibilityCheck(void)
 //      FALSE(0)        failure in operation
 LIB_EXPORT BOOL BnModMult(bigNum result, bigConst op1, bigConst op2, bigConst modulus)
 {
+    DEF_COUNTER(modMult);
+    PRINT_COUNTER("modMult", modMult);
+
     BOOL ret = FALSE;
     mp_int num1, num2, num3;
     
@@ -198,6 +312,9 @@ Exit:
 //      FALSE(0)        failure in operation
 LIB_EXPORT BOOL BnMult(bigNum result, bigConst multiplicand, bigConst multiplier)
 {
+    DEF_COUNTER(bnMult);
+    PRINT_COUNTER("bnMult", bnMult);
+
     BOOL ret = FALSE;
     mp_int num1, num2;
     
@@ -227,6 +344,9 @@ Exit:
 LIB_EXPORT BOOL BnDiv(
 		      bigNum quotient, bigNum remainder, bigConst dividend, bigConst divisor)
 {
+    DEF_COUNTER(bnDiv);
+    PRINT_COUNTER("bnDiv", bnDiv);
+
     BOOL ret = FALSE;
     mp_int num1, num2, quot, rem;
     
@@ -268,6 +388,9 @@ LIB_EXPORT BOOL BnGcd(bigNum   gcd,      // OUT: the common divisor
 		      bigConst number2   // IN:
 		      )
 {
+    DEF_COUNTER(bnGCD);
+    PRINT_COUNTER("bnGCD", bnGCD);
+
     BOOL ret = FALSE;
     mp_int num1, num2, num3;
     
@@ -299,6 +422,8 @@ LIB_EXPORT BOOL BnModExp(bigNum   result,    // OUT: the result
 			 bigConst modulus    // IN:
 			 )
 {
+    DEF_COUNTER(bnModExp);
+    PRINT_COUNTER("bnModExp", bnModExp);    
     BOOL ret = FALSE;
     mp_int num1, num2, num3, num4;
     
@@ -327,6 +452,8 @@ Exit:
 //      FALSE(0)        failure in operation
 LIB_EXPORT BOOL BnModInverse(bigNum result, bigConst number, bigConst modulus)
 {
+    DEF_COUNTER(bnModInv);
+    PRINT_COUNTER("bnModInv", bnModInv);       
     BOOL ret = FALSE;
     mp_int num1, num2, num3;
     
@@ -361,6 +488,9 @@ LIB_EXPORT bigCurveData* BnCurveInitialize(
 					   TPM_ECC_CURVE curveId  // IN: curve identifier
 					   )
 {
+    DEF_COUNTER(bnCurveInit);
+    PRINT_COUNTER("bnCurveInit", bnCurveInit);
+
     const TPMBN_ECC_CURVE_CONSTANTS* C;
     if ((E == NULL) || ((C = BnGetCurveData(curveId)) == NULL)) { return NULL; }
 
@@ -435,6 +565,8 @@ Exit:
 // frame in which the curve data exists
 LIB_EXPORT void BnCurveFree(bigCurveData* E)
 {
+    DEF_COUNTER(bnCurveFree);
+    PRINT_COUNTER("bnCurveFree", bnCurveFree);    
     free(E->pParams);
     free(E->G);
     free(E);
@@ -497,6 +629,9 @@ LIB_EXPORT BOOL BnEccModMult(bigPoint   R,  // OUT: computed point
 			     bigConst   d,  // IN: scalar for [d]S
 			     const bigCurveData* E)
 {
+    DEF_COUNTER(bnEccModMult);
+    PRINT_COUNTER("bnEccModMult", bnEccModMult);  
+
     BOOL ret = FALSE;
     mp_int prime, k, a;
     ecc_point *pR = NULL;
@@ -547,6 +682,9 @@ LIB_EXPORT BOOL BnEccModMult2(bigPoint            R,  // OUT: computed point
 			      const bigCurveData* E   // IN: curve
 			      )
 {
+    DEF_COUNTER(bnEccModMult2);
+    PRINT_COUNTER("bnEccModMult2", bnEccModMult2);  
+
     BOOL ret = FALSE;
     mp_int mu, ma, prime, a, kA, kB;
     if (mp_init_multi(&mu, &ma, &prime, &a, &kA, &kB, LTC_NULL) != MP_OKAY) { return FALSE; }    
@@ -595,6 +733,8 @@ LIB_EXPORT BOOL BnEccAdd(bigPoint            R,  // OUT: computed point
 			 const bigCurveData* E   // IN: curve
 			 )
 {
+    DEF_COUNTER(bnEccAdd);
+    PRINT_COUNTER("bnEccAdd", bnEccAdd);      
     // FIXME: Using BnEccModMult2() for that purpose. Check if there is a cheaper option
     // FIXME: Endianess conversion
     bignum_t BIG_ONE = { 1, 1, { 1 } };

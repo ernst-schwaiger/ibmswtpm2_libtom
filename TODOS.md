@@ -10,6 +10,11 @@ OK
 OK
 - Create coverage build
 OK
+- Document where to checkout LibTomCrypt/LibTomMath, how to build it using CMake
+  - DEBUG with ASAN cmake -DCMAKE_C_FLAGS="-fsanitize:address" -DCMAKE_BUILD_TYPE=Debug ..
+  - DEBUG only cmake -DCMAKE_BUILD_TYPE=Debug ..
+  - RELEASE cmake -DCMAKE_BUILD_TYPE=Release ..
+
 - Create build for flame graphs
 - Find better converstion routines, Optimize revertUWordArray(), fix function name.
 
@@ -28,3 +33,50 @@ processRoot: EK certificate did not verify
 createek: failed, rc 000b007e
 TSS_RC_X509_ERROR - X509 parse or verify error
 --- snip ---
+Debugging Counter: 179753. Gut schickt RSA generator, Schlecht schickt einen zufälligen Generator...
+
+
+
+Validate the -ecc nistp256 EK certificate against the root
+ ERROR:
+verifyCertificateI: Error in X509_verify_cert verifying certificate
+processRoot: EK certificate did not verify
+createek: failed, rc 000b007e
+TSS_RC_X509_ERROR - X509 parse or verify error
+
+
+
+- libtom conversions ./reg.sh -4
+real    0m10.571s
+user    0m3.742s
+sys     0m1.355s
+
+real    0m11.040s
+user    0m3.714s
+sys     0m1.471s
+
+real    0m9.756s
+user    0m3.771s
+sys     0m1.375s
+
+real    0m10.255s
+user    0m3.867s
+sys     0m1.279s
+
+- old conversions ./reg.sh -4
+
+real    0m10.910s
+user    0m3.697s
+sys     0m1.501s
+
+real    0m9.720s
+user    0m3.733s
+sys     0m1.445s
+
+real    0m10.635s
+user    0m3.867s
+sys     0m1.279s
+
+real    0m9.805s
+user    0m3.729s
+sys     0m1.401s
