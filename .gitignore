@@ -1,5 +1,10 @@
-src/*.o
-src/tpm_server
+src/Debug/*
+src/Release/*
+src/Coverage/*
+src/Flamegraph/*
+src/tpm_server_*
+libtomcrypt/*
+libtommath/*
 src/DebugFile.txt
 src/NVChip
 src/trace.txt

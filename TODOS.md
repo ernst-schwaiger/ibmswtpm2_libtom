@@ -11,7 +11,7 @@ OK
 - Create coverage build
 OK
 - Document where to checkout LibTomCrypt/LibTomMath, how to build it using CMake
-  - DEBUG with ASAN cmake -DCMAKE_C_FLAGS="-fsanitize:address" -DCMAKE_BUILD_TYPE=Debug ..
+  - DEBUG with ASAN cmake -DCMAKE_C_FLAGS="-fsanitize=address" -DCMAKE_BUILD_TYPE=Debug ..
   - DEBUG only cmake -DCMAKE_BUILD_TYPE=Debug ..
   - RELEASE cmake -DCMAKE_BUILD_TYPE=Release ..
 
@@ -20,9 +20,24 @@ OK
 
 - Check: Is BnEccAdd() actually invoked somewhere?
 Not invoked, even via reg.sh -a
-
 - Optimize CurveInitialize: Return a curve if it is already statically initialized, only create a curve if it is not present yet.
 - Find flags in ibmswtpm2 that can be turned off for code size reduction, lookup candidates for LibTomCrypt/LibTomMath optimizations
+
+## Install perf on WSL2
+
+sudo apt install linux-tools-common
+sudo apt install build-essential flex bison libssl-dev libelf-dev
+sudo apt install libdw-dev
+sudo apt install libdebuginfod-dev
+sudo apt install systemtap-sdt-dev
+sudo apt install libunwind-dev
+sudo apt install libtraceevent-dev
+git clone --depth=1 https://github.com/microsoft/WSL2-Linux-Kernel.git
+cd WSL2-Linux-Kernel/tools/perf/
+make NO_JEVENTS=1 -sj
+
+## randomly appearing error on test suite 4
+
 - Replay full error test suite. Seems that (at least -4) fails sometimes (randomly generated test data?).
 Could not reproduce that any more
 --- snip ---
@@ -80,3 +95,5 @@ sys     0m1.279s
 real    0m9.805s
 user    0m3.729s
 sys     0m1.401s
+
+{}

@@ -37,10 +37,11 @@
 #										#
 #################################################################################
 
-# DEBUG, RELEASE, COVERAGE
-BUILD_MODE ?= DEBUG
+# Debug, Release, Coverage, Flamegraph
+BUILD_MODE ?= Debug
 
-CC = /usr/bin/gcc
+#CC = /usr/bin/gcc
+CC = clang
 PROJECT_FOLDER=./..
 
 CCFLAGS_WARNINGS =	-Wall 	\
@@ -59,8 +60,8 @@ CCFLAGS_SYMBOLS = 	\
 #	-DBIG_ENDIAN_TPM=YES
 
 CCFLAGS_INCLUDE =	\
-	-I$(PROJECT_FOLDER)/../libtommath \
-	-I$(PROJECT_FOLDER)/../libtomcrypt/src/headers
+	-Ilibtommath \
+	-Ilibtomcrypt/src/headers
 
 LNFLAGS_LIBS = 	\
 	-lpthread	\
@@ -68,16 +69,16 @@ LNFLAGS_LIBS = 	\
 	-ltommath	\
 	-lrt
 
-ifeq ($(BUILD_MODE), DEBUG)
+ifeq ($(BUILD_MODE), Debug)
 # DEBUG info, ASAN turned on, optimizations turned off
 	CCFLAGS_OPT = -fsanitize=address -ggdb3 -O0 
 	CCFLAGS_SYMBOLS += 	-DDEBUG_TPM
 	LNFLAGS_OPTS = -fsanitize=address
 
 	LNFLAGS_INCLUDE = 	\
-		-L$(PROJECT_FOLDER)/../libtommath/buildasan \
-		-L$(PROJECT_FOLDER)/../libtomcrypt/buildasan		
-else ifeq ($(BUILD_MODE), RELEASE)
+		-Llibtommath/buildasan \
+		-Llibtomcrypt/buildasan		
+else ifeq ($(BUILD_MODE), Release)
 # DEBUG info, ASAN turned off, optimzations turned on
 	CCFLAGS_OPT = 	\
 		-O2
@@ -85,24 +86,34 @@ else ifeq ($(BUILD_MODE), RELEASE)
 	LNFLAGS_INCLUDE = 	\
 	-L$(PROJECT_FOLDER)/../libtommath/buildrelease \
 	-L$(PROJECT_FOLDER)/../libtomcrypt/buildrelease
-else ifeq ($(BUILD_MODE), COVERAGE)
+else ifeq ($(BUILD_MODE), Coverage)
 # Coverage build
 	CCFLAGS_OPT = -ggdb3 -O0 --coverage
 	CCFLAGS_SYMBOLS += 	-DCOVERAGE
 	LNFLAGS_OPTS = --coverage
 
 	LNFLAGS_INCLUDE = 	\
-		-L$(PROJECT_FOLDER)/../libtommath/build \
-		-L$(PROJECT_FOLDER)/../libtomcrypt/build		
+		-L$(PROJECT_FOLDER)/../libtommath/buildcov \
+		-L$(PROJECT_FOLDER)/../libtomcrypt/buildcov		
+else ifeq ($(BUILD_MODE), Flamegraph)
+	CCFLAGS_OPT = -g -O2 -fno-omit-frame-pointer
+	LNFLAGS_OPTS = -fno-omit-frame-pointer
 
+	LNFLAGS_INCLUDE = 	\
+		-L$(PROJECT_FOLDER)/../libtommath/buildflame \
+		-L$(PROJECT_FOLDER)/../libtomcrypt/buildflame		
 else
     $(error "Unknown build configuration: $(BUILD_MODE)")
 endif
 
-CCFLAGS = $(CCFLAGS_WARNINGS) -c $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) $(CCFLAGS_INCLUDE)
-LNFLAGS = $(LNFLAGS_LIBS) $(LDFLAGS) $(LNFLAGS_OPTS) $(LNFLAGS_INCLUDE)
+LNFLAGS_INCLUDE = 	\
+	-Llibtommath/$(BUILD_MODE) \
+	-Llibtomcrypt/$(BUILD_MODE)		
 
-all:	tpm_server
+CCFLAGS = $(CCFLAGS_WARNINGS) -c $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) $(CCFLAGS_INCLUDE)
+LNFLAGS = $(LNFLAGS_LIBS) $(LNFLAGS_OPTS) $(LNFLAGS_INCLUDE)
+
+all:	tpm_server_$(BUILD_MODE)
 
 # contributed code, not tested
 install:	tpm_server
@@ -111,27 +122,60 @@ install:	tpm_server
 
 include makefile-common
 
-OBJFILES += TcpServerPosix.o
+OBJFILES += $(BUILD_MODE)/TcpServerPosix.o
 
-TcpServerPosix.o	: $(HEADERS)
+$(BUILD_MODE)/TcpServerPosix.o	: $(HEADERS)
 
 .PHONY:		clean
 .PRECIOUS:	%.o
 
-tpm_server:	$(OBJFILES)
-	$(CC) $(OBJFILES) $(LNFLAGS) -o tpm_server
+tpm_server_$(BUILD_MODE): $(OBJFILES) libtomcrypt/$(BUILD_MODE)/libtomcrypt.a libtommath/$(BUILD_MODE)/libtommath.a
+	$(CC) $(OBJFILES) $(LNFLAGS) -o tpm_server_$(BUILD_MODE)
+
+libtomcrypt/$(BUILD_MODE)/libtomcrypt.a: libtomcrypt
+	cmake -S libtomcrypt -B libtomcrypt/$(BUILD_MODE) "-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
+	cmake --build libtomcrypt/$(BUILD_MODE) -j
+
+libtomcrypt:
+	git clone --depth 1 https://github.com/libtom/libtomcrypt.git
+
+libtommath/$(BUILD_MODE)/libtommath.a: libtommath
+	cmake -S libtommath -B libtommath/$(BUILD_MODE) "-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
+	cmake --build libtommath/$(BUILD_MODE) -j
+
+libtommath:
+	git clone --depth 1 https://github.com/libtom/libtommath.git
 
 clean:		
-	rm -rf *.o tpm_server *~ *.gcda *.gcno test.tracefile test.lcov coverage
+	rm -rf tpm_server_$(BUILD_MODE) $(BUILD_MODE) libtomcrypt/$(BUILD_MODE) libtommath/$(BUILD_MODE) *~ *.gcda *.gcno test.tracefile test.lcov coverage
 
-COV_FILES=$(patsubst %.o,%.c,$(OBJFILES))
+clobber:
+	rm -rf tpm_server_* Debug Release Coverage Flamegraph libtomcrypt libtommath
 
-test.lcov:
-	$(info "GCDA files: $(GCDA_FILES)")
+
+COV_FILES_TPM=$(patsubst %.o,%.c,$(OBJFILES))
+COV_FILES_LIBTOMCRYPT=$(shell find libtomcrypt -name "*.c")
+COV_FILES_LIBTOMMATH=$(shell find libtommath -name "*.c")
+COV_FILES=$(COV_FILES_TPM) $(COV_FILES_LIBTOMCRYPT) $(COV_FILES_LIBTOMMATH)
+
+coverage:
 	$(info "COV files: $(COV_FILES)")
-	lcov --directory . --capture --rc branch_coverage=1 -o test.tracefile
+	lcov --directory Coverage --directory libtommath/Coverage/CMakeFiles/libtommath.dir --directory libtomcrypt/Coverage/CMakeFiles/libtomcrypt.dir --capture --rc branch_coverage=1 -o test.tracefile
 	lcov --ignore-errors unused -o test.lcov --rc branch_coverage=1 -e test.tracefile $(COV_FILES)
 	genhtml --rc genhtml_hi_limit=0 --rc genhtml_med_limit=0 test.lcov -o ./coverage --branch-coverage
 
-%.o:		%.c
-		$(CC) $(CCFLAGS) $< -o $@
+PERF=$(HOME)/projects/WSL2-Linux-Kernel/tools/perf/perf
+STACK_COLLAPSE=$(HOME)/projects/PortSwTpm2LibTom/FlameGraph/stackcollapse-perf.pl
+FLAMEGRAPH=$(HOME)/projects/PortSwTpm2LibTom/FlameGraph/flamegraph.pl
+
+flamegraph:
+	$(PERF) record -F 99 -p $(shell pidof tpm_server_Flamegraph) -g -- sleep 240
+	$(PERF) script >out.perf
+	$(STACK_COLLAPSE) out.perf > out.folded
+	$(FLAMEGRAPH) out.folded > flamegraph.svg
+
+	
+
+$(BUILD_MODE)/%.o:		%.c libtomcrypt libtommath
+	mkdir -p $(BUILD_MODE)
+	$(CC) $(CCFLAGS) $< -o $@

@@ -85,7 +85,8 @@
 #define NUM_POLICY_PCR_GROUP       1
 #define NUM_AUTHVALUE_PCR_GROUP    1
 //#define MAX_CONTEXT_SIZE           2168
-#define MAX_CONTEXT_SIZE           2680	/* kgold for RSA-3072 */
+//#define MAX_CONTEXT_SIZE           2680	/* kgold for RSA-3072 */
+#define MAX_CONTEXT_SIZE           3648	/* ersc2676 */
 #define MAX_DIGEST_BUFFER          1024
 #define MAX_NV_INDEX_SIZE          2048
 #define MAX_NV_BUFFER_SIZE         1024
