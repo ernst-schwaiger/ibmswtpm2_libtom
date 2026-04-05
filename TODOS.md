@@ -39,6 +39,11 @@ make NO_JEVENTS=1 -sj
 ## install perf on Linux
 sudo apt-get -y install linux-perf
 
+## install Flamegraph Support
+
+checkout the FlameGraph repo in parallel to ibmswtpm_libtom
+git clone https://github.com/brendangregg/FlameGraph.git
+
 ## install ibmtss on Linux
 
 checkout ibmtss, parallel to ibmswtpm2_libtom

@@ -164,13 +164,14 @@ coverage:
 	lcov --ignore-errors unused -o test.lcov --rc branch_coverage=1 -e test.tracefile $(COV_FILES)
 	genhtml --rc genhtml_hi_limit=0 --rc genhtml_med_limit=0 test.lcov -o ./coverage --branch-coverage
 
-PERF=$(HOME)/projects/WSL2-Linux-Kernel/tools/perf/perf
-STACK_COLLAPSE=$(HOME)/projects/PortSwTpm2LibTom/FlameGraph/stackcollapse-perf.pl
-FLAMEGRAPH=$(HOME)/projects/PortSwTpm2LibTom/FlameGraph/flamegraph.pl
+PERF=$(shell which perf)
+STACK_COLLAPSE=../../FlameGraph/stackcollapse-perf.pl
+FLAMEGRAPH=../../FlameGraph/flamegraph.pl
 
 flamegraph:
-	$(PERF) record -F 99 -p $(shell pidof tpm_server_Flamegraph) -g -- sleep 240
-	$(PERF) script >out.perf
+	sudo $(PERF) record -F 99 -p $(shell pidof tpm_server_Flamegraph) -g -- sleep 240
+	sudo $(PERF) script >out.perf
+	sudo chmod 666 out.perf
 	$(STACK_COLLAPSE) out.perf > out.folded
 	$(FLAMEGRAPH) out.folded > flamegraph.svg
 
