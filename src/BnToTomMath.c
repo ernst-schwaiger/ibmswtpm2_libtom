@@ -37,12 +37,8 @@ static void print_bn_bytes(const bignum_t *bn) {
 
 static void printBigInts(const mp_int* val, const bignum_t *bn)
 {
-    // if (debugCounter > 179625)
-    // {
-    //     printf("Debug Counter = %d\n", debugCounter);
-        printLibTomMathMpInt(val);
-        print_bn_bytes(bn);
-    // }
+    printLibTomMathMpInt(val);
+    print_bn_bytes(bn);
     debugCounter++;
 }
 
@@ -62,12 +58,9 @@ static void printTpmBigPoint(pointConst R)
 
 static void printPoints(const ecc_point *pTomCrypt, pointConst R)
 {
-    // if (debugCounter > 179625)
-    // {
-        printf("Debug Counter = %d\n", debugCounter);
-        printLibTomCryptEccPoint(pTomCrypt);
-        printTpmBigPoint(R);
-    // }
+    printf("Debug Counter = %d\n", debugCounter);
+    printLibTomCryptEccPoint(pTomCrypt);
+    printTpmBigPoint(R);
     debugCounter++;
 }
 
@@ -93,7 +86,6 @@ static void printCounter(char const *counterName, int *counterVal)
 #define PRINT_COUNTER(counterName, counterVal)
 #endif
 
-#if 0
 /* reads a uint8_t array, assumes the lsb is stored first [little endian] */
 /* adapted from big-endian version mp_from_ubin() */
 static mp_err mp_from_ubin_le(mp_int *a, const uint8_t *buf, size_t size)
@@ -156,26 +148,6 @@ LBL_ERR:
    return err;
 }
 
-#else
-//** Functions
-// Since LibTomMath uses BigEndian notation, and BigNum LittleEndian, we have to
-// revert the values here!
-static void revert(bignum_t *bn, size_t writtenOctets)
-{
-    // FIXME: Is there a better implementation?
-    // Reverting in larget units than bytes is not possible as the buffer can
-    // have arbitrary length
-    // This reverting function won't work for BigEndian platforms!
-    unsigned char *pBuf = (unsigned char *)BnGetArray(bn);
-    for (size_t idx = 0; idx < writtenOctets / 2; idx++)
-    {
-        unsigned char tmp = pBuf[idx];
-        pBuf[idx] = pBuf[writtenOctets - (idx + 1)];
-        pBuf[writtenOctets - (idx + 1)] = tmp;
-    }
-}
-#endif
-
 //*** TomToTpmBn()
 // This function converts an LibTomMath mp_int to a TPM bigNum.
 //  Return Type: BOOL
@@ -184,25 +156,6 @@ static void revert(bignum_t *bn, size_t writtenOctets)
 //                      exist
 BOOL TomToTpmBn(bigNum bn, mp_int* tomBn)
 {
-#if 1
-    assert(!tomBn->sign);
-    size_t numOctetsAlocated = BnGetAllocated(bn) * RADIX_BYTES;
-    size_t writtenOctets;
-
-    // FIXME: This memset is required to avoid "old" data in the converted bignum
-    // we can perhaps just do a few bytes in the revert function instead.
-    memset(BnGetArray(bn), 0x00, BnGetAllocated(bn) * RADIX_BYTES);
-    
-    if (mp_to_ubin(tomBn, (uint8_t *)BnGetArray(bn), numOctetsAlocated, &writtenOctets) == MP_OKAY)
-    {
-        bn->size = (writtenOctets + RADIX_BYTES - 1) / RADIX_BYTES;
-        revert(bn, writtenOctets);
-        PRINT_BIGNUMS(tomBn, bn);
-        return TRUE;
-    }
-
-    return FALSE;
-#else
     size_t writtenOctets;
     unsigned char *pBuf = (unsigned char *)BnGetArray(bn);
     size_t bufsize = BnGetAllocated(bn) * RADIX_BYTES;
@@ -216,7 +169,6 @@ BOOL TomToTpmBn(bigNum bn, mp_int* tomBn)
     }
 
     return FALSE;
-#endif
 }
 
 //*** BigInitialized()
@@ -225,27 +177,6 @@ BOOL TomToTpmBn(bigNum bn, mp_int* tomBn)
 // function prototype. Instead, use BnNewVariable().
 mp_int* BigInitialized(mp_int* toInit, bigConst initializer)
 {
-#if 1
-    // We have to completely swap the whole word...
-    crypt_uword_t buf[1024 / RADIX_BYTES]; // FIXME: Stack Size!
-    assert(sizeof(buf) >= BnGetSize(initializer) * RADIX_BYTES );
-
-    // convert to bin endian (expected by mp_from_ubin())
-    for (size_t idx = 0; idx < BnGetSize(initializer); idx++)
-    {
-        buf[idx] = SWAP_CRYPT_WORD(BnGetWord(initializer, BnGetSize(initializer) - (idx + 1)));
-    }
-
-    // Before we can initialize the mp_int
-    if (mp_from_ubin(toInit, (uint8_t *)buf, BnGetSize(initializer) * RADIX_BYTES) != MP_OKAY)
-    {
-        return NULL;
-    }
-
-    PRINT_BIGNUMS(toInit, initializer);
-
-    return toInit;
-#else
     // Only works for LittleEndian archs, as it assumes the first byte of a RADIX is its least significant one
     if (mp_from_ubin_le(toInit, (const unsigned char *)BnGetArray(initializer), BnGetSize(initializer) * RADIX_BYTES) != MP_OKAY)
     {
@@ -253,7 +184,6 @@ mp_int* BigInitialized(mp_int* toInit, bigConst initializer)
     }
     PRINT_BIGNUMS(toInit, initializer);
     return toInit;
-#endif
 }
 
 // Leave print functions out for now

@@ -41,7 +41,7 @@
 BUILD_MODE ?= Debug
 
 #CC = /usr/bin/gcc
-CC = clang
+CC = gcc
 PROJECT_FOLDER=./..
 
 CCFLAGS_WARNINGS =	-Wall 	\
@@ -132,7 +132,7 @@ $(BUILD_MODE)/TcpServerPosix.o	: $(HEADERS)
 tpm_server_$(BUILD_MODE): $(OBJFILES) libtomcrypt/$(BUILD_MODE)/libtomcrypt.a libtommath/$(BUILD_MODE)/libtommath.a
 	$(CC) $(OBJFILES) $(LNFLAGS) -o tpm_server_$(BUILD_MODE)
 
-libtomcrypt/$(BUILD_MODE)/libtomcrypt.a: libtomcrypt
+libtomcrypt/$(BUILD_MODE)/libtomcrypt.a: libtomcrypt libtommath/$(BUILD_MODE)/libtommath.a
 	cmake -S libtomcrypt -B libtomcrypt/$(BUILD_MODE) "-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
 	cmake --build libtomcrypt/$(BUILD_MODE) -j
 

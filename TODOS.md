@@ -36,10 +36,29 @@ git clone --depth=1 https://github.com/microsoft/WSL2-Linux-Kernel.git
 cd WSL2-Linux-Kernel/tools/perf/
 make NO_JEVENTS=1 -sj
 
+## install perf on Linux
+sudo apt-get -y install linux-perf
+
+## install ibmtss on Linux
+
+checkout ibmtss, parallel to ibmswtpm2_libtom
+git clone https://github.com/kgoldman/ibmtss.git
+
+follow instructions in README:
+- sudo apt install autoconf libtool pkg-config
+- evtl sudo apt install openssl-dev
+- autoreconf -i
+- ./configure --prefix=${HOME}/local --disable-hwtpm --disable-tpm-1.2 --enable-debug
+- make clean && make all -sj
+- in utils/certificates/rootcerts.txt fix the certificate paths, remove everything before "certificates", the relative path will work with reg.sh
+- use utils/reg.sh to execute tests (the ibmswtpm2 server must have been started)
+
+
+
 ## randomly appearing error on test suite 4
 
 - Replay full error test suite. Seems that (at least -4) fails sometimes (randomly generated test data?).
-Could not reproduce that any more
+Could not reproduce this on native Linux, Kali Gues OS. Only happens in WSL2.
 --- snip ---
 Validate the -ecc nistp384 EK certificate against the root
  ERROR:
@@ -48,9 +67,6 @@ processRoot: EK certificate did not verify
 createek: failed, rc 000b007e
 TSS_RC_X509_ERROR - X509 parse or verify error
 --- snip ---
-Debugging Counter: 179753. Gut schickt RSA generator, Schlecht schickt einen zufälligen Generator...
-
-
 
 Validate the -ecc nistp256 EK certificate against the root
  ERROR:
@@ -59,41 +75,3 @@ processRoot: EK certificate did not verify
 createek: failed, rc 000b007e
 TSS_RC_X509_ERROR - X509 parse or verify error
 
-
-
-- libtom conversions ./reg.sh -4
-real    0m10.571s
-user    0m3.742s
-sys     0m1.355s
-
-real    0m11.040s
-user    0m3.714s
-sys     0m1.471s
-
-real    0m9.756s
-user    0m3.771s
-sys     0m1.375s
-
-real    0m10.255s
-user    0m3.867s
-sys     0m1.279s
-
-- old conversions ./reg.sh -4
-
-real    0m10.910s
-user    0m3.697s
-sys     0m1.501s
-
-real    0m9.720s
-user    0m3.733s
-sys     0m1.445s
-
-real    0m10.635s
-user    0m3.867s
-sys     0m1.279s
-
-real    0m9.805s
-user    0m3.729s
-sys     0m1.401s
-
-{}
