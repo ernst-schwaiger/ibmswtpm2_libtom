@@ -211,9 +211,9 @@ LIB_EXPORT BOOL BnModMult(bigNum result, bigConst op1, bigConst op2, bigConst mo
     PRINT_COUNTER("modMult", modMult);
 
     BOOL ret = FALSE;
-    mp_int num1, num2, num3;
+    mp_int num1, num2, num3, num4;
     
-    if (mp_init_multi(&num1, &num2, &num3, NULL) != MP_OKAY) { return FALSE; }
+    if (mp_init_multi(&num1, &num2, &num3, &num4, NULL) != MP_OKAY) { return FALSE; }
 
     mp_int* mp_op1 = BigInitialized(&num1, op1);
     mp_int* mp_op2 = BigInitialized(&num2, op2);
@@ -221,14 +221,11 @@ LIB_EXPORT BOOL BnModMult(bigNum result, bigConst op1, bigConst op2, bigConst mo
 
     if ((mp_op1 == NULL) || (mp_op2 == NULL) || (modulus == NULL)) { goto Exit; }
 
-    // mp_op1 := mp_op1 * mp_op2
-    if (mp_mul(mp_op1, mp_op2, mp_op1) != MP_OKAY) { goto Exit; }
-
-    // mp_op1 := mp_op1 mod mp_modulus
-    if (mp_div(mp_op1, mp_modulus, NULL, mp_op1) != MP_OKAY) { goto Exit; }
+    /* num4 = mp_op1 * mp_op2 (mod mp_modulus) */
+    if (mp_mulmod(mp_op1, mp_op2, mp_modulus, &num4) != MP_OKAY) { goto Exit; }
 
     // convert result back to bigNum
-    ret = TomToTpmBn(result, mp_op1);
+    ret = TomToTpmBn(result, &num4);
 
 Exit:
     mp_clear_multi(&num1, &num2, &num3, NULL);
