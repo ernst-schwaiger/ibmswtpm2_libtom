@@ -1,27 +1,39 @@
 # TODOs Ernst
 
+## Port ibmswtpm2 to LibTomCrypt and LibTomMath
+
 - Use macros for printing debugging info, turn them on/off with precompile time switch
-OK
+DONE
 - Use consistently either mp_init_multi/mp_clear_multi or ltc_mp_init_multi/ltc_mp_deinit_multi (whichever abstracts from the concrete big integer math lib)
-OK
+DONE
 - Cleanup conversion functions: Use goto and labels to avoid repeated cleanup code
-OK
+DONE
 - Run complete test suite with ASAN turned on
-OK
+DONE
 - Create coverage build
-OK
-- Document where to checkout LibTomCrypt/LibTomMath, how to build it using CMake
-  - DEBUG with ASAN cmake -DCMAKE_C_FLAGS="-fsanitize=address" -DCMAKE_BUILD_TYPE=Debug ..
-  - DEBUG only cmake -DCMAKE_BUILD_TYPE=Debug ..
-  - RELEASE cmake -DCMAKE_BUILD_TYPE=Release ..
-
+DONE
+- In Makefile, checkout fixed versions of LibTomMath, LibTomCrypt
 - Create build for flame graphs
+DONE
 - Find better converstion routines, Optimize revertUWordArray(), fix function name.
-
+DONE
+- Validate usage of TomFastMath instead of LibTomMath
 - Check: Is BnEccAdd() actually invoked somewhere?
-Not invoked, even via reg.sh -a
+DONE, not invoked, even via reg.sh -a
 - Optimize CurveInitialize: Return a curve if it is already statically initialized, only create a curve if it is not present yet.
 - Find flags in ibmswtpm2 that can be turned off for code size reduction, lookup candidates for LibTomCrypt/LibTomMath optimizations
+  - See flags in src/libtomcrypt/src/headers/tomcrypt_custom.h and in src/libtommath/tommath_class.h
+
+
+## Compile ibmswtpm on Raspberry PI w 32 bit binary
+- To obtain code size estimations
+
+## Port ibmswtpm2 to Embedded target
+
+- Find source code that writes tpm state to file system, deactivate code
+- On target, add TcpIp stack (wolftcpip?), replace posix code by embedded TcpIp stack
+- Integrate HW timers to tpm code
+- Integrate RNG to tpm code
 
 ## Install perf on WSL2
 
@@ -57,8 +69,6 @@ follow instructions in README:
 - make clean && make all -sj
 - in utils/certificates/rootcerts.txt fix the certificate paths, remove everything before "certificates", the relative path will work with reg.sh
 - use utils/reg.sh to execute tests (the ibmswtpm2 server must have been started)
-
-
 
 ## randomly appearing error on test suite 4
 

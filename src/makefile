@@ -140,7 +140,7 @@ libtomcrypt:
 	git clone --depth 1 https://github.com/libtom/libtomcrypt.git
 
 libtommath/$(BUILD_MODE)/libtommath.a: libtommath
-	cmake -S libtommath -B libtommath/$(BUILD_MODE) "-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
+	cmake -S libtommath -B libtommath/$(BUILD_MODE) "-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_TPM -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
 	cmake --build libtommath/$(BUILD_MODE) -j
 
 libtommath:
@@ -153,23 +153,28 @@ clobber:
 	rm -rf tpm_server_* Debug Release Coverage Flamegraph libtomcrypt libtommath
 
 
-COV_FILES_TPM=$(patsubst %.o,%.c,$(OBJFILES))
+COV_FILES_TPM=$(patsubst Coverage/%, %, $(patsubst %.o,%.c,$(OBJFILES)))
 COV_FILES_LIBTOMCRYPT=$(shell find libtomcrypt -name "*.c")
 COV_FILES_LIBTOMMATH=$(shell find libtommath -name "*.c")
 COV_FILES=$(COV_FILES_TPM) $(COV_FILES_LIBTOMCRYPT) $(COV_FILES_LIBTOMMATH)
 
 coverage:
 	$(info "COV files: $(COV_FILES)")
-	lcov --directory Coverage --directory libtommath/Coverage/CMakeFiles/libtommath.dir --directory libtomcrypt/Coverage/CMakeFiles/libtomcrypt.dir --capture --rc branch_coverage=1 -o test.tracefile
-	lcov --ignore-errors unused -o test.lcov --rc branch_coverage=1 -e test.tracefile $(COV_FILES)
-	genhtml --rc genhtml_hi_limit=0 --rc genhtml_med_limit=0 test.lcov -o ./coverage --branch-coverage
+	lcov --directory Coverage \
+	    --directory libtommath/Coverage/CMakeFiles/libtommath.dir \
+		--directory libtomcrypt/Coverage/CMakeFiles/libtomcrypt.dir/src \
+		--capture --rc branch_coverage=1 -o test.tracefile
+	lcov --ignore-errors unused -o test.lcov --rc branch_coverage=1 \
+	    -e test.tracefile $(COV_FILES)
+	genhtml --rc genhtml_hi_limit=0 --rc genhtml_med_limit=0 test.lcov \
+		-o ./coverage --branch-coverage
 
 PERF=$(shell which perf)
 STACK_COLLAPSE=../../FlameGraph/stackcollapse-perf.pl
 FLAMEGRAPH=../../FlameGraph/flamegraph.pl
 
 flamegraph:
-	sudo $(PERF) record -F 99 -p $(shell pidof tpm_server_Flamegraph) -g -- sleep 240
+	sudo $(PERF) record -F 99 -p $(shell pidof tpm_server_Flamegraph) -g -- sleep 600
 	sudo $(PERF) script >out.perf
 	sudo chmod 666 out.perf
 	$(STACK_COLLAPSE) out.perf > out.folded
