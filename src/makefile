@@ -71,7 +71,7 @@ LNFLAGS_LIBS = 	\
 
 ifeq ($(BUILD_MODE), Debug)
 # DEBUG info, ASAN turned on, optimizations turned off
-	CCFLAGS_OPT = -fsanitize=address -ggdb3 -O0 
+	CCFLAGS_OPT = -fsanitize=address -g -O0 
 	CCFLAGS_SYMBOLS += 	-DDEBUG_TPM
 	LNFLAGS_OPTS = -fsanitize=address
 
@@ -139,7 +139,9 @@ libtomcrypt/$(BUILD_MODE)/libtomcrypt.a: libtomcrypt libtommath/$(BUILD_MODE)/li
 # checkout libtomcrypt, patch descriptor table (remove unused functions)
 libtomcrypt:
 	git clone --depth 1 https://github.com/libtom/libtomcrypt.git
+	cp patch/libtomcrypt/tomcrypt_custom.h libtomcrypt/src/headers
 	cp patch/libtomcrypt/ltm_desc.c libtomcrypt/src/math/
+	cp patch/libtomcrypt/tweetnacl.c libtomcrypt/src/pk/ec25519
 
 libtommath/$(BUILD_MODE)/libtommath.a: libtommath
 	cmake -S libtommath -B libtommath/$(BUILD_MODE) "-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_TPM -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
