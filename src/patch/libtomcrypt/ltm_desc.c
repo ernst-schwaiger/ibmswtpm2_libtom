@@ -4,8 +4,6 @@
 #define DESC_DEF_ONLY
 #include "tomcrypt_private.h"
 
-#define LTM_TPM
-
 #ifdef LTM_DESC
 
 #include <tommath.h>
@@ -55,7 +53,6 @@ static int init_mpi(void **a)
    }
 }
 
-#ifndef LTM_TPM
 static int init(void **a)
 {
    int err;
@@ -70,16 +67,13 @@ static int init(void **a)
    }
    return err;
 }
-#endif
 
-#ifndef LTM_TPM
 static void deinit(void *a)
 {
    LTC_ARGCHKVD(a != NULL);
    mp_clear(a);
    XFREE(a);
 }
-#endif
 
 static int neg(const void *a, void *b)
 {
@@ -488,17 +482,9 @@ const ltc_math_descriptor ltm_desc = {
    "LibTomMath",
    (int)MP_DIGIT_BIT,
 
-#ifndef LTM_TPM
    &init,
-#else
-   NULL,
-#endif
    &init_copy,
-#ifndef LTM_TPM
    &deinit,
-#else
-   NULL,
-#endif
    &neg,
    &copy,
 
