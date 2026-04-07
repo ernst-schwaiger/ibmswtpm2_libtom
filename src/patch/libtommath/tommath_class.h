@@ -39,13 +39,21 @@
 #   define MP_ERROR_TO_STRING_C
 #   define MP_EXCH_C
 //#   define MP_EXPT_N_C
+
+// Needed by BnToTomMath BnModExp
 #   define MP_EXPTMOD_C
-#   define MP_EXTEUCLID_C
+
+//#   define MP_EXTEUCLID_C
 #   define MP_FREAD_C
+
+// both needed by libtomcrypt
 #   define MP_FROM_SBIN_C
-//#   define MP_FROM_UBIN_C
+#   define MP_FROM_UBIN_C
+
 #   define MP_FWRITE_C
-//#   define MP_GCD_C
+// Required by BnToTomMath BnGcd
+#   define MP_GCD_C
+
 #   define MP_GET_DOUBLE_C
 //#   define MP_GET_I32_C
 //#   define MP_GET_I64_C
@@ -70,8 +78,8 @@
 //#   define MP_IS_SQUARE_C
 //#   define MP_KRONECKER_C
 //#   define MP_LCM_C
-#   define MP_LOG_C
-#   define MP_LOG_N_C
+//#   define MP_LOG_C
+//#   define MP_LOG_N_C
 #   define MP_LSHD_C
 #   define MP_MOD_C
 //#   define MP_MOD_2D_C
@@ -87,16 +95,16 @@
 #   define MP_OR_C
 #   define MP_PACK_C
 #   define MP_PACK_COUNT_C
-#   define MP_PRIME_FERMAT_C
-#   define MP_PRIME_FROBENIUS_UNDERWOOD_C
+//#   define MP_PRIME_FERMAT_C
+//#   define MP_PRIME_FROBENIUS_UNDERWOOD_C
 //#   define MP_PRIME_IS_PRIME_C
 //#   define MP_PRIME_MILLER_RABIN_C
-#   define MP_PRIME_NEXT_PRIME_C
+//#   define MP_PRIME_NEXT_PRIME_C
 //#   define MP_PRIME_RABIN_MILLER_TRIALS_C
-#   define MP_PRIME_RAND_C
+//#   define MP_PRIME_RAND_C
 //#   define MP_PRIME_STRONG_LUCAS_SELFRIDGE_C
-#   define MP_RADIX_SIZE_C
-#   define MP_RADIX_SIZE_OVERESTIMATE_C
+//#   define MP_RADIX_SIZE_C
+//#   define MP_RADIX_SIZE_OVERESTIMATE_C
 //#   define MP_RAND_C
 #   define MP_RAND_SOURCE_C
 #   define MP_READ_RADIX_C
@@ -108,7 +116,7 @@
 #   define MP_REDUCE_IS_2K_C
 #   define MP_REDUCE_IS_2K_L_C
 //#   define MP_REDUCE_SETUP_C
-#   define MP_ROOT_N_C
+//#   define MP_ROOT_N_C
 #   define MP_RSHD_C
 #   define MP_SBIN_SIZE_C
 #   define MP_SET_C
@@ -121,7 +129,9 @@
 #   define MP_SET_UL_C
 #   define MP_SHRINK_C
 #   define MP_SIGNED_RSH_C
+
 //#   define MP_SQRMOD_C
+
 //#   define MP_SQRT_C
 //#   define MP_SQRTMOD_PRIME_C
 //#   define MP_SUB_C
@@ -142,7 +152,7 @@
 #   define S_MP_DIV_SCHOOL_C
 #   define S_MP_DIV_SMALL_C
 //#   define S_MP_EXPTMOD_C
-#   define S_MP_EXPTMOD_FAST_C
+//#   define S_MP_EXPTMOD_FAST_C
 #   define S_MP_FP_LOG_C
 //#   define S_MP_FP_LOG_D_C
 //#   define S_MP_GET_BIT_C
@@ -162,7 +172,7 @@
 #   define S_MP_RADIX_MAP_C
 #   define S_MP_RADIX_SIZE_OVERESTIMATE_C
 //#   define S_MP_RAND_PLATFORM_C
-#   define S_MP_RAND_SOURCE_C
+//#   define S_MP_RAND_SOURCE_C
 //#   define S_MP_SQR_C
 #   define S_MP_SQR_COMBA_C
 //#   define S_MP_SQR_KARATSUBA_C
@@ -719,15 +729,15 @@
 #endif
 
 #if defined(MP_MUL_C)
-#   define S_MP_MUL_BALANCE_C
+//#   define S_MP_MUL_BALANCE_C
 #   define S_MP_MUL_C
 #   define S_MP_MUL_COMBA_C
-#   define S_MP_MUL_KARATSUBA_C
-#   define S_MP_MUL_TOOM_C
+//#   define S_MP_MUL_KARATSUBA_C
+//#   define S_MP_MUL_TOOM_C
 #   define S_MP_SQR_C
 #   define S_MP_SQR_COMBA_C
 #   define S_MP_SQR_KARATSUBA_C
-#   define S_MP_SQR_TOOM_C
+//#   define S_MP_SQR_TOOM_C
 #endif
 
 #if defined(MP_MUL_2_C)
@@ -923,8 +933,8 @@
 #   define MP_SET_C
 #   define MP_SUB_C
 #   define S_MP_MUL_C
-#   define S_MP_MUL_HIGH_C
-#   define S_MP_MUL_HIGH_COMBA_C
+//#   define S_MP_MUL_HIGH_C
+//#   define S_MP_MUL_HIGH_COMBA_C
 #   define S_MP_SUB_C
 #endif
 

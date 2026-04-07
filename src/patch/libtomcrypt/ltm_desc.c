@@ -75,12 +75,14 @@ static void deinit(void *a)
    XFREE(a);
 }
 
+#ifndef LTM_TPM
 static int neg(const void *a, void *b)
 {
    LTC_ARGCHK(a != NULL);
    LTC_ARGCHK(b != NULL);
    return mpi_to_ltc_error(mp_neg(a, b));
 }
+#endif
 
 static int copy(const void *a, void *b)
 {
@@ -384,6 +386,7 @@ static int mulmod(const void *a, const void *b, const void *c, void *d)
    return mpi_to_ltc_error(mp_mulmod(a,b,c,d));
 }
 
+#ifndef LTM_TPM
 static int sqrmod(const void *a, const void *b, void *c)
 {
    LTC_ARGCHK(a != NULL);
@@ -391,6 +394,7 @@ static int sqrmod(const void *a, const void *b, void *c)
    LTC_ARGCHK(c != NULL);
    return mpi_to_ltc_error(mp_sqrmod(a,b,c));
 }
+#endif
 
 /* invmod */
 static int invmod(const void *a, const void *b, void *c)
@@ -485,7 +489,11 @@ const ltc_math_descriptor ltm_desc = {
    &init,
    &init_copy,
    &deinit,
+#ifndef LTM_TPM
    &neg,
+#else
+   NULL,
+#endif
    &copy,
 
    &set_int,
@@ -531,7 +539,11 @@ const ltc_math_descriptor ltm_desc = {
 #endif
 
    &mulmod,
+#ifndef LTM_TPM
    &sqrmod,
+#else
+   NULL,
+#endif
    &invmod,
 
    &montgomery_setup,
