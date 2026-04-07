@@ -133,18 +133,23 @@ tpm_server_$(BUILD_MODE): $(OBJFILES) libtomcrypt/$(BUILD_MODE)/libtomcrypt.a li
 	$(CC) $(OBJFILES) $(LNFLAGS) -o tpm_server_$(BUILD_MODE)
 
 libtomcrypt/$(BUILD_MODE)/libtomcrypt.a: libtomcrypt libtommath/$(BUILD_MODE)/libtommath.a
-	cmake -S libtomcrypt -B libtomcrypt/$(BUILD_MODE) "-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
+	cmake -S libtomcrypt -B libtomcrypt/$(BUILD_MODE) "-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_TPM -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
 	cmake --build libtomcrypt/$(BUILD_MODE) -j
 
+# checkout libtomcrypt, patch descriptor table (remove unused functions)
 libtomcrypt:
 	git clone --depth 1 https://github.com/libtom/libtomcrypt.git
+	cp patch/libtomcrypt/ltm_desc.c libtomcrypt/src/math/
 
 libtommath/$(BUILD_MODE)/libtommath.a: libtommath
 	cmake -S libtommath -B libtommath/$(BUILD_MODE) "-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_TPM -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
 	cmake --build libtommath/$(BUILD_MODE) -j
 
+# checkout libtomcrypt, patch class config files (remove unused functions)
 libtommath:
 	git clone --depth 1 https://github.com/libtom/libtommath.git
+	cp patch/libtommath/tommath_class.h libtommath
+	cp patch/libtommath/tommath_superclass.h libtommath
 
 clean:		
 	rm -rf tpm_server_$(BUILD_MODE) $(BUILD_MODE) libtomcrypt/$(BUILD_MODE) libtommath/$(BUILD_MODE) *~ *.gcda *.gcno test.tracefile test.lcov coverage
