@@ -321,6 +321,7 @@ static int div_2(const void *a, void *b)
    return mpi_to_ltc_error(mp_div_2(a, b));
 }
 
+#ifndef LTM_TPM
 /* modi */
 static int modi(const void *a, ltc_mp_digit b, ltc_mp_digit *c)
 {
@@ -336,6 +337,7 @@ static int modi(const void *a, ltc_mp_digit b, ltc_mp_digit *c)
    *c = tmp;
    return CRYPT_OK;
 }
+#endif
 
 /* gcd */
 static int gcd(const void *a, const void *b, void *c)
@@ -530,7 +532,11 @@ const ltc_math_descriptor ltm_desc = {
 #endif
    &divide,
    &div_2,
+#ifndef LTM_TPM
    &modi,
+#else
+   NULL,
+#endif
    &gcd,
 #ifndef LTM_TPM
    &lcm,
