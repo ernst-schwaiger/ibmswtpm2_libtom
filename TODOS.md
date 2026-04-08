@@ -62,8 +62,7 @@ checkout ibmtss, parallel to ibmswtpm2_libtom
 git clone https://github.com/kgoldman/ibmtss.git
 
 follow instructions in README:
-- sudo apt install autoconf libtool pkg-config
-- evtl sudo apt install openssl-dev
+- sudo apt install autoconf libtool pkg-config libssl-dev
 - autoreconf -i
 - ./configure --prefix=${HOME}/local --disable-hwtpm --disable-tpm-1.2 --enable-debug
 - make clean && make all -sj

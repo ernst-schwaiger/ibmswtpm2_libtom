@@ -158,8 +158,12 @@
 
 
   #define LTC_NO_PRNGS
-//  #define LTC_NO_PKCS
-//  #define LTC_NO_PK
+  #define LTC_NO_PK
+  #define LTC_NO_PKCS
+  #define LTC_MECC
+  #define LTC_ECC_SHAMIR
+  #define LTC_NO_DEPRECATED_APIS
+  #define LTC_NO_TEST
 #endif
 
 /* Enable self-test test vector checking */
@@ -308,7 +312,6 @@
 
 #endif /* LTC_NO_HASHES */
 
-
 /* ---> MAC functions <--- */
 #ifndef LTC_NO_MACS
 
@@ -344,7 +347,6 @@
 #endif
 
 #endif /* LTC_NO_MACS */
-
 
 /* --> Pseudo Random Number Generators <--- */
 #ifndef LTC_NO_PRNGS

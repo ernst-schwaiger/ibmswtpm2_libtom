@@ -54,7 +54,8 @@ CCFLAGS_WARNINGS =	-Wall 	\
 CCFLAGS_SYMBOLS = 	\
 	-DTPM_POSIX		\
 	-D_POSIX_		\
-	-DTPM_NUVOTON
+	-DTPM_NUVOTON	\
+	-DLTM_TPM
 
 # add this line for big endian platforms
 #	-DBIG_ENDIAN_TPM=YES
