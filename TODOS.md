@@ -28,6 +28,12 @@ DONE, not invoked, even via reg.sh -a
 ## Compile ibmswtpm on Raspberry PI w 32 bit binary
 - To obtain code size estimations
 
+Install additional compiler packages (done on Raspbian Bookworm)
+
+- sudo apt install gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross binutils-arm-linux-gnueabihf
+- for executing the 32 bit binary: sudo apt install libc6:armhf libstdc++6:armhf
+- use toolchainfile in makefile for ARM 32 bit EABI
+
 ## Port ibmswtpm2 to Embedded target
 
 - Find source code that writes tpm state to file system, deactivate code
@@ -89,3 +95,6 @@ processRoot: EK certificate did not verify
 createek: failed, rc 000b007e
 TSS_RC_X509_ERROR - X509 parse or verify error
 
+
+## LibTomMath/LibTomCrypt Pull Requests
+- report some bracing errors in ltm_desc.c (see git history)

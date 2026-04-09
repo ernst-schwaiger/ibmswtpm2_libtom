@@ -39,9 +39,17 @@
 
 # Debug, Release, Coverage, Flamegraph
 BUILD_MODE ?= Debug
+IS_32BIT   ?= False
 
-#CC = /usr/bin/gcc
-CC = gcc
+ifeq ($(IS_32BIT), True)
+	CC = arm-linux-gnueabihf-gcc
+	PWD=$(shell pwd)
+	CMAKE_TOOLCHAIN_FILE="-DCMAKE_TOOLCHAIN_FILE=$(PWD)/toolchain-armhf.cmake"
+else
+	CC = gcc
+	CMAKE_TOOLCHAIN_FILE=
+endif
+
 PROJECT_FOLDER=./..
 
 CCFLAGS_WARNINGS =	-Wall 	\
@@ -134,7 +142,8 @@ tpm_server_$(BUILD_MODE): $(OBJFILES) libtomcrypt/$(BUILD_MODE)/libtomcrypt.a li
 	$(CC) $(OBJFILES) $(LNFLAGS) -o tpm_server_$(BUILD_MODE)
 
 libtomcrypt/$(BUILD_MODE)/libtomcrypt.a: libtomcrypt libtommath/$(BUILD_MODE)/libtommath.a
-	cmake -S libtomcrypt -B libtomcrypt/$(BUILD_MODE) "-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_TPM -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
+	cmake -S libtomcrypt -B libtomcrypt/$(BUILD_MODE) $(CMAKE_TOOLCHAIN_FILE) \
+		"-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_TPM -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
 	cmake --build libtomcrypt/$(BUILD_MODE) -j
 
 # checkout libtomcrypt, patch descriptor table (remove unused functions)
@@ -145,7 +154,8 @@ libtomcrypt:
 	cp patch/libtomcrypt/tweetnacl.c libtomcrypt/src/pk/ec25519
 
 libtommath/$(BUILD_MODE)/libtommath.a: libtommath
-	cmake -S libtommath -B libtommath/$(BUILD_MODE) "-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_TPM -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
+	cmake -S libtommath -B libtommath/$(BUILD_MODE) $(CMAKE_TOOLCHAIN_FILE) \
+		"-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_TPM -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
 	cmake --build libtommath/$(BUILD_MODE) -j
 
 # checkout libtomcrypt, patch class config files (remove unused functions)
