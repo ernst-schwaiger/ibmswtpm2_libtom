@@ -58,6 +58,7 @@
 /*										*/
 /********************************************************************************/
 
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 #include "Policy_spt_fp.h"
 #include "PolicySigned_fp.h"
@@ -96,8 +97,8 @@ TPM2_PolicySigned(PolicySigned_In*  in,  // IN: input parameter list
     UINT64       authTimeout = 0;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicySigned: authObject %08x\n", in->authObject);
-	fprintf(f, "TPM2_PolicySigned: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicySigned: authObject %08" PRIx32 "\n", in->authObject);
+	fprintf(f, "TPM2_PolicySigned: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
     // Input Validation
@@ -257,8 +258,8 @@ TPM2_PolicySecret(PolicySecret_In*  in,  // IN: input parameter list
     UINT64     authTimeout = 0;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicySecret: authHandle %08x\n", in->authHandle);
-	fprintf(f, "TPM2_PolicySecret: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicySecret: authHandle %08" PRIx32 "\n", in->authHandle);
+	fprintf(f, "TPM2_PolicySecret: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
     // Input Validation
@@ -368,7 +369,7 @@ TPM2_PolicyTicket(PolicyTicket_In* in  // IN: input parameter list
     BOOL         expiresOnReset;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyTicket: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicyTicket: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
 
@@ -472,7 +473,7 @@ TPM2_PolicyOR(PolicyOR_In* in  // IN: input parameter list
     UINT32   i;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyOR: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicyOR: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
     // Input Validation and Update
@@ -549,7 +550,7 @@ TPM2_PolicyPCR(PolicyPCR_In* in  // IN: input parameter list
     HASH_STATE   hashState;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyPCR: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicyPCR: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
     // Input Validation
@@ -636,7 +637,7 @@ TPM2_PolicyPhysicalPresence(PolicyPhysicalPresence_In* in  // IN: input paramete
     HASH_STATE hashState;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyPhysicalPresence: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicyPhysicalPresence: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
 
@@ -691,7 +692,7 @@ TPM2_PolicyLocality(PolicyLocality_In* in  // IN: input parameter list
     HASH_STATE hashState;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyLocality: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicyLocality: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
     // Input Validation
@@ -810,9 +811,9 @@ TPM2_PolicyNV(PolicyNV_In* in  // IN: input parameter list
     TPM2B_DIGEST argHash;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyNV: authHandle %08x\n", in->authHandle);
-	fprintf(f, "TPM2_PolicyNV: nvIndex %08x\n", in->nvIndex);
-	fprintf(f, "TPM2_PolicyNV: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicyNV: authHandle %08" PRIx32 "\n", in->authHandle);
+	fprintf(f, "TPM2_PolicyNV: nvIndex %08" PRIx32 "\n", in->nvIndex);
+	fprintf(f, "TPM2_PolicyNV: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
 
@@ -921,7 +922,7 @@ TPM2_PolicyCounterTimer(PolicyCounterTimer_In* in  // IN: input parameter list
     TPM2B_DIGEST argHash;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyCounterTimer: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicyCounterTimer: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
 
@@ -1017,8 +1018,8 @@ TPM2_PolicyCommandCode(PolicyCommandCode_In* in  // IN: input parameter list
     HASH_STATE hashState;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyCommandCode: policySession %08x\n", in->policySession);
-	fprintf(f, "TPM2_PolicyCommandCode: code %08x\n", in->code);
+	fprintf(f, "TPM2_PolicyCommandCode: policySession %08" PRIx32 "\n", in->policySession);
+	fprintf(f, "TPM2_PolicyCommandCode: code %08" PRIx32 "\n", in->code);
 	fclose(f);
     }
     // Input validation
@@ -1081,7 +1082,7 @@ TPM2_PolicyCpHash(PolicyCpHash_In* in  // IN: input parameter list
     HASH_STATE hashState;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyCpHash: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicyCpHash: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
     // Input Validation
@@ -1152,7 +1153,7 @@ TPM2_PolicyNameHash(PolicyNameHash_In* in  // IN: input parameter list
     HASH_STATE hashState;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyNameHash: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicyNameHash: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
 
@@ -1222,7 +1223,7 @@ TPM2_PolicyDuplicationSelect(
     TPM_CC     commandCode = TPM_CC_PolicyDuplicationSelect;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyDuplicationSelect: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicyDuplicationSelect: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
     // Input Validation
@@ -1315,7 +1316,7 @@ TPM2_PolicyAuthorize(PolicyAuthorize_In* in  // IN: input parameter list
     UINT16           digestSize;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyAuthorize: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicyAuthorize: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
 
@@ -1410,7 +1411,7 @@ TPM2_PolicyAuthValue(PolicyAuthValue_In* in  // IN: input parameter list
     HASH_STATE hashState;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyAuthValue: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicyAuthValue: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
 
@@ -1463,7 +1464,7 @@ TPM2_PolicyPassword(PolicyPassword_In* in  // IN: input parameter list
     HASH_STATE hashState;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyPassword: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicyPassword: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
 
@@ -1508,7 +1509,7 @@ TPM2_PolicyGetDigest(
     SESSION     *session;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyGetDigest: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicyGetDigest: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
     // Command Output
@@ -1538,7 +1539,7 @@ TPM2_PolicyNvWritten(PolicyNvWritten_In* in  // IN: input parameter list
     HASH_STATE hashState;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyNvWritten: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicyNvWritten: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
 
@@ -1607,7 +1608,7 @@ TPM2_PolicyTemplate(PolicyTemplate_In* in  // IN: input parameter list
     HASH_STATE hashState;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyTemplate: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicyTemplate: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
     // Input Validation
@@ -1686,9 +1687,9 @@ TPM2_PolicyAuthorizeNV(PolicyAuthorizeNV_In* in)
     INT32      size;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyAuthorizeNV: authHandle %08x\n", in->authHandle);
-	fprintf(f, "TPM2_PolicyAuthorizeNV: nvIndex %08x\n", in->nvIndex);
-	fprintf(f, "TPM2_PolicyAuthorizeNV: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicyAuthorizeNV: authHandle %08" PRIx32 "\n", in->authHandle);
+	fprintf(f, "TPM2_PolicyAuthorizeNV: nvIndex %08" PRIx32 "\n", in->nvIndex);
+	fprintf(f, "TPM2_PolicyAuthorizeNV: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
 
@@ -1810,7 +1811,7 @@ TPM2_PolicyCapability(PolicyCapability_In* in  // IN: input parameter list
     TPM2B_DIGEST argHash;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyCapability: policySession %08x\n", in->policySession );
+	fprintf(f, "TPM2_PolicyCapability: policySession %08" PRIx32 "\n", in->policySession );
 	fclose(f);
     }
 
@@ -2047,7 +2048,7 @@ TPM2_PolicyParameters(PolicyParameters_In* in  // IN: input parameter list
 
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyParameters: policySession %08x\n", in->policySession);
+	fprintf(f, "TPM2_PolicyParameters: policySession %08" PRIx32 "\n", in->policySession);
 	fclose(f);
     }
     // Input Validation

@@ -59,6 +59,7 @@
 /*										*/
 /********************************************************************************/
 
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 #include "PCR_Extend_fp.h"
 
@@ -73,7 +74,7 @@ TPM2_PCR_Extend(
     UINT32              i;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PCR_Extend: pcrHandle %u\n", in->pcrHandle);
+	fprintf(f, "TPM2_PCR_Extend: pcrHandle %" PRIu32 "\n", in->pcrHandle);
 	fclose(f);
     }
     // Input Validation
@@ -119,7 +120,7 @@ TPM2_PCR_Event(
     UINT16              size;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PCR_Event: pcrHandle %u\n", in->pcrHandle);
+	fprintf(f, "TPM2_PCR_Event: pcrHandle %" PRIu32 "\n", in->pcrHandle);
 	fclose(f);
     }
     // Input Validation
@@ -186,7 +187,7 @@ TPM2_PCR_Allocate(
     TPM_RC      result;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PCR_Allocate: authHandle %08x\n", in->authHandle);
+	fprintf(f, "TPM2_PCR_Allocate: authHandle %08" PRIx32 "\n", in->authHandle);
 	fclose(f);
     }
     // The command needs NV update.  Check if NV is available.
@@ -223,7 +224,7 @@ TPM2_PCR_SetAuthPolicy(
     UINT32      groupIndex;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PCR_SetAuthPolicy: authHandle %08x\n", in->authHandle);
+	fprintf(f, "TPM2_PCR_SetAuthPolicy: authHandle %08" PRIx32 "\n", in->authHandle);
 	fclose(f);
     }
     // The command needs NV update.  Check if NV is available.
@@ -258,7 +259,7 @@ TPM2_PCR_SetAuthValue(
     UINT32      groupIndex;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PCR_SetAuthValue: pcrHandle %d\n", in->pcrHandle);
+	fprintf(f, "TPM2_PCR_SetAuthValue: pcrHandle %" PRId32 "\n", in->pcrHandle);
 	fclose(f);
     }
     // Input Validation:
@@ -287,7 +288,7 @@ TPM2_PCR_Reset(
 {
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PCR_Reset: pcrHandle %d\n", in->pcrHandle);
+	fprintf(f, "TPM2_PCR_Reset: pcrHandle %" PRId32 "\n", in->pcrHandle);
 	fclose(f);
     }
     // Input Validation

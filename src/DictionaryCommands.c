@@ -59,6 +59,7 @@
 /*										*/
 /********************************************************************************/
 
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 #include "DictionaryAttackLockReset_fp.h"
 
@@ -72,7 +73,7 @@ TPM2_DictionaryAttackLockReset(
 {
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_DictionaryAttackLockReset: lockHandle %08x\n", in->lockHandle);
+	fprintf(f, "TPM2_DictionaryAttackLockReset: lockHandle %08" PRIx32 "\n", in->lockHandle);
 	fclose(f);
     }
     // Input parameter is not reference in command action
@@ -97,7 +98,7 @@ TPM2_DictionaryAttackParameters(
 {
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_DictionaryAttackParameters: lockHandle %08x\n", in->lockHandle);
+	fprintf(f, "TPM2_DictionaryAttackParameters: lockHandle %08" PRIx32 "\n", in->lockHandle);
 	fclose(f);
     }
     // The command needs NV update.

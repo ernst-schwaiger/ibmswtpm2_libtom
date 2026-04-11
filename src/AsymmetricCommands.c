@@ -58,6 +58,7 @@
 /*										*/
 /********************************************************************************/
 
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 #include "RSA_Encrypt_fp.h"
 
@@ -75,7 +76,7 @@ TPM2_RSA_Encrypt(
     TPMT_RSA_DECRYPT        *scheme;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_RSA_Encrypt: keyHandle %08x\n", in->keyHandle);
+	fprintf(f, "TPM2_RSA_Encrypt: keyHandle %08" PRIx32 "\n", in->keyHandle);
 	fclose(f);
     }
     // Input Validation
@@ -116,7 +117,7 @@ TPM2_RSA_Decrypt(
     TPMT_RSA_DECRYPT            *scheme;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_RSA_Decrypt: keyHandle %08x\n", in->keyHandle);
+	fprintf(f, "TPM2_RSA_Decrypt: keyHandle %08" PRIx32 "\n", in->keyHandle);
 	fclose(f);
     }
     // Input Validation
@@ -164,7 +165,7 @@ TPM2_ECDH_KeyGen(
     TPM_RC                   result;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_ECDH_KeyGen: keyHandle %08x\n", in->keyHandle);
+	fprintf(f, "TPM2_ECDH_KeyGen: keyHandle %08" PRIx32 "\n", in->keyHandle);
 	fclose(f);
     }
     // Input Validation
@@ -213,7 +214,7 @@ TPM2_ECDH_ZGen(
     OBJECT                  *eccKey;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_ECDH_ZGen: keyHandle %08x\n", in->keyHandle);
+	fprintf(f, "TPM2_ECDH_ZGen: keyHandle %08" PRIx32 "\n", in->keyHandle);
 	fclose(f);
     }
     // Input Validation
@@ -278,7 +279,7 @@ TPM2_ZGen_2Phase(
     TPM_ALG_ID               scheme;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_ZGen_2Phase: keyA %08x\n", in->keyA);
+	fprintf(f, "TPM2_ZGen_2Phase: keyA %08" PRIx32 "\n", in->keyA);
 	fclose(f);
     }
     // Input Validation
@@ -341,7 +342,7 @@ TPM2_ECC_Encrypt(
 {
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_ECC_Encrypt: keyHandle %08x\n", in->keyHandle);
+	fprintf(f, "TPM2_ECC_Encrypt: keyHandle %08" PRIx32 "\n", in->keyHandle);
 	fclose(f);
     }
     OBJECT          *pubKey = HandleToObject(in->keyHandle);
@@ -369,7 +370,7 @@ TPM2_ECC_Decrypt(
 {
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_ECC_Decrypt: keyHandle %08x\n", in->keyHandle);
+	fprintf(f, "TPM2_ECC_Decrypt: keyHandle %08" PRIx32 "\n", in->keyHandle);
 	fclose(f);
     }
     OBJECT          *key = HandleToObject(in->keyHandle);

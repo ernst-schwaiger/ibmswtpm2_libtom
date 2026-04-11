@@ -58,6 +58,7 @@
 /*										*/
 /********************************************************************************/
 
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 #include "VerifySignature_fp.h"
 
@@ -88,7 +89,7 @@ TPM2_VerifySignature(VerifySignature_In*  in,  // IN: input parameter list
     TPMI_RH_HIERARCHY hierarchy;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_VerifySignature: keyHandle %08x\n", in->keyHandle);
+	fprintf(f, "TPM2_VerifySignature: keyHandle %08" PRIx32 "\n", in->keyHandle);
 	fclose(f);
     }
 
@@ -160,7 +161,7 @@ TPM2_Sign(Sign_In*  in,  // IN: input parameter list
     OBJECT*           signObject = HandleToObject(in->keyHandle);
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_Sign: keyHandle %08x\n", in->keyHandle);
+	fprintf(f, "TPM2_Sign: keyHandle %08" PRIx32 "\n", in->keyHandle);
 	fclose(f);
     }
     //

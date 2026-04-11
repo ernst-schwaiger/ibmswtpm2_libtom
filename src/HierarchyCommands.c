@@ -58,6 +58,7 @@
 /*										*/
 /********************************************************************************/
 
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 #include "CreatePrimary_fp.h"
 
@@ -78,7 +79,7 @@ TPM2_CreatePrimary(
     TPM2B_SEED     	primary_seed;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_CreatePrimary: primaryHandle %08x\n", in->primaryHandle);
+	fprintf(f, "TPM2_CreatePrimary: primaryHandle %08" PRIx32 "\n", in->primaryHandle);
 	fclose(f);
     }
     // Input Validation
@@ -161,7 +162,7 @@ TPM2_CreatePrimary(
 
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_CreatePrimary: objectHandle %08x\n", out->objectHandle);
+	fprintf(f, "TPM2_CreatePrimary: objectHandle %08" PRIx32 "\n", out->objectHandle);
 	fclose(f);
     }
     return result;
@@ -179,7 +180,7 @@ TPM2_HierarchyControl(
     BOOL        *selected = NULL;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_HierarchyControl: authHandle %08x\n", in->authHandle);
+	fprintf(f, "TPM2_HierarchyControl: authHandle %08" PRIx32 "\n", in->authHandle);
 	fclose(f);
     }
     // Input Validation
@@ -276,7 +277,7 @@ TPM2_SetPrimaryPolicy(
 {
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_SetPrimaryPolicy: authHandle %08x\n", in->authHandle);
+	fprintf(f, "TPM2_SetPrimaryPolicy: authHandle %08" PRIx32 "\n", in->authHandle);
 	fclose(f);
     }
     // Input Validation
@@ -345,7 +346,7 @@ TPM2_ChangePPS(
     UINT32          i;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_ChangePPS: authHandle %08x\n", in->authHandle);
+	fprintf(f, "TPM2_ChangePPS: authHandle %08" PRIx32 "\n", in->authHandle);
 	fclose(f);
     }
     // Check if NV is available.  A TPM_RC_NV_UNAVAILABLE or TPM_RC_NV_RATE
@@ -393,7 +394,7 @@ TPM2_ChangeEPS(
 {
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_ChangeEPS: authHandle %08x\n", in->authHandle);
+	fprintf(f, "TPM2_ChangeEPS: authHandle %08" PRIx32 "\n", in->authHandle);
 	fclose(f);
     }
     // The command needs NV update.  Check if NV is available.
@@ -441,7 +442,7 @@ TPM2_Clear(
 {
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_Clear: authHandle %08x\n", in->authHandle);
+	fprintf(f, "TPM2_Clear: authHandle %08" PRIx32 "\n", in->authHandle);
 	fclose(f);
     }
     // Input parameter is not reference in command action
@@ -509,7 +510,7 @@ TPM2_ClearControl(
 {
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_ClearControl: auth %08x\n", in->auth);
+	fprintf(f, "TPM2_ClearControl: auth %08" PRIx32 "\n", in->auth);
 	fclose(f);
     }
     // The command needs NV update.
@@ -539,7 +540,7 @@ TPM2_HierarchyChangeAuth(
 {
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_HierarchyChangeAuth: authHandle %08x\n", in->authHandle);
+	fprintf(f, "TPM2_HierarchyChangeAuth: authHandle %08" PRIx32 "\n", in->authHandle);
 	fclose(f);
     }
     // The command needs NV update.

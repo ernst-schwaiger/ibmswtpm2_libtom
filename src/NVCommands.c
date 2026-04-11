@@ -58,6 +58,7 @@
 /*										*/
 /********************************************************************************/
 
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 #include "NV_DefineSpace_fp.h"
 
@@ -73,8 +74,8 @@ TPM2_NV_DefineSpace(
     UINT16          nameSize;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_NV_DefineSpace: authHandle %08x\n", in->authHandle);
-	fprintf(f, "TPM2_NV_DefineSpace: nvIndex %08x attributes %08x\n",
+	fprintf(f, "TPM2_NV_DefineSpace: authHandle %08" PRIx32 "\n", in->authHandle);
+	fprintf(f, "TPM2_NV_DefineSpace: nvIndex %08" PRIx32 " attributes %08" PRIx32 "\n",
 		in->publicInfo.nvPublic.nvIndex, in->publicInfo.nvPublic.attributes);
 	fclose(f);
     }
@@ -234,8 +235,8 @@ TPM2_NV_UndefineSpace(
     NV_INDEX        *nvIndex = NvGetIndexInfo(in->nvIndex, &locator);
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_NV_UndefineSpace: authHandle %08x\n", in->authHandle);
-	fprintf(f, "TPM2_NV_UndefineSpace: nvIndex %08x\n", in->nvIndex);
+	fprintf(f, "TPM2_NV_UndefineSpace: authHandle %08" PRIx32 "\n", in->authHandle);
+	fprintf(f, "TPM2_NV_UndefineSpace: nvIndex %08" PRIx32 "\n", in->nvIndex);
 	fclose(f);
     }
     // Input Validation
@@ -266,8 +267,8 @@ TPM2_NV_UndefineSpaceSpecial(
     NV_INDEX        *nvIndex = NvGetIndexInfo(in->nvIndex, &locator);
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_NV_UndefineSpaceSpecial: nvIndex %08x\n", in->nvIndex);
-	fprintf(f, "TPM2_NV_UndefineSpaceSpecial: platform %08x\n", in->platform );
+	fprintf(f, "TPM2_NV_UndefineSpaceSpecial: nvIndex %08" PRIx32 "\n", in->nvIndex);
+	fprintf(f, "TPM2_NV_UndefineSpaceSpecial: platform %08" PRIx32 "\n", in->platform );
 	fclose(f);
     }
     // Input Validation
@@ -296,7 +297,7 @@ TPM2_NV_ReadPublic(
 {
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_NV_ReadPublic: nvIndex %08x\n", in->nvIndex);
+	fprintf(f, "TPM2_NV_ReadPublic: nvIndex %08" PRIx32 "\n", in->nvIndex);
 	fclose(f);
     }
     NV_INDEX        *nvIndex = NvGetIndexInfo(in->nvIndex, NULL);
@@ -321,8 +322,8 @@ TPM2_NV_Write(
     TPM_RC           result;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_NV_Write: authHandle %08x\n", in->authHandle);
-	fprintf(f, "TPM2_NV_Write: nvIndex %08x\n", in->nvIndex);
+	fprintf(f, "TPM2_NV_Write: authHandle %08" PRIx32 "\n", in->authHandle);
+	fprintf(f, "TPM2_NV_Write: nvIndex %08" PRIx32 "\n", in->nvIndex);
 	fclose(f);
     }
     // Input Validation
@@ -374,8 +375,8 @@ TPM2_NV_Increment(
     UINT64           countValue;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_NV_Increment: authHandle %08x\n", in->authHandle);
-	fprintf(f, "TPM2_NV_Increment: nvIndex %08x\n", in->nvIndex);
+	fprintf(f, "TPM2_NV_Increment: authHandle %08" PRIx32 "\n", in->authHandle);
+	fprintf(f, "TPM2_NV_Increment: nvIndex %08" PRIx32 "\n", in->nvIndex);
 	fclose(f);
     }
     // Input Validation
@@ -433,8 +434,8 @@ TPM2_NV_Extend(
     HASH_STATE              hashState;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_NV_Extend: authHandle %08x\n", in->authHandle);
-	fprintf(f, "TPM2_NV_Extend: nvIndex %08x\n", in->nvIndex);
+	fprintf(f, "TPM2_NV_Extend: authHandle %08" PRIx32 "\n", in->authHandle);
+	fprintf(f, "TPM2_NV_Extend: nvIndex %08" PRIx32 "\n", in->nvIndex);
 	fclose(f);
     }
     // Input Validation
@@ -488,8 +489,8 @@ TPM2_NV_SetBits(
     UINT64           newValue;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_NV_SetBits: authHandle %08x\n", in->authHandle);
-	fprintf(f, "TPM2_NV_SetBits: nvIndex %08x\n", in->nvIndex);
+	fprintf(f, "TPM2_NV_SetBits: authHandle %08" PRIx32 "\n", in->authHandle);
+	fprintf(f, "TPM2_NV_SetBits: nvIndex %08" PRIx32 "\n", in->nvIndex);
 	fclose(f);
     }
     // Input Validation
@@ -529,8 +530,8 @@ TPM2_NV_WriteLock(
     TPMA_NV          nvAttributes = nvIndex->publicArea.attributes;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_NV_WriteLock: authHandle %08x\n", in->authHandle);
-	fprintf(f, "TPM2_NV_WriteLock: nvIndex %08x\n", in->nvIndex);
+	fprintf(f, "TPM2_NV_WriteLock: authHandle %08" PRIx32 "\n", in->authHandle);
+	fprintf(f, "TPM2_NV_WriteLock: nvIndex %08" PRIx32 "\n", in->nvIndex);
 	fclose(f);
     }
     // Input Validation:
@@ -570,7 +571,7 @@ TPM2_NV_GlobalWriteLock(
 {
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_NV_GlobalWriteLock: authHandle %08x\n", in->authHandle);
+	fprintf(f, "TPM2_NV_GlobalWriteLock: authHandle %08" PRIx32 "\n", in->authHandle);
 	fclose(f);
     }
     // Input parameter (the authorization handle) is not reference in command action.
@@ -601,8 +602,8 @@ TPM2_NV_Read(
     TPM_RC           result;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_NV_Read: authHandle %08x\n", in->authHandle);
-	fprintf(f, "TPM2_NV_Read: nvIndex %08x\n", in->nvIndex);
+	fprintf(f, "TPM2_NV_Read: authHandle %08" PRIx32 "\n", in->authHandle);
+	fprintf(f, "TPM2_NV_Read: nvIndex %08" PRIx32 "\n", in->nvIndex);
 	fclose(f);
     }
     // Input Validation
@@ -641,8 +642,8 @@ TPM2_NV_ReadLock(
     NV_REF           locator;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_NV_ReadLock: authHandle %08x\n", in->authHandle);
-	fprintf(f, "TPM2_NV_ReadLock: nvIndex %08x\n", in->nvIndex);
+	fprintf(f, "TPM2_NV_ReadLock: authHandle %08" PRIx32 "\n", in->authHandle);
+	fprintf(f, "TPM2_NV_ReadLock: nvIndex %08" PRIx32 "\n", in->nvIndex);
 	fclose(f);
     }
     // The referenced index has been checked multiple times before this is called
@@ -686,7 +687,7 @@ TPM2_NV_ChangeAuth(
     NV_INDEX        *nvIndex = NvGetIndexInfo(in->nvIndex, &locator);
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_NV_ChangeAuth: nvIndex %08x\n", in->nvIndex);
+	fprintf(f, "TPM2_NV_ChangeAuth: nvIndex %08" PRIx32 "\n", in->nvIndex);
 	fclose(f);
     }
     // Input Validation
@@ -717,9 +718,9 @@ TPM2_NV_Certify(
     OBJECT                 *signObject = HandleToObject(in->signHandle);
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_NV_Certify: signHandle %08x\n", in->signHandle);
-	fprintf(f, "TPM2_NV_Certify: authHandle %08x\n", in->authHandle);
-	fprintf(f, "TPM2_NV_Certify: nvIndex %08x\n", in->nvIndex);
+	fprintf(f, "TPM2_NV_Certify: signHandle %08" PRIx32 "\n", in->signHandle);
+	fprintf(f, "TPM2_NV_Certify: authHandle %08" PRIx32 "\n", in->authHandle);
+	fprintf(f, "TPM2_NV_Certify: nvIndex %08" PRIx32 "\n", in->nvIndex);
 	fclose(f);
     }
     // Input Validation
@@ -807,7 +808,7 @@ TPM2_NV_ReadPublic2(NV_ReadPublic2_In*  in,  // IN: input parameter list
     NV_INDEX* nvIndex;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_NV_ReadPublic2: nvIndex %08x\n", in->nvIndex);
+	fprintf(f, "TPM2_NV_ReadPublic2: nvIndex %08" PRIx32 "\n", in->nvIndex);
 	fclose(f);
     }
 
@@ -862,8 +863,8 @@ TPM2_NV_DefineSpace2(NV_DefineSpace2_In* in  // IN: input parameter list
     TPMS_NV_PUBLIC legacyPublic;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_NV_DefineSpace2: authHandle %08x\n", in->authHandle);
-	fprintf(f, "TPM2_NV_DefineSpace2: nvIndex %08x\n",
+	fprintf(f, "TPM2_NV_DefineSpace2: authHandle %08" PRIx32 "\n", in->authHandle);
+	fprintf(f, "TPM2_NV_DefineSpace2: nvIndex %08" PRIx32 "\n",
 		in->publicInfo.nvPublic2.nvPublic2.nvIndex.nvIndex);
 	fclose(f);
     }

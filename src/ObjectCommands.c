@@ -60,6 +60,7 @@
 
 extern int verbose;
 
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 #include "Object_spt_fp.h"
 #include "Create_fp.h"
@@ -123,7 +124,7 @@ TPM2_Create(Create_In*  in,  // IN: input parameter list
     TPMT_PUBLIC* publicArea;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_Create: parentHandle %08x\n", in->parentHandle);
+	fprintf(f, "TPM2_Create: parentHandle %08" PRIx32 "\n", in->parentHandle);
 	fclose(f);
     }
 
@@ -214,7 +215,7 @@ TPM2_Load(
     OBJECT                  *newObject;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_Load: parentHandle %08x\n", in->parentHandle);
+	fprintf(f, "TPM2_Load: parentHandle %08" PRIx32 "\n", in->parentHandle);
 	fclose(f);
     }
     // Input Validation
@@ -253,7 +254,7 @@ TPM2_Load(
 	}
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_Load: objectHandle %08x\n", out->objectHandle);
+	fprintf(f, "TPM2_Load: objectHandle %08" PRIx32 "\n", out->objectHandle);
 	fclose(f);
     }
     return result;
@@ -316,7 +317,7 @@ TPM2_LoadExternal(
 	}
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_LoadExternal: objectHandle %08x\n", out->objectHandle);
+	fprintf(f, "TPM2_LoadExternal: objectHandle %08" PRIx32 "\n", out->objectHandle);
 	fclose(f);
     }
     return result;
@@ -334,7 +335,7 @@ TPM2_ReadPublic(
     OBJECT                  *object = HandleToObject(in->objectHandle);
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_ReadPublic: objectHandle %08x\n", in->objectHandle);
+	fprintf(f, "TPM2_ReadPublic: objectHandle %08" PRIx32 "\n", in->objectHandle);
 	fclose(f);
     }
     // Input Validation
@@ -364,8 +365,8 @@ TPM2_ActivateCredential(
     TPM2B_DATA               data;          // credential data
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_ActivateCredential: activateHandle %08x\n", in->activateHandle);
-	fprintf(f, "TPM2_ActivateCredential: keyHandle %08x\n", in->keyHandle);
+	fprintf(f, "TPM2_ActivateCredential: activateHandle %08" PRIx32 "\n", in->activateHandle);
+	fprintf(f, "TPM2_ActivateCredential: keyHandle %08" PRIx32 "\n", in->keyHandle);
 	fclose(f);
     }
     // Input Validation
@@ -401,8 +402,8 @@ TPM2_ActivateCredential(
 	return RcSafeAddToResult(result, RC_ActivateCredential_credentialBlob);
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "ActivateCredential: activateHandle %08x\n", in->activateHandle);
-	fprintf(f, "ActivateCredential: keyHandle %08x\n", in->keyHandle);
+	fprintf(f, "ActivateCredential: activateHandle %08" PRIx32 "\n", in->activateHandle);
+	fprintf(f, "ActivateCredential: keyHandle %08" PRIx32 "\n", in->keyHandle);
 	fclose(f);
     }
     return TPM_RC_SUCCESS;
@@ -423,7 +424,7 @@ TPM2_MakeCredential(
     TPM2B_DATA           data;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_MakeCredential: handle %08x\n", in->handle);
+	fprintf(f, "TPM2_MakeCredential: handle %08" PRIx32 "\n", in->handle);
 	fclose(f);
     }
    // Input Validation
@@ -463,7 +464,7 @@ TPM2_Unseal(
     OBJECT                  *object;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_Unseal: itemHandle %08x\n", in->itemHandle);
+	fprintf(f, "TPM2_Unseal: itemHandle %08" PRIx32 "\n", in->itemHandle);
 	fclose(f);
     }
     // Input Validation
@@ -497,8 +498,8 @@ TPM2_ObjectChangeAuth(
     TPM2B_NAME               QNCompare;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_ObjectChangeAuth: objectHandle %08x\n", in->objectHandle);
-	fprintf(f, "TPM2_ObjectChangeAuth: parentHandle %08x\n", in->parentHandle);
+	fprintf(f, "TPM2_ObjectChangeAuth: objectHandle %08" PRIx32 "\n", in->objectHandle);
+	fprintf(f, "TPM2_ObjectChangeAuth: parentHandle %08" PRIx32 "\n", in->parentHandle);
 	fclose(f);
     }
     // Input Validation
@@ -590,7 +591,7 @@ TPM2_CreateLoaded(CreateLoaded_In*  in,  // IN: input parameter list
     TPMS_DERIVE  labelContext;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_CreateLoaded: parentHandle %08x\n", in->parentHandle);
+	fprintf(f, "TPM2_CreateLoaded: parentHandle %08" PRIx32 "\n", in->parentHandle);
 	fclose(f);
     }
 
@@ -738,7 +739,7 @@ TPM2_CreateLoaded(CreateLoaded_In*  in,  // IN: input parameter list
 
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_CreateLoaded: objectHandle %08x\n", out->objectHandle);
+	fprintf(f, "TPM2_CreateLoaded: objectHandle %08" PRIx32 "\n", out->objectHandle);
 	fclose(f);
     }
    return result;

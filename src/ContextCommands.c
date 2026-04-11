@@ -59,7 +59,7 @@
 /********************************************************************************/
 
 extern int verbose;
-
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 
 #if CC_ContextSave  // Conditional expansion of this file
@@ -93,7 +93,7 @@ TPM2_ContextSave(ContextSave_In*  in,  // IN: input parameter list
     BYTE*         buffer;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_ContextSave: %08x\n", in->saveHandle);
+	fprintf(f, "TPM2_ContextSave: %08" PRIx32 "\n", in->saveHandle);
 	fclose(f);
     }
 
@@ -441,7 +441,7 @@ TPM2_ContextLoad(ContextLoad_In*  in,  // IN: input parameter list
 
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_ContextLoad: %08x\n", out->loadedHandle);
+	fprintf(f, "TPM2_ContextLoad: %08" PRIx32 "\n", out->loadedHandle);
 	fclose(f);
     }
     return TPM_RC_SUCCESS;
@@ -459,7 +459,7 @@ TPM2_FlushContext(
 {
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_FlushContext: %08x\n", in->flushHandle);
+	fprintf(f, "TPM2_FlushContext: %08" PRIx32 "\n", in->flushHandle);
 	fclose(f);
     }
     // Internal Data Update
@@ -525,8 +525,8 @@ TPM2_EvictControl(EvictControl_In* in  // IN: input parameter list
 
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "EvictControl: persistentHandle %08x\n", in->persistentHandle);
-	fprintf(f, "EvictControl: objectHandle %08x\n", in->objectHandle);
+	fprintf(f, "EvictControl: persistentHandle %08" PRIx32 "\n", in->persistentHandle);
+	fprintf(f, "EvictControl: objectHandle %08" PRIx32 "\n", in->objectHandle);
 	fclose(f);
     }
 

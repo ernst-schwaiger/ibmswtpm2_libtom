@@ -58,6 +58,7 @@
 /*										*/
 /********************************************************************************/
 
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 #include "SetCommandCodeAuditStatus_fp.h"
 
@@ -71,7 +72,7 @@ TPM2_SetCommandCodeAuditStatus(
 {
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_SetCommandCodeAuditStatus: auth %08x\n", in->auth);
+	fprintf(f, "TPM2_SetCommandCodeAuditStatus: auth %08" PRIx32 "\n", in->auth);
 	fclose(f);
     }
     // The command needs NV update.  Check if NV is available.

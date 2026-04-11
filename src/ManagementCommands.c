@@ -59,6 +59,7 @@
 /*										*/
 /********************************************************************************/
 
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 #include "PP_Commands_fp.h"
 
@@ -73,7 +74,7 @@ TPM2_PP_Commands(
     UINT32          i;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PP_Commands: auth %08x\n", in->auth);
+	fprintf(f, "TPM2_PP_Commands: auth %08" PRIx32 "\n", in->auth);
 	fclose(f);
     }
     // The command needs NV update.  Check if NV is available.
@@ -110,7 +111,7 @@ TPM2_SetAlgorithmSet(
 {
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_SetAlgorithmSet: authHandle %08x\n", in->authHandle);
+	fprintf(f, "TPM2_SetAlgorithmSet: authHandle %08" PRIx32 "\n", in->authHandle);
 	fclose(f);
     }
     // The command needs NV update.  Check if NV is available.

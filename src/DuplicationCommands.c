@@ -59,6 +59,7 @@
 /*										*/
 /********************************************************************************/
 
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 #include "Duplicate_fp.h"
 #if CC_Duplicate  // Conditional expansion of this file
@@ -80,8 +81,8 @@ TPM2_Duplicate(
     TPM2B_DATA              data;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_Duplicate: newParentHandle %08x\n", in->newParentHandle);
-	fprintf(f, "TPM2_Duplicate: objectHandle %08x\n", in->objectHandle);
+	fprintf(f, "TPM2_Duplicate: newParentHandle %08" PRIx32 "\n", in->newParentHandle);
+	fprintf(f, "TPM2_Duplicate: objectHandle %08" PRIx32 "\n", in->objectHandle);
 	fclose(f);
     }
     // Input Validation
@@ -171,8 +172,8 @@ TPM2_Rewrap(
     TPM2B_PRIVATE           privateBlob;        // A temporary private blob
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_Rewrap: oldParent %08x\n", in->oldParent);
-	fprintf(f, "TPM2_Rewrap: newParent %08x\n", in->newParent);
+	fprintf(f, "TPM2_Rewrap: oldParent %08" PRIx32 "\n", in->oldParent);
+	fprintf(f, "TPM2_Rewrap: newParent %08" PRIx32 "\n", in->newParent);
 	fclose(f);
     }
     // to transit between old
@@ -280,7 +281,7 @@ TPM2_Import(
     UINT16                   innerKeySize = 0;       // encrypt key size for inner
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_Import: %08x\n", in->parentHandle);
+	fprintf(f, "TPM2_Import: %08" PRIx32 "\n", in->parentHandle);
 	fclose(f);
     }
    // wrapper

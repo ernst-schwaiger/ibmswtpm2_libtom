@@ -60,6 +60,7 @@
 
 #include "Tpm.h"
 #include "GetCapability_fp.h"
+#include <inttypes.h> // ernst: portable formatstrings
 
 extern int verbose;
 
@@ -73,7 +74,7 @@ TPM2_GetCapability(
     TPMU_CAPABILITIES   *data = &out->capabilityData.data;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_GetCapability: capability %x\n", in->capability);
+	fprintf(f, "TPM2_GetCapability: capability %" PRIx32 "\n", in->capability);
 	fclose(f);
     }
     // Command Output

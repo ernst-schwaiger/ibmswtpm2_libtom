@@ -61,6 +61,7 @@
 /* 6.2 ExecCommand.c */
 /* This file contains the entry function ExecuteCommand() which provides the main control flow for
    TPM command execution. */
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 #include "ExecCommand_fp.h"
 
@@ -185,7 +186,7 @@ ExecuteCommand(
 			      &command.parameterSize);
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "\t\tCommand Code %08x\n", command.code);
+	fprintf(f, "\t\tCommand Code %08" PRIx32 "\n", command.code);
 	fclose(f);
     }
     if(result != TPM_RC_SUCCESS)
@@ -292,7 +293,7 @@ ExecuteCommand(
  Cleanup:
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "\t\tReturn Code %08x\n", result);
+	fprintf(f, "\t\tReturn Code %08" PRIx32 "\n", result);
 	fclose(f);
     }
     if(g_clearOrderly == TRUE

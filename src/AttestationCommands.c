@@ -60,6 +60,7 @@
 /*										*/
 /********************************************************************************/
 
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 #include "Attest_spt_fp.h"
 #include "Certify_fp.h"
@@ -78,8 +79,8 @@ TPM2_Certify(
     OBJECT                  *certifiedObject = HandleToObject(in->objectHandle);
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_Certify: signHandle %08x\n", in->signHandle);
-	fprintf(f, "TPM2_Certify: objectHandle %08x\n", in->objectHandle);
+	fprintf(f, "TPM2_Certify: signHandle %08" PRIx32 "\n", in->signHandle);
+	fprintf(f, "TPM2_Certify: objectHandle %08" PRIx32 "\n", in->objectHandle);
 	fclose(f);
     }
     // Input validation
@@ -129,8 +130,8 @@ TPM2_CertifyCreation(
     OBJECT                  *signObject = HandleToObject(in->signHandle);
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_CertifyCreation: signHandle %08x\n", in->signHandle);
-	fprintf(f, "TPM2_CertifyCreation: objectHandle %08x\n", in->objectHandle);
+	fprintf(f, "TPM2_CertifyCreation: signHandle %08" PRIx32 "\n", in->signHandle);
+	fprintf(f, "TPM2_CertifyCreation: objectHandle %08" PRIx32 "\n", in->objectHandle);
 	fclose(f);
     }
     // Input Validation
@@ -179,7 +180,7 @@ TPM2_Quote(
     OBJECT                 *signObject = HandleToObject(in->signHandle);
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_Quote: signHandle %08x\n", in->signHandle);
+	fprintf(f, "TPM2_Quote: signHandle %08" PRIx32 "\n", in->signHandle);
 	fclose(f);
     }
     // Input Validation
@@ -228,8 +229,8 @@ TPM2_GetSessionAuditDigest(
     OBJECT                 *signObject = HandleToObject(in->signHandle);
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_GetSessionAuditDigest: signHandle %08x\n", in->signHandle);
-	fprintf(f, "TPM2_GetSessionAuditDigest: sessionHandle %08x\n", in->sessionHandle);
+	fprintf(f, "TPM2_GetSessionAuditDigest: signHandle %08" PRIx32 "\n", in->signHandle);
+	fprintf(f, "TPM2_GetSessionAuditDigest: sessionHandle %08" PRIx32 "\n", in->sessionHandle);
 	fclose(f);
     }
     // Input Validation
@@ -272,7 +273,7 @@ TPM2_GetCommandAuditDigest(
     OBJECT                 *signObject = HandleToObject(in->signHandle);
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_GetCommandAuditDigest: signHandle %08x\n", in->signHandle);
+	fprintf(f, "TPM2_GetCommandAuditDigest: signHandle %08" PRIx32 "\n", in->signHandle);
 	fclose(f);
     }
     // Input validation
@@ -319,7 +320,7 @@ TPM2_GetTime(
     OBJECT                 *signObject = HandleToObject(in->signHandle);
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_GetTime: signHandle %08x\n", in->signHandle);
+	fprintf(f, "TPM2_GetTime: signHandle %08" PRIx32 "\n", in->signHandle);
 	fclose(f);
     }
     // Input Validation
@@ -385,8 +386,8 @@ TPM2_CertifyX509(
     //
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_CertifyX509: signHandle %08x\n", in->signHandle);
-	fprintf(f, "TPM2_CertifyX509: objectHandle %08x\n", in->objectHandle);
+	fprintf(f, "TPM2_CertifyX509: signHandle %08" PRIx32 "\n", in->signHandle);
+	fprintf(f, "TPM2_CertifyX509: objectHandle %08" PRIx32 "\n", in->objectHandle);
 	fclose(f);
     }
 #if CERTIFYX509_DEBUG

@@ -60,6 +60,7 @@
 /********************************************************************************/
 
 //** Includes, Defines, and Types
+#include <inttypes.h> // ernst: portable formatstrings
 #include    "Tpm.h"
 #include    "PlatformACT_fp.h"		/* kgold */
 #include    "TpmSizeChecks_fp.h"
@@ -170,13 +171,13 @@ TpmSizeChecks(
 
         if(MAX_CONTEXT_SIZE < biggestContext)
 	    {
-		printf("MAX_CONTEXT_SIZE needs to be increased to at least to %d (%d)\n",
+		printf("MAX_CONTEXT_SIZE needs to be increased to at least to %" PRId32 " (%d)\n",
 		       biggestContext, MAX_CONTEXT_SIZE);
 		PASS = FALSE;
 	    }
 	else if (MAX_CONTEXT_SIZE > biggestContext)
 	    {
-		printf("MAX_CONTEXT_SIZE can be reduced to %d (%d)\n",
+		printf("MAX_CONTEXT_SIZE can be reduced to %" PRId32 " (%d)\n",
 		       biggestContext, MAX_CONTEXT_SIZE);
 	    }
     }
@@ -213,7 +214,7 @@ TpmSizeChecks(
 			FOR_EACH_ACT(CASE_ACT_NUMBER)
 			    if(!_plat__ACT_GetImplemented(act))
 				{
-				    printf("TPM_RH_ACT_%1X is not implemented by platform\n",
+				    printf("TPM_RH_ACT_%1" PRIx32 " is not implemented by platform\n",
 					   act);
 				    PASS = FALSE;
 				}

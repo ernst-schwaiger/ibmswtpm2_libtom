@@ -60,6 +60,7 @@
 
 extern int verbose;
 
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 #include "Commit_fp.h"
 #include "TpmMath_Util_fp.h"
@@ -97,7 +98,7 @@ TPM2_Commit(Commit_In*  in,  // IN: input parameter list
     TPMS_ECC_PARMS*     parms;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_Commit: signHandle %08x\n", in->signHandle);
+	fprintf(f, "TPM2_Commit: signHandle %08" PRIx32 "\n", in->signHandle);
 	fclose(f);
     }
 

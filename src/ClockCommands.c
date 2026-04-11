@@ -58,6 +58,7 @@
 /*										*/
 /********************************************************************************/
 
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 #include "ReadClock_fp.h"
 
@@ -90,7 +91,7 @@ TPM2_ClockSet(
 {
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_ClockSet: auth %08x\n", in->auth);
+	fprintf(f, "TPM2_ClockSet: auth %08" PRIx32 "\n", in->auth);
 	fclose(f);
     }
     // Input Validation
@@ -116,7 +117,7 @@ TPM2_ClockRateAdjust(
 {
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_ClockRateAdjust: auth %08x\n", in->auth);
+	fprintf(f, "TPM2_ClockRateAdjust: auth %08" PRIx32 "\n", in->auth);
 	fclose(f);
     }
     // Internal Data Update

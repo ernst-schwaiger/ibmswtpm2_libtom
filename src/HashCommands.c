@@ -59,6 +59,7 @@
 /*										*/
 /********************************************************************************/
 
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 #include "HMAC_Start_fp.h"
 
@@ -76,7 +77,7 @@ TPM2_HMAC_Start(
     TPM_ALG_ID               hashAlg;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_HMAC_Start: handle %08x\n", in->handle);
+	fprintf(f, "TPM2_HMAC_Start: handle %08" PRIx32 "\n", in->handle);
 	fclose(f);
     }
     // Input Validation
@@ -113,7 +114,7 @@ TPM2_HMAC_Start(
     // returned at this point
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_HMAC_Start: sequenceHandle %08x\n", out->sequenceHandle);
+	fprintf(f, "TPM2_HMAC_Start: sequenceHandle %08" PRIx32 "\n", out->sequenceHandle);
 	fclose(f);
     }
     return ObjectCreateHMACSequence(hashAlg,
@@ -142,7 +143,7 @@ TPM2_MAC_Start(
     TPM_RC                   result;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_MAC_Start: handle %08x\n", in->handle);
+	fprintf(f, "TPM2_MAC_Start: handle %08" PRIx32 "\n", in->handle);
 	fclose(f);
     }
     // Input Validation
@@ -170,7 +171,7 @@ TPM2_MAC_Start(
     // returned at this point
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_MAC_Start: sequenceHandle %08x\n", out->sequenceHandle);
+	fprintf(f, "TPM2_MAC_Start: sequenceHandle %08" PRIx32 "\n", out->sequenceHandle);
 	fclose(f);
     }
     return ObjectCreateHMACSequence(in->inScheme,
@@ -197,7 +198,7 @@ TPM2_HashSequenceStart(
     // returned at this point
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_HashSequenceStart: sequenceHandle %08x\n", out->sequenceHandle);
+	fprintf(f, "TPM2_HashSequenceStart: sequenceHandle %08" PRIx32 "\n", out->sequenceHandle);
 	fclose(f);
     }
     return ObjectCreateHashSequence(in->hashAlg, &in->auth, &out->sequenceHandle);
@@ -215,7 +216,7 @@ TPM2_SequenceUpdate(
     HASH_OBJECT             *hashObject;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_SequenceUpdate: sequenceHandle %08x\n", in->sequenceHandle);
+	fprintf(f, "TPM2_SequenceUpdate: sequenceHandle %08" PRIx32 "\n", in->sequenceHandle);
 	fclose(f);
     }
     // Input Validation
@@ -279,7 +280,7 @@ TPM2_SequenceComplete(
     HASH_OBJECT                      *hashObject;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_SequenceComplete: sequenceHandle %08x\n", in->sequenceHandle);
+	fprintf(f, "TPM2_SequenceComplete: sequenceHandle %08" PRIx32 "\n", in->sequenceHandle);
 	fclose(f);
     }
     // Input validation
@@ -369,8 +370,8 @@ TPM2_EventSequenceComplete(
     TPM_ALG_ID           hashAlg;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_EventSequenceComplete: pcrHandle %u\n", in->pcrHandle);
-	fprintf(f, "TPM2_EventSequenceComplete: sequenceHandle %08x\n", in->sequenceHandle);
+	fprintf(f, "TPM2_EventSequenceComplete: pcrHandle %" PRIu32 "\n", in->pcrHandle);
+	fprintf(f, "TPM2_EventSequenceComplete: sequenceHandle %08" PRIx32 "\n", in->sequenceHandle);
 	fclose(f);
     }
     // Input validation

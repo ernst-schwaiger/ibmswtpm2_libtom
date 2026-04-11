@@ -59,6 +59,7 @@
 /*										*/
 /********************************************************************************/
 
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 #include "StartAuthSession_fp.h"
 
@@ -162,7 +163,7 @@ TPM2_StartAuthSession(
 			   &out->nonceTPM);
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_StartAuthSession: sessionHandle %08x\n", out->sessionHandle);
+	fprintf(f, "TPM2_StartAuthSession: sessionHandle %08" PRIx32 "\n", out->sessionHandle);
 	fclose(f);
     }
     return result;
@@ -178,7 +179,7 @@ TPM2_PolicyRestart(
 {
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_PolicyRestart: sessionHandle %08x\n", in->sessionHandle);
+	fprintf(f, "TPM2_PolicyRestart: sessionHandle %08" PRIx32 "\n", in->sessionHandle);
 	fclose(f);
     }
     // Initialize policy session data

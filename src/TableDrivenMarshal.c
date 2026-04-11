@@ -721,7 +721,7 @@ Unmarshal(
 		      }
 		  break;
 	      }
-#endof // 0
+#endif // 0
 	  default:
 	      {
 		  result = TPM_RC_FAILURE;

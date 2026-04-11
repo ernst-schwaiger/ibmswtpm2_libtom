@@ -59,6 +59,7 @@
 /*										*/
 /********************************************************************************/
 
+#include <inttypes.h> // ernst: portable formatstrings
 #include "Tpm.h"
 #include "EncryptDecrypt_fp.h"
 #if CC_EncryptDecrypt2
@@ -89,7 +90,7 @@ TPM2_EncryptDecrypt(
     TPMA_OBJECT          attributes;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_EncryptDecrypt: keyHandle %08x\n", in->keyHandle);
+	fprintf(f, "TPM2_EncryptDecrypt: keyHandle %08" PRIx32 "\n", in->keyHandle);
 	fclose(f);
     }
     // Input Validation
@@ -186,7 +187,7 @@ TPM2_EncryptDecrypt2(
     TPM_RC                result;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_EncryptDecrypt2: keyHandle %08x\n", in->keyHandle);
+	fprintf(f, "TPM2_EncryptDecrypt2: keyHandle %08" PRIx32 "\n", in->keyHandle);
 	fclose(f);
     }
     // EncryptDecyrptShared() performs the operations as shown in
@@ -275,7 +276,7 @@ TPM2_HMAC(
     TPMT_PUBLIC             *publicArea;
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_HMAC: handle %08x\n", in->handle);
+	fprintf(f, "TPM2_HMAC: handle %08" PRIx32 "\n", in->handle);
 	fclose(f);
     }
     // Input Validation
@@ -341,7 +342,7 @@ TPM2_MAC(
     // Input Validation
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	fprintf(f, "TPM2_HMAC: handle %08x\n", in->handle);
+	fprintf(f, "TPM2_HMAC: handle %08" PRIx32 "\n", in->handle);
 	fclose(f);
     }
     // Get MAC key object and public area pointers
