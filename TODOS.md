@@ -98,3 +98,71 @@ TSS_RC_X509_ERROR - X509 parse or verify error
 
 ## LibTomMath/LibTomCrypt Pull Requests
 - report some bracing errors in ltm_desc.c (see git history)
+- report typo in TableDrivenMarshal.c, Line 724: #endof -> #endif
+
+## Configure serial communication
+
+- Read configuration of Raspbian Serial Port: `stty -F /dev/ttyAMA0 -a`
+
+- Configure ttyAMA via stty 1200 baud, no parity, one stop bit, 8 data bits, no flow control
+
+```
+ernst@raspi4:~/projects/ibmswtpm/readserial $ stty -F /dev/ttyAMA0 1200
+ernst@raspi4:~/projects/ibmswtpm/readserial $ stty -F /dev/ttyAMA0 -parenb
+ernst@raspi4:~/projects/ibmswtpm/readserial $ stty -F /dev/ttyAMA0 -cstopb
+ernst@raspi4:~/projects/ibmswtpm/readserial $ stty -F /dev/ttyAMA0 cs8
+ernst@raspi4:~/projects/ibmswtpm/readserial $ stty -F /dev/ttyAMA0 -crtscts
+```
+
+cat content of serial device `sudo cat /dev/ttyAMA0 | hexdump -C`
+
+speed 115200 baud; rows 24; columns 80; line = 0;
+intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>;
+eol2 = <undef>; swtch = <undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R;
+werase = ^W; lnext = ^V; discard = ^O; min = 1; time = 0;
+-parenb -parodd -cmspar cs8 hupcl -cstopb cread clocal -crtscts
+-ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr -icrnl -ixon -ixoff
+-iuclc -ixany -imaxbel iutf8
+opost -olcuc -ocrnl onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0
+-isig -icanon -iexten -echo -echoe -echok -echonl -noflsh -xcase -tostop -echoprt
+-echoctl -echoke -flusho -extproc
+
+
+### Reconfigure that kernel uses serial0/ttyAMA0 as boot and dmesg console
+
+- remove the entry `console=serial0,115200` from `/boot/firmware/cmdline.txt`
+- reboot, prevent that systemd uses a login promt on serial0/ttyAMA0
+
+```
+sudo systemctl stop serial-getty@serial0.service
+sudo systemctl disable serial-getty@serial0.service
+sudo systemctl stop serial-getty@ttyAMA0.service
+sudo systemctl disable serial-getty@ttyAMA0.service
+```
+
+verify that the services are disabled:
+```
+systemctl status serial-getty@serial0.service
+systemctl status serial-getty@ttyAMA0.service
+```
+
+reboot again
+
+### Virtual Sockets Based on Serial Embedded Interfaces
+
+bool ReadBytes(SOCKET s, char *buffer, int NumBytes)
+bool WriteBytes(SOCKET s, char *buffer, int NumBytes)
+bool WriteUINT32(SOCKET s, uint32_t val)
+bool ReadUINT32(SOCKET s, uint32_t *val)
+bool ReadVarBytes(SOCKET s, char *buffer, uint32_t *BytesReceived, int MaxLen)
+bool WriteVarBytes(SOCKET s, char *buffer, int BytesToSend)
+
+static int CreateSocket(int PortNumber, SOCKET listenSocket, socklen_t addr_len, int domain)
+WriteVarBytes
+FD_SET
+FD_ISSET
+read()
+write()
+accept()
+close()
+select()

@@ -1,3 +1,4 @@
+*.bak
 src/libtommath/
 src/libtomcrypt/
 src/Debug/
