@@ -227,7 +227,7 @@ TPM2_SequenceUpdate(
     if(!ObjectIsSequence(object))
 	return TPM_RCS_MODE + RC_SequenceUpdate_sequenceHandle;
     // Internal Data Update
-    if(object->attributes.eventSeq == SET)
+    if(object->attributes.eventSeq == TPM_SET)
 	{
 	    // Update event sequence object
 	    UINT32           i;
@@ -240,23 +240,23 @@ TPM2_SequenceUpdate(
     else
 	{
 	    // Update hash/HMAC sequence object
-	    if(hashObject->attributes.hashSeq == SET)
+	    if(hashObject->attributes.hashSeq == TPM_SET)
 	        {
 	            // Is this the first block of the sequence
-	            if(hashObject->attributes.firstBlock == CLEAR)
+	            if(hashObject->attributes.firstBlock == TPM_CLEAR)
 			{
 			    // If so, indicate that first block was received
-			    hashObject->attributes.firstBlock = SET;
+			    hashObject->attributes.firstBlock = TPM_SET;
 			    // Check the first block to see if the first block can contain
 			    // the TPM_GENERATED_VALUE.  If it does, it is not safe for
 			    // a ticket.
 			    if(TicketIsSafe(&in->buffer.b))
-				hashObject->attributes.ticketSafe = SET;
+				hashObject->attributes.ticketSafe = TPM_SET;
 			}
 	            // Update sequence object hash/HMAC stack
 	            CryptDigestUpdate2B(&hashObject->state.hashState[0], &in->buffer.b);
 	        }
-	    else if(object->attributes.hmacSeq == SET)
+	    else if(object->attributes.hmacSeq == TPM_SET)
 	        {
 	            // Update sequence object HMAC stack
 	            CryptDigestUpdate2B(&hashObject->state.hmacState.hashState,
@@ -287,11 +287,11 @@ TPM2_SequenceComplete(
     // Get hash object pointer
     hashObject = (HASH_OBJECT *)HandleToObject(in->sequenceHandle);
     // input handle must be a hash or HMAC sequence object.
-    if(hashObject->attributes.hashSeq == CLEAR
-       && hashObject->attributes.hmacSeq == CLEAR)
+    if(hashObject->attributes.hashSeq == TPM_CLEAR
+       && hashObject->attributes.hmacSeq == TPM_CLEAR)
 	return TPM_RCS_MODE + RC_SequenceComplete_sequenceHandle;
     // Command Output
-    if(hashObject->attributes.hashSeq == SET)           // sequence object for hash
+    if(hashObject->attributes.hashSeq == TPM_SET)           // sequence object for hash
 	{
 	    // Get the hash algorithm before the algorithm is lost in CryptHashEnd
 	    TPM_ALG_ID       hashAlg = hashObject->state.hashState[0].hashAlg;
@@ -302,12 +302,12 @@ TPM2_SequenceComplete(
 					      sizeof(out->result.t.buffer),
 					      out->result.t.buffer);
 	    // Check if the first block of the sequence has been received
-	    if(hashObject->attributes.firstBlock == CLEAR)
+	    if(hashObject->attributes.firstBlock == TPM_CLEAR)
 		{
 		    // If not, then this is the first block so see if it is 'safe'
 		    // to sign.
 		    if(TicketIsSafe(&in->buffer.b))
-			hashObject->attributes.ticketSafe = SET;
+			hashObject->attributes.ticketSafe = TPM_SET;
 		}
 	    // Output ticket
 	    out->validation.tag = TPM_ST_HASHCHECK;
@@ -317,7 +317,7 @@ TPM2_SequenceComplete(
 		    // Ticket is not required
 		    out->validation.digest.t.size = 0;
 		}
-	    else if(hashObject->attributes.ticketSafe == CLEAR)
+	    else if(hashObject->attributes.ticketSafe == TPM_CLEAR)
 		{
 		    // Ticket is not safe to generate
 		    out->validation.hierarchy = TPM_RH_NULL;
@@ -352,7 +352,7 @@ TPM2_SequenceComplete(
 	}
     // Internal Data Update
     // mark sequence object as evict so it will be flushed on the way out
-    hashObject->attributes.evict = SET;
+    hashObject->attributes.evict = TPM_SET;
     return TPM_RC_SUCCESS;
 }
 #endif // CC_SequenceComplete
@@ -378,7 +378,7 @@ TPM2_EventSequenceComplete(
     // get the event sequence object pointer
     hashObject = (HASH_OBJECT *)HandleToObject(in->sequenceHandle);
     // input handle must reference an event sequence object
-    if(hashObject->attributes.eventSeq != SET)
+    if(hashObject->attributes.eventSeq != TPM_SET)
 	return TPM_RCS_MODE + RC_EventSequenceComplete_sequenceHandle;
     // see if a PCR extend is requested in call
     if(in->pcrHandle != TPM_RH_NULL)
@@ -420,7 +420,7 @@ TPM2_EventSequenceComplete(
 	}
     // Internal Data Update
     // mark sequence object as evict so it will be flushed on the way out
-    hashObject->attributes.evict = SET;
+    hashObject->attributes.evict = TPM_SET;
     return TPM_RC_SUCCESS;
 }
 #endif // CC_EventSequenceComplete

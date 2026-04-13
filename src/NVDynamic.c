@@ -89,7 +89,7 @@
 // matches the layout of RAM. In normal operation. The RAM data is also copied on
 // any orderly shutdown. In normal operation, the only other reason for writing
 // to the backing store for RAM is when a counter is first written (TPMA_NV_WRITTEN
-// changes from CLEAR to SET) or when a counter ""rolls over"".
+// changes from TPM_CLEAR to TPM_SET) or when a counter ""rolls over"".
 //
 // Static space contains items that are individually modifiable. The values are in
 // the 'gp' PERSISTENT_DATA structure in RAM and mapped to locations in NV.
@@ -743,8 +743,8 @@ BOOL NvIsOwnerPersistentHandle(TPM_HANDLE handle  // IN: handle
 // that the Index is currently accessible.
 //  Return Type: TPM_RC
 //      TPM_RC_HANDLE           the handle points to an undefined NV Index
-//                              If shEnable is CLEAR, this would include an index
-//                              created using ownerAuth. If phEnableNV is CLEAR,
+//                              If shEnable is TPM_CLEAR, this would include an index
+//                              created using ownerAuth. If phEnableNV is TPM_CLEAR,
 //                              this would include and index created using
 //                              platformAuth
 //      TPM_RC_NV_READLOCKED    Index is present but locked for reading and command
@@ -762,14 +762,14 @@ NvIndexIsAccessible(TPMI_RH_NV_INDEX handle  // IN: handle
 	return TPM_RC_HANDLE;
     if(gc.shEnable == FALSE || gc.phEnableNV == FALSE)
 	{
-	    // if shEnable is CLEAR, an ownerCreate NV Index should not be
+	    // if shEnable is TPM_CLEAR, an ownerCreate NV Index should not be
 	    // indicated as present
 	    if(!IS_ATTRIBUTE(nvIndex->publicArea.attributes, TPMA_NV, PLATFORMCREATE))
 		{
 		    if(gc.shEnable == FALSE)
 			return TPM_RC_HANDLE;
 		}
-	    // if phEnableNV is CLEAR, a platform created Index should not
+	    // if phEnableNV is TPM_CLEAR, a platform created Index should not
 	    // be visible
 	    else if(gc.phEnableNV == FALSE)
 		return TPM_RC_HANDLE;
@@ -818,7 +818,7 @@ NvGetEvictObject(TPM_HANDLE handle,  // IN: handle
     // whether there is an error or not, make sure that the evict
     // status of the object is set so that the slot will get freed on exit
     // Must do this after NvFindEvict loads the object
-    object->attributes.evict = SET;
+    object->attributes.evict = TPM_SET;
 
     // If handle is not found, return an error
     if(entityAddr == 0)
@@ -842,7 +842,7 @@ void NvIndexCacheInit(void)
 //
 // This function requires that the NV Index be defined, and that the
 // required data is within the data range.  It also requires that TPMA_NV_WRITTEN
-// of the Index is SET.
+// of the Index is TPM_SET.
 void NvGetIndexData(NV_INDEX* nvIndex,  // IN: the in RAM index descriptor
 		    NV_REF    locator,  // IN: where the data is located
 		    UINT32    offset,   // IN: offset of NV data
@@ -1222,14 +1222,14 @@ NvAddEvictObject(TPMI_DH_OBJECT evictHandle,  // IN: new evict handle
 	return TPM_RC_NV_SPACE;
 
     // Set evict attribute and handle
-    object->attributes.evict = SET;
+    object->attributes.evict = TPM_SET;
     object->evictHandle      = evictHandle;
 
     // Now put this in NV
     result = NvAdd(sizeof(OBJECT), sizeof(OBJECT), evictHandle, (BYTE*)object);
 
     // Put things back the way they were
-    object->attributes.evict = CLEAR;
+    object->attributes.evict = TPM_CLEAR;
     object->evictHandle      = temp;
 
     return result;
@@ -1330,9 +1330,9 @@ NvFlushHierarchy(TPMI_RH_HIERARCHY hierarchy  // IN: hierarchy to be flushed.
 				    + offsetof(OBJECT, attributes)),
 			   sizeof(OBJECT_ATTRIBUTES));
 		    // If the evict object belongs to the hierarchy to be flushed...
-		    if((hierarchy == TPM_RH_PLATFORM && attributes.ppsHierarchy == SET)
-		       || (hierarchy == TPM_RH_OWNER && attributes.spsHierarchy == SET)
-		       || (hierarchy == TPM_RH_ENDORSEMENT && attributes.epsHierarchy == SET))
+		    if((hierarchy == TPM_RH_PLATFORM && attributes.ppsHierarchy == TPM_SET)
+		       || (hierarchy == TPM_RH_OWNER && attributes.spsHierarchy == TPM_SET)
+		       || (hierarchy == TPM_RH_ENDORSEMENT && attributes.epsHierarchy == TPM_SET))
 			{
 			    // ...then delete the evict object
 			    result = NvDelete(currentAddr);
@@ -1351,8 +1351,8 @@ NvFlushHierarchy(TPMI_RH_HIERARCHY hierarchy  // IN: hierarchy to be flushed.
 }
 
 //*** NvSetGlobalLock()
-// This function is used to SET the TPMA_NV_WRITELOCKED attribute for all
-// NV indexes that have TPMA_NV_GLOBALLOCK SET. This function is use by
+// This function is used to TPM_SET the TPMA_NV_WRITELOCKED attribute for all
+// NV indexes that have TPMA_NV_GLOBALLOCK TPM_SET. This function is use by
 // TPM2_NV_GlobalWriteLock().
 //  Return Type: TPM_RC
 //      TPM_RC_NV_RATE           NV is unavailable because of rate limit
@@ -1656,7 +1656,7 @@ static TPMA_NV NvSetStartupAttributes(TPMA_NV attributes,  // IN: attributes to 
     CLEAR_ATTRIBUTE(attributes, TPMA_NV, READLOCKED);
 
     // Will change a non counter index to the unwritten state if:
-    // a) TPMA_NV_CLEAR_STCLEAR is SET
+    // a) TPMA_NV_CLEAR_STCLEAR is TPM_SET
     // b) orderly and TPM Reset
     if(!IsNvCounterIndex(attributes))
 	{
@@ -1665,7 +1665,7 @@ static TPMA_NV NvSetStartupAttributes(TPMA_NV attributes,  // IN: attributes to 
 		CLEAR_ATTRIBUTE(attributes, TPMA_NV, WRITTEN);
 	}
     // Unlock any index that is not written or that does not have
-    // TPMA_NV_WRITEDEFINE SET.
+    // TPMA_NV_WRITEDEFINE TPM_SET.
     if(!IS_ATTRIBUTE(attributes, TPMA_NV, WRITTEN)
        || !IS_ATTRIBUTE(attributes, TPMA_NV, WRITEDEFINE))
 	CLEAR_ATTRIBUTE(attributes, TPMA_NV, WRITELOCKED);
@@ -1677,7 +1677,7 @@ static TPMA_NV NvSetStartupAttributes(TPMA_NV attributes,  // IN: attributes to 
 //  a TPM Resume cycle, no action is taken. If the startup is a TPM Reset
 //  or a TPM Restart, then this function will:
 //  a) clear read/write lock;
-//  b) reset NV Index data that has TPMA_NV_CLEAR_STCLEAR SET; and
+//  b) reset NV Index data that has TPMA_NV_CLEAR_STCLEAR TPM_SET; and
 //  c) set the lower bits in orderly counters to 1 for a non-orderly startup
 //
 //  It is a prerequisite that NV be available for writing before this

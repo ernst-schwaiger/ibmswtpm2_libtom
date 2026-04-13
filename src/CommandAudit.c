@@ -111,9 +111,9 @@ BOOL CommandAuditStartup(STARTUP_TYPE type  // IN: start up type
 }
 
 //*** CommandAuditSet()
-// This function will SET the audit flag for a command. This function
-// will not SET the audit flag for a command that is not implemented. This
-// ensures that the audit status is not SET when TPM2_GetCapability() is
+// This function will TPM_SET the audit flag for a command. This function
+// will not TPM_SET the audit flag for a command that is not implemented. This
+// ensures that the audit status is not TPM_SET when TPM2_GetCapability() is
 // used to read the list of audited commands.
 //
 // This function is only used by TPM2_SetCommandCodeAuditStatus().
@@ -128,16 +128,16 @@ BOOL CommandAuditSet(TPM_CC commandCode  // IN: command code
 {
     COMMAND_INDEX commandIndex = CommandCodeToCommandIndex(commandCode);
 
-    // Only SET a bit if the corresponding command is implemented
+    // Only TPM_SET a bit if the corresponding command is implemented
     if(commandIndex != UNIMPLEMENTED_COMMAND_INDEX)
 	{
 	    // Can't audit shutdown
 	    if(commandCode != TPM_CC_Shutdown)
 		{
-		    if(!TEST_BIT(commandIndex, gp.auditCommands))
+		    if(!TPM_TEST_BIT(commandIndex, gp.auditCommands))
 			{
 			    // Set bit
-			    SET_BIT(commandIndex, gp.auditCommands);
+			    TPM_SET_BIT(commandIndex, gp.auditCommands);
 			    return TRUE;
 			}
 		}
@@ -147,7 +147,7 @@ BOOL CommandAuditSet(TPM_CC commandCode  // IN: command code
 }
 
 //*** CommandAuditClear()
-// This function will CLEAR the audit flag for a command. It will not CLEAR the
+// This function will TPM_CLEAR the audit flag for a command. It will not TPM_CLEAR the
 // audit flag for TPM_CC_SetCommandCodeAuditStatus().
 //
 // This function is only used by TPM2_SetCommandCodeAuditStatus().
@@ -169,10 +169,10 @@ BOOL CommandAuditClear(TPM_CC commandCode  // IN: command code
 	    // cleared
 	    if(commandCode != TPM_CC_SetCommandCodeAuditStatus)
 		{
-		    if(TEST_BIT(commandIndex, gp.auditCommands))
+		    if(TPM_TEST_BIT(commandIndex, gp.auditCommands))
 			{
 			    // Clear bit
-			    CLEAR_BIT(commandIndex, gp.auditCommands);
+			    TPM_CLEAR_BIT(commandIndex, gp.auditCommands);
 			    return TRUE;
 			}
 		}
@@ -182,19 +182,19 @@ BOOL CommandAuditClear(TPM_CC commandCode  // IN: command code
 }
 
 //*** CommandAuditIsRequired()
-// This function indicates if the audit flag is SET for a command.
+// This function indicates if the audit flag is TPM_SET for a command.
 //  Return Type: BOOL
 //      TRUE(1)         command is audited
 //      FALSE(0)        command is not audited
 BOOL CommandAuditIsRequired(COMMAND_INDEX commandIndex  // IN: command index
 			    )
 {
-    // Check the bit map.  If the bit is SET, command audit is required
-    return (TEST_BIT(commandIndex, gp.auditCommands));
+    // Check the bit map.  If the bit is TPM_SET, command audit is required
+    return (TPM_TEST_BIT(commandIndex, gp.auditCommands));
 }
 
 //*** CommandAuditCapGetCCList()
-// This function returns a list of commands that have their audit bit SET.
+// This function returns a list of commands that have their audit bit TPM_SET.
 //
 // The list starts at the input commandCode.
 //  Return Type: TPMI_YES_NO

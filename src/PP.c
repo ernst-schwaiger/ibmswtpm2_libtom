@@ -78,12 +78,12 @@ PhysicalPresencePreInstall_Init(
     COMMAND_INDEX        commandIndex;
     // Clear all the PP commands
     MemorySet(&gp.ppList, 0, sizeof(gp.ppList));
-    // Any command that is PP_REQUIRED should be SET
+    // Any command that is PP_REQUIRED should be TPM_SET
     for(commandIndex = 0; commandIndex < COMMAND_COUNT; commandIndex++)
 	{
 	    if(s_commandAttributes[commandIndex] & IS_IMPLEMENTED
 	       &&  s_commandAttributes[commandIndex] & PP_REQUIRED)
-		SET_BIT(commandIndex, gp.ppList);
+		TPM_SET_BIT(commandIndex, gp.ppList);
 	}
     // Write PP list to NV
     NV_SYNC_PERSISTENT(ppList);
@@ -102,7 +102,7 @@ PhysicalPresenceCommandSet(
 	return;
     // only set the bit if this is a command for which PP is allowed
     if(s_commandAttributes[commandIndex] & PP_COMMAND)
-	SET_BIT(commandIndex, gp.ppList);
+	TPM_SET_BIT(commandIndex, gp.ppList);
     return;
 }
 /* 8.8.3.3 PhysicalPresenceCommandClear() */
@@ -118,7 +118,7 @@ PhysicalPresenceCommandClear(
 	return;
     // Only clear the bit if the command does not require PP
     if((s_commandAttributes[commandIndex] & PP_REQUIRED) == 0)
-	CLEAR_BIT(commandIndex, gp.ppList);
+	TPM_CLEAR_BIT(commandIndex, gp.ppList);
     return;
 }
 /* 8.8.3.4 PhysicalPresenceIsRequired() */
@@ -131,8 +131,8 @@ PhysicalPresenceIsRequired(
 			   COMMAND_INDEX    commandIndex   // IN: command index
 			   )
 {
-    // Check the bit map.  If the bit is SET, PP authorization is required
-    return (TEST_BIT(commandIndex, gp.ppList));
+    // Check the bit map.  If the bit is TPM_SET, PP authorization is required
+    return (TPM_TEST_BIT(commandIndex, gp.ppList));
 }
 /* 8.8.3.5 PhysicalPresenceCapGetCCList() */
 /* This function returns a list of commands that require PP confirmation. The list starts from the

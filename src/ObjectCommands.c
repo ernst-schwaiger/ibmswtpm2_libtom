@@ -71,8 +71,8 @@ extern int verbose;
 // Create a regular object
 */
 //  Return Type: TPM_RC
-//      TPM_RC_ATTRIBUTES       'sensitiveDataOrigin' is CLEAR when 'sensitive.data'
-//                              is an Empty Buffer, or is SET when 'sensitive.data' is
+//      TPM_RC_ATTRIBUTES       'sensitiveDataOrigin' is TPM_CLEAR when 'sensitive.data'
+//                              is an Empty Buffer, or is TPM_SET when 'sensitive.data' is
 //                              not empty;
 //                              'fixedTPM', 'fixedParent', or 'encryptedDuplication'
 //                              attributes are inconsistent between themselves or with
@@ -289,8 +289,8 @@ TPM2_LoadExternal(
 	    // NULL hierarchy
 	    if(in->hierarchy != TPM_RH_NULL)
 		return TPM_RCS_HIERARCHY + RC_LoadExternal_hierarchy;
-	    // An external object with a sensitive area must have fixedTPM == CLEAR
-	    // fixedParent == CLEAR so that it does not appear to be a key created by
+	    // An external object with a sensitive area must have fixedTPM == TPM_CLEAR
+	    // fixedParent == TPM_CLEAR so that it does not appear to be a key created by
 	    // this TPM.
 	    if(IS_ATTRIBUTE(in->inPublic.publicArea.objectAttributes, TPMA_OBJECT, fixedTPM)
 	       || IS_ATTRIBUTE(in->inPublic.publicArea.objectAttributes, TPMA_OBJECT,
@@ -311,7 +311,7 @@ TPM2_LoadExternal(
 			&out->name);
     if(result == TPM_RC_SUCCESS)
 	{
-	    object->attributes.external = SET;
+	    object->attributes.external = TPM_SET;
 	    // Set the common OBJECT attributes for a loaded object.
 	    ObjectSetLoadedAttributes(object, in->hierarchy);
 	}
@@ -542,7 +542,7 @@ TPM2_ObjectChangeAuth(
  * calls to Create and CreatePrimary.
  */
 //  Return Type: TPM_RC
-//      TPM_RC_ATTRIBUTES       'sensitiveDataOrigin' is CLEAR when 'sensitive.data'
+//      TPM_RC_ATTRIBUTES       'sensitiveDataOrigin' is TPM_CLEAR when 'sensitive.data'
 //                              is an Empty Buffer;
 //                              'fixedTPM', 'fixedParent', or 'encryptedDuplication'
 //                              attributes are inconsistent between themselves or with
@@ -643,7 +643,7 @@ TPM2_CreateLoaded(CreateLoaded_In*  in,  // IN: input parameter list
 	    // Don't derive RSA keys
 	    if(publicArea->type == TPM_ALG_RSA)
 		return TPM_RCS_TYPE + RC_CreateLoaded_inPublic;
-	    // sensitiveDataOrigin has to be CLEAR in a derived object. Since this
+	    // sensitiveDataOrigin has to be TPM_CLEAR in a derived object. Since this
 	    // is specific to a derived object, it is checked here.
 	    if(IS_ATTRIBUTE(
 			    publicArea->objectAttributes, TPMA_OBJECT, sensitiveDataOrigin))
@@ -687,9 +687,9 @@ TPM2_CreateLoaded(CreateLoaded_In*  in,  // IN: input parameter list
 		    TPM2B_NAME name;
 		    TPM2B_SEED primary_seed;
 
-		    newObject->attributes.primary = SET;
+		    newObject->attributes.primary = TPM_SET;
 		    if(HierarchyNormalizeHandle(in->parentHandle) == TPM_RH_ENDORSEMENT)
-			newObject->attributes.epsHierarchy = SET;
+			newObject->attributes.epsHierarchy = TPM_SET;
 
 		    result = HierarchyGetPrimarySeed(in->parentHandle, &primary_seed);
 		    if(result != TPM_RC_SUCCESS)

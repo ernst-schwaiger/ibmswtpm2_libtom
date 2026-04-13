@@ -90,7 +90,7 @@ static BOOL avf1(Crypt_Int* bnX,  // IN/OUT: the reduced value
     int f = (ExtMath_SizeInBits(bnN) + 1) / 2;
     // x' = 2^f + (x mod 2^f)
     ExtMath_MaskBits(bnX, f);  // This is mod 2*2^f but it doesn't matter because
-    // the next operation will SET the extra bit anyway
+    // the next operation will TPM_SET the extra bit anyway
     if(!ExtMath_SetBit(bnX, f))
 	{
 	    FAIL(FATAL_ERROR_CRYPTO);
@@ -310,7 +310,7 @@ static Crypt_Int* avfSm2(Crypt_Int* bn,  // IN/OUT: the reduced value
     // This is just like the avf for MQV where x' = 2^w + (x mod 2^w)
 
     ExtMath_MaskBits(bn, w);  // as with avf1, this is too big by a factor of 2 but
-    // it doesn't matter because we SET the extra bit
+    // it doesn't matter because we TPM_SET the extra bit
     // anyway
     if(!ExtMath_SetBit(bn, w))
 	{

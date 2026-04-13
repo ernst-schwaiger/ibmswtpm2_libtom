@@ -649,7 +649,7 @@ static TPM_RC PssEncode(TPM2B*      out,      // OUT: the encoded buffer
 	FAIL(FATAL_ERROR_INTERNAL);
 
     // Since this implementation uses key sizes that are all even multiples of
-    // 8, just need to make sure that the most significant bit is CLEAR
+    // 8, just need to make sure that the most significant bit is TPM_CLEAR
     *pOut &= 0x7f;
 
     // Before we mess up the pOut value, set the last byte to 0xbc

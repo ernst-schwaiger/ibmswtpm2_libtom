@@ -153,15 +153,15 @@ typedef UINT32 CLOCK_NONCE;
 
 typedef struct
 {
-    unsigned publicOnly : 1;    //0) SET if only the public portion of
+    unsigned publicOnly : 1;    //0) TPM_SET if only the public portion of
     //   an object is loaded
-    unsigned epsHierarchy : 1;  //1) SET if the object belongs to EPS
+    unsigned epsHierarchy : 1;  //1) TPM_SET if the object belongs to EPS
     //   Hierarchy
-    unsigned ppsHierarchy : 1;  //2) SET if the object belongs to PPS
+    unsigned ppsHierarchy : 1;  //2) TPM_SET if the object belongs to PPS
     //   Hierarchy
-    unsigned spsHierarchy : 1;  //3) SET f the object belongs to SPS
+    unsigned spsHierarchy : 1;  //3) TPM_SET f the object belongs to SPS
     //   Hierarchy
-    unsigned evict : 1;         //4) SET if the object is a platform or
+    unsigned evict : 1;         //4) TPM_SET if the object is a platform or
     //   owner evict object.  Platform-
     //   evict object belongs to PPS
     //   hierarchy, owner-evict object
@@ -170,27 +170,27 @@ typedef struct
     //   completed sequence object so it
     //   will be flush when the
     //   SequenceComplete command succeeds.
-    unsigned primary   : 1;     //5) SET for a primary object
-    unsigned temporary : 1;     //6) SET for a temporary object
-    unsigned stClear   : 1;     //7) SET for an stClear object
-    unsigned hmacSeq   : 1;     //8) SET for an HMAC or MAC sequence
+    unsigned primary   : 1;     //5) TPM_SET for a primary object
+    unsigned temporary : 1;     //6) TPM_SET for a temporary object
+    unsigned stClear   : 1;     //7) TPM_SET for an stClear object
+    unsigned hmacSeq   : 1;     //8) TPM_SET for an HMAC or MAC sequence
     //   object
-    unsigned hashSeq    : 1;    //9) SET for a hash sequence object
-    unsigned eventSeq   : 1;    //10) SET for an event sequence object
-    unsigned ticketSafe : 1;    //11) SET if a ticket is safe to create
+    unsigned hashSeq    : 1;    //9) TPM_SET for a hash sequence object
+    unsigned eventSeq   : 1;    //10) TPM_SET for an event sequence object
+    unsigned ticketSafe : 1;    //11) TPM_SET if a ticket is safe to create
     //    for hash sequence object
-    unsigned firstBlock : 1;    //12) SET if the first block of hash
+    unsigned firstBlock : 1;    //12) TPM_SET if the first block of hash
     //    data has been received.  It
     //    works with ticketSafe bit
-    unsigned isParent : 1;      //13) SET if the key has the proper
+    unsigned isParent : 1;      //13) TPM_SET if the key has the proper
     //    attributes to be a parent key
-    //   unsigned            privateExp : 1;    //14) SET when the private exponent
+    //   unsigned            privateExp : 1;    //14) TPM_SET when the private exponent
     //                                          //    of an RSA key has been validated.
     unsigned not_used_14 : 1;
-    unsigned occupied    : 1;  //15) SET when the slot is occupied.
-    unsigned derivation  : 1;  //16) SET when the key is a derivation
+    unsigned occupied    : 1;  //15) TPM_SET when the slot is occupied.
+    unsigned derivation  : 1;  //16) TPM_SET when the key is a derivation
     //        parent
-    unsigned external : 1;     //17) SET when the object is loaded with
+    unsigned external : 1;     //17) TPM_SET when the object is loaded with
     //    TPM2_LoadExternal();
 } OBJECT_ATTRIBUTES;
 
@@ -294,54 +294,54 @@ typedef UINT32 AUTH_ROLE;
 
 typedef struct SESSION_ATTRIBUTES
 {
-    // SET if the session may only be used for policy
+    // TPM_SET if the session may only be used for policy
     unsigned isPolicy : 1;
-    // SET if the session is used for audit
+    // TPM_SET if the session is used for audit
     unsigned isAudit : 1;
-    // SET if the session is bound to an entity. This attribute will be CLEAR if
-    // either isPolicy or isAudit is SET.
+    // TPM_SET if the session is bound to an entity. This attribute will be TPM_CLEAR if
+    // either isPolicy or isAudit is TPM_SET.
     unsigned isBound : 1;
-    // SET if the cpHash has been defined. This attribute is not SET unless
-    // 'isPolicy' is SET.
+    // TPM_SET if the cpHash has been defined. This attribute is not TPM_SET unless
+    // 'isPolicy' is TPM_SET.
     unsigned isCpHashDefined : 1;
-    // SET if the nameHash has been defined. This attribute is not SET unless
-    // 'isPolicy' is SET.
+    // TPM_SET if the nameHash has been defined. This attribute is not TPM_SET unless
+    // 'isPolicy' is TPM_SET.
     unsigned isNameHashDefined : 1;
-    // SET if the pHash has been defined. This attribute is not SET unless
-    // 'isPolicy' is SET.
+    // TPM_SET if the pHash has been defined. This attribute is not TPM_SET unless
+    // 'isPolicy' is TPM_SET.
     unsigned isParametersHashDefined : 1;
-    // SET if the templateHash needs to be checked for Create, CreatePrimary, or
+    // TPM_SET if the templateHash needs to be checked for Create, CreatePrimary, or
     // CreateLoaded.
     unsigned isTemplateHashDefined : 1;
-    // SET if the authValue is required for computing the session HMAC. This
-    // attribute is not SET unless 'isPolicy' is SET.
+    // TPM_SET if the authValue is required for computing the session HMAC. This
+    // attribute is not TPM_SET unless 'isPolicy' is TPM_SET.
     unsigned isAuthValueNeeded : 1;
-    // SET if a password authValue is required for authorization This attribute
-    // is not SET unless 'isPolicy' is SET.
+    // TPM_SET if a password authValue is required for authorization This attribute
+    // is not TPM_SET unless 'isPolicy' is TPM_SET.
     unsigned isPasswordNeeded : 1;
-    // SET if physical presence is required to be asserted when the
-    // authorization is checked. This attribute is not SET unless 'isPolicy' is
-    // SET.
+    // TPM_SET if physical presence is required to be asserted when the
+    // authorization is checked. This attribute is not TPM_SET unless 'isPolicy' is
+    // TPM_SET.
     unsigned isPPRequired : 1;
-    // SET if the policy session is created for trial of the policy's policyHash
-    // generation. This attribute is not SET unless 'isPolicy' is SET.
+    // TPM_SET if the policy session is created for trial of the policy's policyHash
+    // generation. This attribute is not TPM_SET unless 'isPolicy' is TPM_SET.
     unsigned isTrialPolicy : 1;
-    // SET if the bind entity had noDA CLEAR. If this is SET, then an
+    // TPM_SET if the bind entity had noDA TPM_CLEAR. If this is TPM_SET, then an
     // authorization failure using this session will count against lockout even
     // if the object being authorized is exempt from DA.
     unsigned isDaBound : 1;
-    // SET if the session is bound to lockoutAuth.
+    // TPM_SET if the session is bound to lockoutAuth.
     unsigned isLockoutBound : 1;
-    // This attribute is SET when the authValue of an object is to be included
+    // This attribute is TPM_SET when the authValue of an object is to be included
     // in the computation of the HMAC key for the command and response
     // computations. (was 'requestWasBound')
     unsigned includeAuth : 1;
-    // SET if the TPMA_NV_WRITTEN attribute needs to be checked when the policy
-    // is used for authorization for NV access. If this is SET for any other
+    // TPM_SET if the TPMA_NV_WRITTEN attribute needs to be checked when the policy
+    // is used for authorization for NV access. If this is TPM_SET for any other
     // type, the policy will fail.
     unsigned checkNvWritten : 1;
-    // SET if TPMA_NV_WRITTEN is required to be SET. Used when 'checkNvWritten'
-    // is SET
+    // TPM_SET if TPMA_NV_WRITTEN is required to be TPM_SET. Used when 'checkNvWritten'
+    // is TPM_SET
     unsigned nvWrittenState : 1;
 } SESSION_ATTRIBUTES;
 
@@ -573,14 +573,14 @@ EXTERN CLOCK_NONCE g_timeEpoch;
 
 //*** g_phEnable
 // This is the platform hierarchy control and determines if the platform hierarchy
-// is available. This value is SET on each TPM2_Startup(). The default value is
-// SET.
+// is available. This value is TPM_SET on each TPM2_Startup(). The default value is
+// TPM_SET.
 EXTERN BOOL g_phEnable;
 
 //*** g_pcrReConfig
-// This value is SET if a TPM2_PCR_Allocate command successfully executed since
+// This value is TPM_SET if a TPM2_PCR_Allocate command successfully executed since
 // the last TPM2_Startup(). If so, then the next shutdown is required to be
-// Shutdown(CLEAR).
+// Shutdown(TPM_CLEAR).
 EXTERN BOOL g_pcrReConfig;
 
 //*** g_DRTMHandle
@@ -652,7 +652,7 @@ typedef BYTE UPDATE_TYPE;
 EXTERN UPDATE_TYPE g_updateNV;
 
 //*** g_powerWasLost
-// This flag is used to indicate if the power was lost. It is SET in _TPM__Init.
+// This flag is used to indicate if the power was lost. It is TPM_SET in _TPM__Init.
 // This flag is cleared by TPM2_Startup() after all power-lost activities are
 // completed.
 // Note: When power is applied, this value can come up as anything. However,
@@ -683,7 +683,7 @@ EXTERN TPM_SU g_prevOrderlyState;
 // the failure was severe, then the TPM would have been put into failure mode after
 // it had been re-manufactured. If the NV failure was in the area where the state-save
 // data is kept, then this variable will have a value of FALSE indicating that
-// a TPM2_Startup(CLEAR) is required.
+// a TPM2_Startup(TPM_CLEAR) is required.
 EXTERN BOOL g_nvOk;
 // NV availability is sampled as the start of each command and stored here
 // so that its value remains consistent during the command execution
@@ -782,7 +782,7 @@ typedef struct
     // This structure indicates the allocation of PCR. The structure contains a
     // list of PCR allocations for each implemented algorithm. If no PCR are
     // allocated for an algorithm, a list entry still exists but the bit map
-    // will contain no SET bits.
+    // will contain no TPM_SET bits.
     TPML_PCR_SELECTION pcrAllocated;
     
     //*********************************************************************************
@@ -790,7 +790,7 @@ typedef struct
     //*********************************************************************************
     // The PP_LIST type contains a bit map of the commands that require physical
     // to be asserted when the authorization is evaluated. Physical presence will be
-    // checked if the corresponding bit in the array is SET and if the authorization
+    // checked if the corresponding bit in the array is TPM_SET and if the authorization
     // handle is TPM_RH_PLATFORM.
     //
     // These bits may be changed with TPM2_PP_Commands().
@@ -946,16 +946,16 @@ EXTERN ORDERLY_DATA go;
 // across TPM Resume.
 //
 // If the comments associated with a parameter indicate a default reset value, the
-// value is applied on each Startup(CLEAR).
+// value is applied on each Startup(TPM_CLEAR).
 
 typedef struct state_clear_data
 {
     //*****************************************************************************
     //           Hierarchy Control
     //*****************************************************************************
-    BOOL          shEnable;        // default reset is SET
-    BOOL          ehEnable;        // default reset is SET
-    BOOL          phEnableNV;      // default reset is SET
+    BOOL          shEnable;        // default reset is TPM_SET
+    BOOL          ehEnable;        // default reset is TPM_SET
+    BOOL          phEnableNV;      // default reset is TPM_SET
     TPMI_ALG_HASH platformAlg;     // default reset is TPM_ALG_NULL
     TPM2B_DIGEST  platformPolicy;  // default reset is an Empty Buffer
     TPM2B_AUTH    platformAuth;    // default reset is an Empty Buffer
@@ -1016,10 +1016,10 @@ typedef struct state_reset_data
     //*****************************************************************************
     // The 'clearCount' counter is incremented each time the TPM successfully executes
     // a TPM Resume. The counter is included in each saved context that has 'stClear'
-    // SET (including descendants of keys that have 'stClear' SET). This prevents these
+    // TPM_SET (including descendants of keys that have 'stClear' TPM_SET). This prevents these
     // objects from being loaded after a TPM Resume.
     // If 'clearCount' is at its maximum value when the TPM receives a Shutdown(STATE),
-    // the TPM will return TPM_RC_RANGE and the TPM will only accept Shutdown(CLEAR).
+    // the TPM will return TPM_RC_RANGE and the TPM will only accept Shutdown(TPM_CLEAR).
     UINT32 clearCount;  // The default reset value is 0.
     
     UINT64 objectContextID;  // This is the context ID for a saved
@@ -1132,7 +1132,7 @@ typedef UINT16 COMMAND_INDEX;
 
 typedef struct _COMMAND_FLAGS_
 {
-    unsigned trialPolicy : 1;  //1) If SET, one of the handles references a
+    unsigned trialPolicy : 1;  //1) If TPM_SET, one of the handles references a
     //   trial policy and authorization may be
     //   skipped. This is only allowed for a policy
     //   command.

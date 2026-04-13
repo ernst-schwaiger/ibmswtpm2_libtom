@@ -325,7 +325,7 @@ RsaCheckPrime(Crypt_Int* prime, UINT32 exponent, RAND_STATE* rand)
 // with the necessary number of significant bits. For example, we want to be able
 // to multiply two 1024-bit numbers to produce a number with 2028 significant bits. If
 // we accept any 1024-bit prime that has its MSb set, then it is possible to produce a
-// product that does not have the MSb SET. For example, if we use tiny keys of 16 bits
+// product that does not have the MSb TPM_SET. For example, if we use tiny keys of 16 bits
 // and have two 8-bit 'primes' of 0x80, then the public key would be 0x4000 which is
 // only 15-bits. So, what we need to do is made sure that each of the primes is large
 // enough so that the product of the primes is twice as large as each prime. A little

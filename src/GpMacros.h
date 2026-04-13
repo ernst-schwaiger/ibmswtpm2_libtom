@@ -77,7 +77,7 @@
 #  define TPM_DO_SELF_TEST(alg)              \
       do                                     \
       {                                      \
-          if(TEST_BIT(alg, g_toTest))        \
+          if(TPM_TEST_BIT(alg, g_toTest))        \
               CryptTestAlgorithm(alg, NULL); \
       } while(0)
 #else
@@ -416,9 +416,9 @@
 
 // These are defined for use when the size of the vector being checked is known
 // at compile time.
-#define TEST_BIT(bit, vector)  TestBit((bit), (BYTE*)&(vector), sizeof(vector))
-#define SET_BIT(bit, vector)   SetBit((bit), (BYTE*)&(vector), sizeof(vector))
-#define CLEAR_BIT(bit, vector) ClearBit((bit), (BYTE*)&(vector), sizeof(vector))
+#define TPM_TEST_BIT(bit, vector)  TestBit((bit), (BYTE*)&(vector), sizeof(vector))
+#define TPM_SET_BIT(bit, vector)   SetBit((bit), (BYTE*)&(vector), sizeof(vector))
+#define TPM_CLEAR_BIT(bit, vector) ClearBit((bit), (BYTE*)&(vector), sizeof(vector))
 
 // The following definitions are used if they have not already been defined. The
 // defaults for these settings are compatible with ISO/IEC 9899:2011 (E)
@@ -452,8 +452,8 @@
 // These macros are used to handle the variation in handling of bit fields. If
 #if USE_BIT_FIELD_STRUCTURES  // The default, old version, with bit fields
 #  define IS_ATTRIBUTE(a, type, b)    ((a.b) != 0)
-#  define SET_ATTRIBUTE(a, type, b)   (a.b = SET)
-#  define CLEAR_ATTRIBUTE(a, type, b) (a.b = CLEAR)
+#  define SET_ATTRIBUTE(a, type, b)   (a.b = TPM_SET)
+#  define CLEAR_ATTRIBUTE(a, type, b) (a.b = TPM_CLEAR)
 #  define GET_ATTRIBUTE(a, type, b)   (a.b)
 #  define TPMA_ZERO_INITIALIZER()		  \
     {							  \

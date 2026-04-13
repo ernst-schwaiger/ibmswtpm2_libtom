@@ -176,7 +176,7 @@ TPM2_ContextSave(ContextSave_In*  in,  // IN: input parameter list
 		      }
 		  else
 		      out->context.savedHandle =
-			  (object->attributes.stClear == SET) ? 0x80000002 : 0x80000000;
+			  (object->attributes.stClear == TPM_SET) ? 0x80000002 : 0x80000000;
 		  // Get object hierarchy
 		  out->context.hierarchy = object->hierarchy;
 
@@ -505,7 +505,7 @@ TPM2_FlushContext(
 */
 //  Return Type: TPM_RC
 //      TPM_RC_ATTRIBUTES   an object with 'temporary', 'stClear' or 'publicOnly'
-//                          attribute SET cannot be made persistent
+//                          attribute TPM_SET cannot be made persistent
 //      TPM_RC_HIERARCHY    'auth' cannot authorize the operation in the hierarchy
 //                          of 'evictObject';
 //                          an object in a firmware-bound or SVN-bound hierarchy
@@ -542,14 +542,14 @@ TPM2_EvictControl(EvictControl_In* in  // IN: input parameter list
 	return TPM_RCS_HIERARCHY + RC_EvictControl_objectHandle;
 
     // Temporary, stClear or public only objects can not be made persistent
-    if(evictObject->attributes.temporary == SET
-       || evictObject->attributes.stClear == SET
-       || evictObject->attributes.publicOnly == SET)
+    if(evictObject->attributes.temporary == TPM_SET
+       || evictObject->attributes.stClear == TPM_SET
+       || evictObject->attributes.publicOnly == TPM_SET)
 	return TPM_RCS_ATTRIBUTES + RC_EvictControl_objectHandle;
 
     // If objectHandle refers to a persistent object, it should be the same as
     // input persistentHandle
-    if(evictObject->attributes.evict == SET
+    if(evictObject->attributes.evict == TPM_SET
        && evictObject->evictHandle != in->persistentHandle)
 	return TPM_RCS_HANDLE + RC_EvictControl_objectHandle;
 
@@ -557,11 +557,11 @@ TPM2_EvictControl(EvictControl_In* in  // IN: input parameter list
     if(in->auth == TPM_RH_PLATFORM)
 	{
 	    // To make persistent
-	    if(evictObject->attributes.evict == CLEAR)
+	    if(evictObject->attributes.evict == TPM_CLEAR)
 		{
 		    // PlatformAuth can not set evict object in storage or endorsement
 		    // hierarchy
-		    if(evictObject->attributes.ppsHierarchy == CLEAR)
+		    if(evictObject->attributes.ppsHierarchy == TPM_CLEAR)
 			return TPM_RCS_HIERARCHY + RC_EvictControl_objectHandle;
 		    // Platform cannot use a handle outside of platform persistent range.
 		    if(!NvIsPlatformPersistentHandle(in->persistentHandle))
@@ -572,11 +572,11 @@ TPM2_EvictControl(EvictControl_In* in  // IN: input parameter list
     else if(in->auth == TPM_RH_OWNER)
 	{
 	    // OwnerAuth can not set or clear evict object in platform hierarchy
-	    if(evictObject->attributes.ppsHierarchy == SET)
+	    if(evictObject->attributes.ppsHierarchy == TPM_SET)
 		return TPM_RCS_HIERARCHY + RC_EvictControl_objectHandle;
 
 	    // Owner cannot use a handle outside of owner persistent range.
-	    if(evictObject->attributes.evict == CLEAR
+	    if(evictObject->attributes.evict == TPM_CLEAR
 	       && !NvIsOwnerPersistentHandle(in->persistentHandle))
 		return TPM_RCS_RANGE + RC_EvictControl_persistentHandle;
 	}
@@ -588,7 +588,7 @@ TPM2_EvictControl(EvictControl_In* in  // IN: input parameter list
 	}
     // Internal Data Update
     // Change evict state
-    if(evictObject->attributes.evict == CLEAR)
+    if(evictObject->attributes.evict == TPM_CLEAR)
 	{
 	    // Make object persistent
 	    if(NvFindHandle(in->persistentHandle) != 0)

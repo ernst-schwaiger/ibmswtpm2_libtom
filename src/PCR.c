@@ -499,7 +499,7 @@ void PcrDrtm(const TPMI_DH_PCR pcrHandle,  // IN: the index of the PCR to be
 
 //*** PCR_ClearAuth()
 // This function is used to reset the PCR authorization values. It is called
-// on TPM2_Startup(CLEAR) and TPM2_Clear().
+// on TPM2_Startup(TPM_CLEAR) and TPM2_Clear().
 void PCR_ClearAuth(void)
 {
 #if defined NUM_AUTHVALUE_PCR_GROUP && NUM_AUTHVALUE_PCR_GROUP > 0
@@ -545,7 +545,7 @@ BOOL PCRStartup(STARTUP_TYPE type,     // IN: startup type
 	    PCR_Attributes currentPcrAttributes =
 		_platPcr__GetPcrInitializationAttributes(pcr);
 
-	    if(type == SU_RESUME && currentPcrAttributes.stateSave == SET)
+	    if(type == SU_RESUME && currentPcrAttributes.stateSave == TPM_SET)
 		{
 		    stateSaved = 1;
 		}
@@ -621,7 +621,7 @@ BOOL PCRStartup(STARTUP_TYPE type,     // IN: startup type
 		}
 	    saveIndex += stateSaved;
 	}
-    // Reset authValues on TPM2_Startup(CLEAR)
+    // Reset authValues on TPM2_Startup(TPM_CLEAR)
     if(type != SU_RESUME)
 	PCR_ClearAuth();
     return TRUE;
@@ -635,7 +635,7 @@ void PCRStateSave(TPM_SU type  // IN: startup type
     UINT32 pcr, j;
     UINT32 saveIndex = 0;
 
-    // if state save CLEAR, nothing to be done.  Return here
+    // if state save TPM_CLEAR, nothing to be done.  Return here
     if(type == TPM_SU_CLEAR)
 	return;
 
@@ -645,7 +645,7 @@ void PCRStateSave(TPM_SU type  // IN: startup type
 	    PCR_Attributes currentPcrAttributes =
 		_platPcr__GetPcrInitializationAttributes(pcr);
 
-	    UINT32 stateSaved = (currentPcrAttributes.stateSave == SET) ? 1 : 0;
+	    UINT32 stateSaved = (currentPcrAttributes.stateSave == TPM_SET) ? 1 : 0;
 
 	    // Iterate each hash algorithm bank
 	    for(j = 0; j < gp.pcrAllocated.count; j++)
@@ -689,7 +689,7 @@ BOOL PCRIsStateSaved(TPMI_DH_PCR handle  // IN: PCR handle to be extended
     PCR_Attributes currentPcrAttributes =
 	_platPcr__GetPcrInitializationAttributes(pcr);
 
-    if(currentPcrAttributes.stateSave == SET)
+    if(currentPcrAttributes.stateSave == TPM_SET)
 	return TRUE;
     else
 	return FALSE;
@@ -1170,7 +1170,7 @@ BOOL PCRGetProperty(TPM_PT_PCR property, TPMS_TAGGED_PCR_SELECT* select)
 	    switch(property)
 		{
 		  case TPM_PT_PCR_SAVE:
-		    if(currentPcrAttributes.stateSave == SET)
+		    if(currentPcrAttributes.stateSave == TPM_SET)
 			PCRSetSelectBit(pcr, select->pcrSelect);
 		    break;
 		  case TPM_PT_PCR_EXTEND_L0:

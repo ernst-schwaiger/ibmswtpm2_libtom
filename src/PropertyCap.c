@@ -171,7 +171,7 @@ TPMPropertyIsDefined(
 	    break;
 	  case TPM_PT_NV_COUNTERS_MAX:
 	    // maximum number of NV indexes that are allowed to have the
-	    // TPMA_NV_COUNTER attribute SET
+	    // TPMA_NV_COUNTER attribute TPM_SET
 	    // In this implementation, there is no limitation on the number
 	    // of counters, except for the size of the NV Index memory.
 	    *value = 0;
@@ -217,7 +217,7 @@ TPMPropertyIsDefined(
 	    break;
 	  case TPM_PT_ORDERLY_COUNT:
 	    // maximum difference between the volatile and non-volatile
-	    // versions of TPMA_NV_COUNTER that have TPMA_NV_ORDERLY SET
+	    // versions of TPMA_NV_COUNTER that have TPMA_NV_ORDERLY TPM_SET
 	    *value = MAX_ORDERLY_COUNT;
 	    break;
 	  case TPM_PT_MAX_COMMAND_SIZE:
@@ -467,12 +467,12 @@ TPMPropertyIsDefined(
 	    break;
 	  case TPM_PT_NV_COUNTERS:
 	    // number of defined NV indexes that have NV TPMA_NV_COUNTER
-	    // attribute SET
+	    // attribute TPM_SET
 	    *value = NvCapGetCounterNumber();
 	    break;
 	  case TPM_PT_NV_COUNTERS_AVAIL:
 	    // number of additional NV indexes that can be defined with their
-	    // TPMA_NV_COUNTER attribute SET
+	    // TPMA_NV_COUNTER attribute TPM_SET
 	    *value = NvCapGetCounterAvail();
 	    break;
 	  case TPM_PT_ALGORITHM_SET:

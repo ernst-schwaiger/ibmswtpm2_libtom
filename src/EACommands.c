@@ -106,7 +106,7 @@ TPM2_PolicySigned(PolicySigned_In*  in,  // IN: input parameter list
     session = SessionGet(in->policySession);  // the session structure
 
     // Only do input validation if this is not a trial policy session
-    if(session->attributes.isTrialPolicy == CLEAR)
+    if(session->attributes.isTrialPolicy == TPM_CLEAR)
 	{
 	    authTimeout = ComputeAuthTimeout(session, in->expiration, &in->nonceTPM);
 
@@ -181,7 +181,7 @@ TPM2_PolicySigned(PolicySigned_In*  in,  // IN: input parameter list
     // a trial session.
     // NOTE: PolicyParameterChecks() makes sure that nonceTPM is present
     // when expiration is non-zero.
-    if(in->expiration < 0 && session->attributes.isTrialPolicy == CLEAR)
+    if(in->expiration < 0 && session->attributes.isTrialPolicy == TPM_CLEAR)
 	{
 	    BOOL expiresOnReset = (in->nonceTPM.t.size == 0);
 	    // Compute policy ticket
@@ -267,7 +267,7 @@ TPM2_PolicySecret(PolicySecret_In*  in,  // IN: input parameter list
     session = SessionGet(in->policySession);
 
     //Only do input validation if this is not a trial policy session
-    if(session->attributes.isTrialPolicy == CLEAR)
+    if(session->attributes.isTrialPolicy == TPM_CLEAR)
 	{
 	    authTimeout = ComputeAuthTimeout(session, in->expiration, &in->nonceTPM);
 
@@ -295,7 +295,7 @@ TPM2_PolicySecret(PolicySecret_In*  in,  // IN: input parameter list
     // a trial session.
     // NOTE: PolicyParameterChecks() makes sure that nonceTPM is present
     // when expiration is non-zero.
-    if(in->expiration < 0 && session->attributes.isTrialPolicy == CLEAR
+    if(in->expiration < 0 && session->attributes.isTrialPolicy == TPM_CLEAR
        && !NvIsPinPassIndex(in->authHandle))
 	{
 	    BOOL expiresOnReset = (in->nonceTPM.t.size == 0);
@@ -484,7 +484,7 @@ TPM2_PolicyOR(PolicyOR_In* in  // IN: input parameter list
     // Compare and Update Internal Session policy if match
     for(i = 0; i < in->pHashList.count; i++)
 	{
-	    if(session->attributes.isTrialPolicy == SET
+	    if(session->attributes.isTrialPolicy == TPM_SET
 	       || (MemoryEqual2B(&session->u2.policyDigest.b,
 				 &in->pHashList.digests[i].b)))
 		{
@@ -562,7 +562,7 @@ TPM2_PolicyPCR(PolicyPCR_In* in  // IN: input parameter list
     PCRComputeCurrentDigest(session->authHashAlg, &in->pcrs, &pcrDigest);
 
     // Do validation for non trial session
-    if(session->attributes.isTrialPolicy == CLEAR)
+    if(session->attributes.isTrialPolicy == TPM_CLEAR)
 	{
 	    // Make sure that this is not going to invalidate a previous PCR check
 	    if(session->pcrCounter != 0 && session->pcrCounter != gr.pcrCounter)
@@ -609,7 +609,7 @@ TPM2_PolicyPCR(PolicyPCR_In* in  // IN: input parameter list
     CryptHashEnd2B(&hashState, &session->u2.policyDigest.b);
 
     //  update pcrCounter in session context for non trial session
-    if(session->attributes.isTrialPolicy == CLEAR)
+    if(session->attributes.isTrialPolicy == TPM_CLEAR)
 	{
 	    session->pcrCounter = gr.pcrCounter;
 	}
@@ -661,7 +661,7 @@ TPM2_PolicyPhysicalPresence(PolicyPhysicalPresence_In* in  // IN: input paramete
     CryptHashEnd2B(&hashState, &session->u2.policyDigest.b);
 
     // update session attribute
-    session->attributes.isPPRequired = SET;
+    session->attributes.isPPRequired = TPM_SET;
 
     return TPM_RC_SUCCESS;
 }
@@ -823,7 +823,7 @@ TPM2_PolicyNV(PolicyNV_In* in  // IN: input parameter list
     session = SessionGet(in->policySession);
 
     //If this is a trial policy, skip all validations and the operation
-    if(session->attributes.isTrialPolicy == CLEAR)
+    if(session->attributes.isTrialPolicy == TPM_CLEAR)
 	{
 	    // No need to access the actual NV index information for a trial policy.
 	    nvIndex = NvGetIndexInfo(in->nvIndex, &locator);
@@ -941,7 +941,7 @@ TPM2_PolicyCounterTimer(PolicyCounterTimer_In* in  // IN: input parameter list
     session = SessionGet(in->policySession);
 
     //If this is a trial policy, skip the check to see if the condition is met.
-    if(session->attributes.isTrialPolicy == CLEAR)
+    if(session->attributes.isTrialPolicy == TPM_CLEAR)
 	{
 	    // If the command is going to use any part of the counter or timer, need
 	    // to verify that time is advancing.
@@ -1124,7 +1124,7 @@ TPM2_PolicyCpHash(PolicyCpHash_In* in  // IN: input parameter list
 
     // update cpHash in session context
     session->u1.cpHash                  = in->cpHashA;
-    session->attributes.isCpHashDefined = SET;
+    session->attributes.isCpHashDefined = TPM_SET;
 
     return TPM_RC_SUCCESS;
 }
@@ -1193,7 +1193,7 @@ TPM2_PolicyNameHash(PolicyNameHash_In* in  // IN: input parameter list
 
     // update nameHash in session context
     session->u1.nameHash                  = in->nameHash;
-    session->attributes.isNameHashDefined = SET;
+    session->attributes.isNameHashDefined = TPM_SET;
 
     return TPM_RC_SUCCESS;
 }
@@ -1252,7 +1252,7 @@ TPM2_PolicyDuplicationSelect(
 
     //  complete hash
     CryptHashEnd2B(&hashState, &session->u1.nameHash.b);
-    session->attributes.isNameHashDefined = SET;
+    session->attributes.isNameHashDefined = TPM_SET;
 
     // update policy hash
     // Old policyDigest size should be the same as the new policyDigest size since
@@ -1343,7 +1343,7 @@ TPM2_PolicyAuthorize(PolicyAuthorize_In* in  // IN: input parameter list
 	return TPM_RCS_SIZE + RC_PolicyAuthorize_keySign;
 
     //If this is a trial policy, skip all validations
-    if(session->attributes.isTrialPolicy == CLEAR)
+    if(session->attributes.isTrialPolicy == TPM_CLEAR)
 	{
 	    // Check that "approvedPolicy" matches the current value of the
 	    // policyDigest in policy session
@@ -1435,8 +1435,8 @@ TPM2_PolicyAuthValue(PolicyAuthValue_In* in  // IN: input parameter list
     CryptHashEnd2B(&hashState, &session->u2.policyDigest.b);
 
     // update isAuthValueNeeded bit in the session context
-    session->attributes.isAuthValueNeeded = SET;
-    session->attributes.isPasswordNeeded  = CLEAR;
+    session->attributes.isAuthValueNeeded = TPM_SET;
+    session->attributes.isPasswordNeeded  = TPM_CLEAR;
 
     return TPM_RC_SUCCESS;
 }
@@ -1488,8 +1488,8 @@ TPM2_PolicyPassword(PolicyPassword_In* in  // IN: input parameter list
     CryptHashEnd2B(&hashState, &session->u2.policyDigest.b);
 
     //  Update isPasswordNeeded bit
-    session->attributes.isPasswordNeeded  = SET;
-    session->attributes.isAuthValueNeeded = CLEAR;
+    session->attributes.isPasswordNeeded  = TPM_SET;
+    session->attributes.isAuthValueNeeded = TPM_CLEAR;
 
     return TPM_RC_SUCCESS;
 }
@@ -1550,16 +1550,16 @@ TPM2_PolicyNvWritten(PolicyNvWritten_In* in  // IN: input parameter list
 
     // If already set is this a duplicate (the same setting)? If it
     // is a conflicting setting, it is an error
-    if(session->attributes.checkNvWritten == SET)
+    if(session->attributes.checkNvWritten == TPM_SET)
 	{
-	    if(((session->attributes.nvWrittenState == SET) != (in->writtenSet == YES)))
+	    if(((session->attributes.nvWrittenState == TPM_SET) != (in->writtenSet == YES)))
 		return TPM_RCS_VALUE + RC_PolicyNvWritten_writtenSet;
 	}
 
     // Internal Data Update
 
     // Set session attributes so that the NV Index needs to be checked
-    session->attributes.checkNvWritten = SET;
+    session->attributes.checkNvWritten = TPM_SET;
     session->attributes.nvWrittenState = (in->writtenSet == YES);
 
     // Update policy hash
@@ -1648,7 +1648,7 @@ TPM2_PolicyTemplate(PolicyTemplate_In* in  // IN: input parameter list
 
     // update templateHash in session context
     session->u1.templateHash                  = in->templateHash;
-    session->attributes.isTemplateHashDefined = SET;
+    session->attributes.isTemplateHashDefined = TPM_SET;
 
     return TPM_RC_SUCCESS;
 }
@@ -1818,7 +1818,7 @@ TPM2_PolicyCapability(PolicyCapability_In* in  // IN: input parameter list
     // Get pointer to the session structure
     session = SessionGet(in->policySession);
 
-    if(session->attributes.isTrialPolicy == CLEAR)
+    if(session->attributes.isTrialPolicy == TPM_CLEAR)
 	{
 	    switch(in->capability)
 		{
@@ -2087,7 +2087,7 @@ TPM2_PolicyParameters(PolicyParameters_In* in  // IN: input parameter list
 
     // update pHash in session context
     session->u1.pHash                           = in->pHash;
-    session->attributes.isParametersHashDefined = SET;
+    session->attributes.isParametersHashDefined = TPM_SET;
 
     return TPM_RC_SUCCESS;
 }

@@ -239,7 +239,7 @@ TPM2_GetSessionAuditDigest(
     if(!CryptSelectSignScheme(signObject, &in->inScheme))
 	return TPM_RCS_SCHEME + RC_GetSessionAuditDigest_inScheme;
     // session must be an audit session
-    if(session->attributes.isAudit == CLEAR)
+    if(session->attributes.isAudit == TPM_CLEAR)
 	return TPM_RCS_TYPE + RC_GetSessionAuditDigest_sessionHandle;
     // Command Output
     // Fill in attest information common fields

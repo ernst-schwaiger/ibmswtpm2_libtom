@@ -103,6 +103,17 @@ typedef int socklen_t;
 #  define INT_PTR             intptr_t
 typedef int SOCKET;
 #  define _strcmpi            strcasecmp
+#elif defined(STM32H747xx)
+// This is representing an STM32 embedded platform
+#  define ZeroMemory(ptr, sz) (memset((ptr), 0, (sz)))
+#  define closesocket(x)      close(x)
+#  define INVALID_SOCKET      (-1)
+#  define SOCKET_ERROR        (-1)
+#  define WSAGetLastError()   (errno)
+#  define WSAEADDRINUSE       EADDRINUSE
+#  define INT_PTR             intptr_t
+typedef int SOCKET;
+#  define _strcmpi            strcasecmp
 #else
 #  error "Unsupported platform."
 #endif  // _MSC_VER

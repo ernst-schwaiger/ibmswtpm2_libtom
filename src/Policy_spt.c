@@ -159,7 +159,7 @@ PolicyContextUpdate(
     if(cpHash != NULL && cpHash->t.size != 0)
 	{
 	    session->u1.cpHash = *cpHash;
-	    session->attributes.isCpHashDefined = SET;
+	    session->attributes.isCpHashDefined = TPM_SET;
 	}
     // update the timeout if it is specified
     if(policyTimeout != 0)
@@ -272,7 +272,7 @@ PolicySptCheckCondition(
 	    return (UnsignedCompareB(size, opA, size, opB) <= 0);
 	    break;
 	  case TPM_EO_BITSET:
-	    // All bits SET in B are SET in A. ((A&B)=B)
+	    // All bits TPM_SET in B are TPM_SET in A. ((A&B)=B)
 	      {
 		  UINT32 i;
 		  for(i = 0; i < size; i++)
@@ -281,7 +281,7 @@ PolicySptCheckCondition(
 	      }
 	      break;
 	  case TPM_EO_BITCLEAR:
-	    // All bits SET in B are CLEAR in A. ((A&B)=0)
+	    // All bits TPM_SET in B are TPM_CLEAR in A. ((A&B)=0)
 	      {
 		  UINT32 i;
 		  for(i = 0; i < size; i++)

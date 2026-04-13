@@ -105,7 +105,7 @@ LIB_EXPORT BOOL TpmMath_IntTo2B(
 // One consequence of the generation scheme is that, if the number of bits requested
 // is not a multiple of 8, then the high-order bits are set to zero. This would come
 // into play when generating a 521-bit ECC key. A 66-byte (528-bit) value is
-// generated and the high order 7 bits are masked off (CLEAR).
+// generated and the high order 7 bits are masked off (TPM_CLEAR).
 // In this situation, the highest order byte is the first byte (big-endian/TPM2B format)
 //  Return Type: BOOL
 //      TRUE(1)         success
@@ -178,7 +178,7 @@ LIB_EXPORT BOOL TpmMath_GetRandomBits(BYTE* pBuffer, size_t bits, RAND_STATE* ra
 // One consequence of the generation scheme is that, if the number of bits requested
 // is not a multiple of 8, then the high-order bits are set to zero. This would come
 // into play when generating a 521-bit ECC key. A 66-byte (528-bit) value is
-// generated an the high order 7 bits are masked off (CLEAR).
+// generated an the high order 7 bits are masked off (TPM_CLEAR).
 //  Return Type: BOOL
 //      TRUE(1)         success
 //      FALSE(0)        failure

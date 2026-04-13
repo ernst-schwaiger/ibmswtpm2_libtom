@@ -132,7 +132,7 @@ TPM_Manufacture(
     PhysicalPresencePreInstall_Init();
     // initialize command audit list
     CommandAuditPreInstall_Init();
-    // first start up is required to be Startup(CLEAR)
+    // first start up is required to be Startup(TPM_CLEAR)
     orderlyShutdown = TPM_SU_CLEAR;
     NV_WRITE_PERSISTENT(orderlyState, orderlyShutdown);
     // initialize the firmware version

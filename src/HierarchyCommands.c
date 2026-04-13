@@ -124,9 +124,9 @@ TPM2_CreatePrimary(
 
     if(result == TPM_RC_SUCCESS)
 	{
-	    newObject->attributes.primary = SET;
+	    newObject->attributes.primary = TPM_SET;
 	    if(HierarchyNormalizeHandle(in->primaryHandle) == TPM_RH_ENDORSEMENT)
-		newObject->attributes.epsHierarchy = SET;
+		newObject->attributes.epsHierarchy = TPM_SET;
 
 	    // Create the primary object.
 	    result = CryptCreateObject(
@@ -225,11 +225,11 @@ TPM2_HierarchyControl(
     // Enable or disable the selected hierarchy
     // Note: the authorization processing for this command may keep these
     // command actions from being executed. For example, if phEnable is
-    // CLEAR, then platformAuth cannot be used for authorization. This
+    // TPM_CLEAR, then platformAuth cannot be used for authorization. This
     // means that would not be possible to use platformAuth to change the
-    // state of phEnable from CLEAR to SET.
+    // state of phEnable from TPM_CLEAR to TPM_SET.
     // If it is decided that platformPolicy can still be used when phEnable
-    // is CLEAR, then this code could SET phEnable when proper platform
+    // is TPM_CLEAR, then this code could TPM_SET phEnable when proper platform
     // policy is provided.
     switch(in->enable)
 	{
@@ -257,7 +257,7 @@ TPM2_HierarchyControl(
 	    // state is changing and NV is available so modify
 	    *selected = select;
 	    // If a hierarchy was just disabled, flush it
-	    if(select == CLEAR && in->enable != TPM_RH_PLATFORM_NV)
+	    if(select == TPM_CLEAR && in->enable != TPM_RH_PLATFORM_NV)
 	        // Flush hierarchy
 		ObjectFlushHierarchy(in->enable);
 	    // orderly state should be cleared because of the update to state clear data

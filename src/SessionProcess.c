@@ -80,8 +80,8 @@
 // This function indicates if a handle is exempted from DA logic.
 // A handle is exempted if it is:
 //  a) a primary seed handle;
-//  b) an object with noDA bit SET;
-//  c) an NV Index with TPMA_NV_NO_DA bit SET; or
+//  b) an object with noDA bit TPM_SET;
+//  c) an NV Index with TPMA_NV_NO_DA bit TPM_SET; or
 //  d) a PCR handle.
 //
 //  Return Type: BOOL
@@ -152,10 +152,10 @@ static TPM_RC IncrementLockout(UINT32 sessionIndex)
 	    // handle. This means that an authorization failure with a bound session
 	    // bound to lockoutAuth will take precedence over any other
 	    // lockout check
-	    if(session->attributes.isLockoutBound == SET)
+	    if(session->attributes.isLockoutBound == TPM_SET)
 		handle = TPM_RH_LOCKOUT;
-	    if(session->attributes.isDaBound == CLEAR
-	       && (IsDAExempted(handle) || session->attributes.includeAuth == CLEAR))
+	    if(session->attributes.isDaBound == TPM_CLEAR
+	       && (IsDAExempted(handle) || session->attributes.includeAuth == TPM_CLEAR))
 		// If the handle was changed to TPM_RH_LOCKOUT, this will not return
 		// TPM_RC_BAD_AUTH
 		return TPM_RC_BAD_AUTH;
@@ -185,7 +185,7 @@ static TPM_RC IncrementLockout(UINT32 sessionIndex)
 		{
 		    gp.failedTries++;
 		    if(NV_IS_AVAILABLE)
-			// Record changes to NV. NvWrite will SET g_updateNV
+			// Record changes to NV. NvWrite will TPM_SET g_updateNV
 			NV_SYNC_PERSISTENT(failedTries);
 		    else
 			// No NV access for now.  Put the TPM in pending mode.
@@ -236,7 +236,7 @@ static BOOL IsSessionBindEntity(
 // A policy session is required if:
 // a) the command requires the DUP role;
 // b) the command requires the ADMIN role and the authorized entity
-//    is an object and its adminWithPolicy bit is SET;
+//    is an object and its adminWithPolicy bit is TPM_SET;
 // c) the command requires the ADMIN role and the authorized entity
 //    is a permanent handle or an NV Index; or
 // d) the authorized entity is a PCR belonging to a policy group, and
@@ -334,7 +334,7 @@ static BOOL IsAuthValueAvailable(TPM_HANDLE    handle,        // IN: handle of e
 		    FOR_EACH_ACT(CASE_ACT_HANDLE)
 			{
 			    // The ACT auth value is not available if the platform is disabled
-			    result = g_phEnable == SET;
+			    result = g_phEnable == TPM_SET;
 			    break;
 			}
 #endif  // ACT_SUPPORT
@@ -365,9 +365,9 @@ static BOOL IsAuthValueAvailable(TPM_HANDLE    handle,        // IN: handle of e
 		      }
 		  // authValue is available for an object if it has its sensitive
 		  // portion loaded and
-		  //  a) userWithAuth bit is SET, or
+		  //  a) userWithAuth bit is TPM_SET, or
 		  //  b) ADMIN role is required
-		  if(object->attributes.publicOnly == CLEAR
+		  if(object->attributes.publicOnly == TPM_CLEAR
 		     && (IS_ATTRIBUTE(attributes, TPMA_OBJECT, userWithAuth)
 			 || (CommandAuthRole(commandIndex, sessionIndex) == AUTH_ADMIN
 			     && !IS_ATTRIBUTE(
@@ -488,7 +488,7 @@ static BOOL IsAuthPolicyAvailable(TPM_HANDLE    handle,        // IN: handle of 
 		  OBJECT* object = HandleToObject(handle);
 		  // Policy authorization is not available for an object with only
 		  // public portion loaded.
-		  if(object->attributes.publicOnly == CLEAR)
+		  if(object->attributes.publicOnly == TPM_CLEAR)
 		      {
 			  // Policy authorization is always available for an object but
 			  // is never available for a sequence.
@@ -886,7 +886,7 @@ static TPM2B_DIGEST* ComputeCommandHMAC(
     // Note: For a policy session, its isBound attribute is CLEARED.
     //
     // Include the entity authValue if it is needed
-    if(session->attributes.includeAuth == SET)
+    if(session->attributes.includeAuth == TPM_SET)
 	{
 	    TPM2B_AUTH authValue;
 	    // Get the entity authValue with trailing zeros removed
@@ -999,8 +999,8 @@ static TPM_RC CheckPolicyAuthSession(
     // If the command is TPM2_PolicySecret(), make sure that
     // either password or authValue is required
     if(command->code == TPM_CC_PolicySecret
-       && session->attributes.isPasswordNeeded == CLEAR
-       && session->attributes.isAuthValueNeeded == CLEAR)
+       && session->attributes.isPasswordNeeded == TPM_CLEAR
+       && session->attributes.isAuthValueNeeded == TPM_CLEAR)
 	return TPM_RC_MODE;
     // See if the PCR counter for the session is still valid.
     if(!SessionPCRValueIsCurrent(session))
@@ -1077,7 +1077,7 @@ static TPM_RC CheckPolicyAuthSession(
 	    }
     }  // end of locality check
     // Check physical presence.
-    if(session->attributes.isPPRequired == SET && !_plat__PhysicalPresenceAsserted())
+    if(session->attributes.isPPRequired == TPM_SET && !_plat__PhysicalPresenceAsserted())
 	return TPM_RC_PP;
     // Compare cpHash/nameHash/pHash/templateHash if defined.
     if(session->u1.cpHash.b.size != 0)
@@ -1109,7 +1109,7 @@ static TPM_RC CheckPolicyAuthSession(
 
 	    // Make sure that the TPMA_WRITTEN_ATTRIBUTE has the desired state
 	    if((IS_ATTRIBUTE(nvIndex->publicArea.attributes, TPMA_NV, WRITTEN))
-	       != (session->attributes.nvWrittenState == SET))
+	       != (session->attributes.nvWrittenState == TPM_SET))
 		return TPM_RC_POLICY_FAIL;
 	}
     return TPM_RC_SUCCESS;
@@ -1204,8 +1204,8 @@ static TPM_RC RetrieveSessionData(
 	    session     = SessionGet(s_sessionHandles[sessionIndex]);
 
 	    // Check if the session is an HMAC/policy session.
-	    if((session->attributes.isPolicy == SET && sessionType == TPM_HT_HMAC_SESSION)
-	       || (session->attributes.isPolicy == CLEAR
+	    if((session->attributes.isPolicy == TPM_SET && sessionType == TPM_HT_HMAC_SESSION)
+	       || (session->attributes.isPolicy == TPM_CLEAR
 		   && sessionType == TPM_HT_POLICY_SESSION))
 		return TPM_RCS_HANDLE + errorIndex;
 	    // Check that this handle has not previously been used.
@@ -1262,9 +1262,9 @@ static TPM_RC RetrieveSessionData(
 		    // of the session as an audit session, it doesn't matter what
 		    // the exclusive state is. The session will become exclusive.
 		    if(!IS_ATTRIBUTE(sessionAttributes, TPMA_SESSION, auditReset)
-		       && session->attributes.isAudit == SET)
+		       && session->attributes.isAudit == TPM_SET)
 			{
-			    // Not first use or reset. If auditExlusive is SET, then this
+			    // Not first use or reset. If auditExlusive is TPM_SET, then this
 			    // session must be the current exclusive session.
 			    if(IS_ATTRIBUTE(sessionAttributes, TPMA_SESSION, auditExclusive)
 			       && g_exclusiveAuditSession != s_sessionHandles[sessionIndex])
@@ -1323,7 +1323,7 @@ static TPM_RC CheckLockedOut(
 	    if(gp.failedTries >= gp.maxTries)
 		return TPM_RC_LOCKOUT;
 #if USE_DA_USED
-	    // If the daUsed flag is not SET, then no DA validation until the
+	    // If the daUsed flag is not TPM_SET, then no DA validation until the
 	    // daUsed state is written to NV
 	    if(!g_daUsed)
 		{
@@ -1391,7 +1391,7 @@ static TPM_RC CheckAuthSession(
 	    if(sessionHandleType == TPM_HT_POLICY_SESSION)
 		{
 		    // For a policy session, will check the DA status of the entity if either
-		    // isAuthValueNeeded or isPasswordNeeded is SET.
+		    // isAuthValueNeeded or isPasswordNeeded is TPM_SET.
 		    session->attributes.includeAuth = session->attributes.isAuthValueNeeded
 						      || session->attributes.isPasswordNeeded;
 		}
@@ -1445,7 +1445,7 @@ static TPM_RC CheckAuthSession(
 		return result;
 	}
     // Check authorization according to the type
-    if((TPM_RS_PW == sessionHandle) || (session->attributes.isPasswordNeeded == SET))
+    if((TPM_RS_PW == sessionHandle) || (session->attributes.isPasswordNeeded == TPM_SET))
 	result = CheckPWAuthSession(sessionIndex);
     else
 	result = CheckSessionHMAC(command, sessionIndex);
@@ -1592,16 +1592,16 @@ ParseSessionBuffer(COMMAND* command  // IN: the structure that contains
 
 		    // A trial session can not appear in session area, because it cannot
 		    // be used for authorization, audit or encrypt/decrypt.
-		    if(session->attributes.isTrialPolicy == SET)
+		    if(session->attributes.isTrialPolicy == TPM_SET)
 			return TPM_RCS_ATTRIBUTES + errorIndex;
 
 		    // See if the session is bound to a DA protected entity
 		    // NOTE: Since a policy session is never bound, a policy is still
 		    // usable even if the object is DA protected and the TPM is in
 		    // lockout.
-		    if(session->attributes.isDaBound == SET)
+		    if(session->attributes.isDaBound == TPM_SET)
 			{
-			    result = CheckLockedOut(session->attributes.isLockoutBound == SET);
+			    result = CheckLockedOut(session->attributes.isLockoutBound == TPM_SET);
 			    if(result != TPM_RC_SUCCESS)
 				return result;
 			}
@@ -1628,7 +1628,7 @@ ParseSessionBuffer(COMMAND* command  // IN: the structure that contains
 
 		    // no authValue included in any of the HMAC computations
 		    pAssert(session != NULL);
-		    session->attributes.includeAuth = CLEAR;
+		    session->attributes.includeAuth = TPM_CLEAR;
 
 		    // check HMAC for encrypt/decrypt/audit only sessions
 		    result = CheckSessionHMAC(command, sessionIndex);
@@ -1759,10 +1759,10 @@ static void InitAuditSession(SESSION* session  // session to be initialized
 			     )
 {
     // Mark session as an audit session.
-    session->attributes.isAudit = SET;
+    session->attributes.isAudit = TPM_SET;
 
     // Audit session can not be bound.
-    session->attributes.isBound = CLEAR;
+    session->attributes.isBound = TPM_CLEAR;
 
     // Size of the audit log is the size of session hash algorithm digest.
     session->u2.auditDigest.t.size = CryptHashGetDigestSize(session->authHashAlg);
@@ -1874,7 +1874,7 @@ static void UpdateAuditSessionStatus(
 		    // If the session has not been an audit session yet, or
 		    // the auditSetting bits indicate a reset, initialize it and set
 		    // it to be the exclusive session
-		    if(session->attributes.isAudit == CLEAR
+		    if(session->attributes.isAudit == TPM_CLEAR
 		       || IS_ATTRIBUTE(s_attributes[i], TPMA_SESSION, auditReset))
 			{
 			    InitAuditSession(session);
@@ -1961,9 +1961,9 @@ static void ComputeResponseHMAC(
     MemoryCopy2B(&key.b, &session->sessionKey.b, sizeof(key.t.buffer));
 
     // Add the object authValue if required
-    if(session->attributes.includeAuth == SET)
+    if(session->attributes.includeAuth == TPM_SET)
 	{
-	    // Note: includeAuth may be SET for a policy that is used in
+	    // Note: includeAuth may be TPM_SET for a policy that is used in
 	    // UndefineSpaceSpecial(). At this point, the Index has been deleted
 	    // so the includeAuth will have no meaning. However, the
 	    // s_associatedHandles[] value for the session is now set to TPM_RH_NULL so
@@ -2036,10 +2036,10 @@ static TPM2B_NONCE* BuildSingleResponseAuth(
     // Fill in policy/HMAC based session response.
     SESSION* session = SessionGet(s_sessionHandles[sessionIndex]);
     //
-    // If the session is a policy session with isPasswordNeeded SET, the
+    // If the session is a policy session with isPasswordNeeded TPM_SET, the
     // authorization field is empty.
     if(HandleGetType(s_sessionHandles[sessionIndex]) == TPM_HT_POLICY_SESSION
-       && session->attributes.isPasswordNeeded == SET)
+       && session->attributes.isPasswordNeeded == TPM_SET)
 	auth->t.size = 0;
     else
 	// Compute response HMAC.
@@ -2158,7 +2158,7 @@ BuildResponseSession(COMMAND* command  // IN: structure that has relevant comman
 		{
 		    TPM2B_NONCE* nonceTPM;
 		    TPM2B_DIGEST responseAuth;
-		    // Make sure that continueSession is SET on any Password session.
+		    // Make sure that continueSession is TPM_SET on any Password session.
 		    // This makes it marginally easier for the management software
 		    // to keep track of the closed sessions.
 		    if(s_sessionHandles[i] == TPM_RS_PW)

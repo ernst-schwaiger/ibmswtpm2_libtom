@@ -96,7 +96,7 @@
 // matches the layout of RAM. In normal operation. The RAM data is also copied on
 // any orderly shutdown. In normal operation, the only other reason for writing
 // to the backing store for RAM is when a counter is first written (TPMA_NV_WRITTEN
-// changes from CLEAR to SET) or when a counter "rolls over."
+// changes from TPM_CLEAR to TPM_SET) or when a counter "rolls over."
 //
 // Static space contains items that are individually modifiable. The values are in
 // the 'gp' PERSISTENT_DATA structure in RAM and mapped to locations in NV.
@@ -163,7 +163,7 @@ BOOL NvCommit(void)
 //  Return Type: BOOL
 //      TRUE(1)         all NV was initialized
 //      FALSE(0)        the NV containing saved state had an error and
-//                      TPM2_Startup(CLEAR) is required
+//                      TPM2_Startup(TPM_CLEAR) is required
 BOOL NvPowerOn(void)
 {
     int nvError = 0;

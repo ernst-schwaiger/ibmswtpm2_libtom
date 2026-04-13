@@ -233,7 +233,7 @@ _plat__ACT_GetPending(
 /* C.16.2.8.	_plat__ACT_UpdateCounter() */
 /* This function is used to write the newValue for the counter. If an update is pending, then no
    update occurs and the function returns FALSE. If setSignaled is TRUE, then the ACT signaled state
-   is SET and if newValue is 0, nothing is posted. */
+   is TPM_SET and if newValue is 0, nothing is posted. */
 LIB_EXPORT int
 _plat__ACT_UpdateCounter(
 			 uint32_t            act,        // IN: ACT to update

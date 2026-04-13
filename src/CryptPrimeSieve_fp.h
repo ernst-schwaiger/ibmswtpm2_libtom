@@ -85,7 +85,7 @@ LIB_EXPORT void RsaAdjustPrimeLimit(uint32_t requestedPrimes);
 LIB_EXPORT uint32_t RsaNextPrime(uint32_t lastPrime);
 
 //*** FindNthSetBit()
-// This function finds the nth SET bit in a bit array. The 'n' parameter is
+// This function finds the nth TPM_SET bit in a bit array. The 'n' parameter is
 // between 1 and the number of bits in the array (always a multiple of 8).
 // If called when the array does not have n bits set, it will return -1
 //  Return Type: unsigned int
@@ -94,7 +94,7 @@ LIB_EXPORT uint32_t RsaNextPrime(uint32_t lastPrime);
 LIB_EXPORT int FindNthSetBit(
 			     const UINT16 aSize,  // IN: the size of the array to check
 			     const BYTE*  a,      // IN: the array to check
-			     const UINT32 n       // IN, the number of the SET bit
+			     const UINT32 n       // IN, the number of the TPM_SET bit
 			     );
 
 //*** PrimeSieve()

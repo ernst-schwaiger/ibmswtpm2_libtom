@@ -69,14 +69,14 @@
 #if defined(YES) || defined(NO)
 #  error YES and NO should be defined in TpmBuildSwitches.h
 #endif
-#if defined(SET) || defined(CLEAR)
-#  error SET and CLEAR should be defined in TpmBuildSwitches.h
+#if defined(TPM_SET) || defined(TPM_CLEAR)
+#  error TPM_SET and TPM_CLEAR should be defined in TpmBuildSwitches.h
 #endif
 
 #define YES   1
-#define SET   1
+#define TPM_SET   1
 #define NO    0
-#define CLEAR 0
+#define TPM_CLEAR 0
 
 // TRUE/FALSE may be coming from system headers, but if not, provide them.
 #ifndef TRUE

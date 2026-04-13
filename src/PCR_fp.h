@@ -150,7 +150,7 @@ void PcrDrtm(const TPMI_DH_PCR pcrHandle,  // IN: the index of the PCR to be
 
 //*** PCR_ClearAuth()
 // This function is used to reset the PCR authorization values. It is called
-// on TPM2_Startup(CLEAR) and TPM2_Clear().
+// on TPM2_Startup(TPM_CLEAR) and TPM2_Clear().
 void PCR_ClearAuth(void);
 
 //*** PCRStartup()

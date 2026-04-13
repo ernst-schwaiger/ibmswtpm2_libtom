@@ -88,7 +88,7 @@ static TPM_RC CryptRunSelfTests(
     // test
     for(alg = TPM_ALG_FIRST; alg <= TPM_ALG_LAST; alg++)
 	{
-	    if(TEST_BIT(alg, *toTest))
+	    if(TPM_TEST_BIT(alg, *toTest))
 		{
 		    TPM_RC result = CryptTestAlgorithm(alg, toTest);
 		    if(result != TPM_RC_SUCCESS)
@@ -160,9 +160,9 @@ CryptIncrementalSelfTest(TPML_ALG* toTest,   // IN: list of algorithms to be tes
 		    alg = toTest->algorithms[i];
 
 		    // make sure that the algorithm value is not out of range
-		    if((alg > TPM_ALG_LAST) || !TEST_BIT(alg, g_implementedAlgorithms))
+		    if((alg > TPM_ALG_LAST) || !TPM_TEST_BIT(alg, g_implementedAlgorithms))
 			return TPM_RC_VALUE;
-		    SET_BIT(alg, toTestVector);
+		    TPM_SET_BIT(alg, toTestVector);
 		}
 	    // Run the test
 	    if(CryptRunSelfTests(&toTestVector) == TPM_RC_CANCELED)
@@ -175,7 +175,7 @@ CryptIncrementalSelfTest(TPML_ALG* toTest,   // IN: list of algorithms to be tes
 	toDoList->count < MAX_ALG_LIST_SIZE && alg <= TPM_ALG_LAST;
 	alg++)
 	{
-	    if(TEST_BIT(alg, g_toTest))
+	    if(TPM_TEST_BIT(alg, g_toTest))
 		toDoList->algorithms[toDoList->count++] = alg;
 	}
     return TPM_RC_SUCCESS;
@@ -204,10 +204,10 @@ void CryptInitializeToTest(void)
 // Only point of contact with the actual self tests. If a self-test fails, there
 // is no return and the TPM goes into failure mode.
 // The call to TestAlgorithm uses an algorithm selector and a bit vector. When the
-// test is run, the corresponding bit in 'toTest' and in 'g_toTest' is CLEAR. If
-// 'toTest' is NULL, then only the bit in 'g_toTest' is CLEAR.
+// test is run, the corresponding bit in 'toTest' and in 'g_toTest' is TPM_CLEAR. If
+// 'toTest' is NULL, then only the bit in 'g_toTest' is TPM_CLEAR.
 // There is a special case for the call to TestAlgorithm(). When 'alg' is
-// ALG_ERROR, TestAlgorithm() will CLEAR any bit in 'toTest' for which it has
+// ALG_ERROR, TestAlgorithm() will TPM_CLEAR any bit in 'toTest' for which it has
 // no test. This allows the knowledge about which algorithms have test to be
 // accessed through the interface that provides the test.
 //  Return Type: TPM_RC
@@ -227,9 +227,9 @@ CryptTestAlgorithm(TPM_ALG_ID alg, ALGORITHM_VECTOR* toTest)
     // algorithms have tests, 'toTest' can be cleared.
     if(alg != TPM_ALG_ERROR)
 	{
-	    CLEAR_BIT(alg, g_toTest);
+	    TPM_CLEAR_BIT(alg, g_toTest);
 	    if(toTest != NULL)
-		CLEAR_BIT(alg, *toTest);
+		TPM_CLEAR_BIT(alg, *toTest);
 	}
     result = TPM_RC_SUCCESS;
 #endif

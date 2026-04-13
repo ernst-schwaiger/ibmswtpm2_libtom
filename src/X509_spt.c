@@ -212,16 +212,16 @@ X509ProcessExtensions(
 	    // see if any reserved bits are set
 	    if(keyUsage.integer & ~(TPMA_X509_KEY_USAGE_ALLOWED_BITS))
 		return TPM_RCS_RESERVED_BITS;	    // For KeyUsage:
-	    // 1) 'sign' is SET if Key Usage includes signing
+	    // 1) 'sign' is TPM_SET if Key Usage includes signing
 	    badSign = ((KEY_USAGE_SIGN.integer & keyUsage.integer) != 0)
 		      && !IS_ATTRIBUTE(attributes, TPMA_OBJECT, sign);
-	    // 2) 'decrypt' is SET if Key Usage includes decryption uses
+	    // 2) 'decrypt' is TPM_SET if Key Usage includes decryption uses
 	    badDecrypt = ((KEY_USAGE_DECRYPT.integer & keyUsage.integer) != 0)
 			 && !IS_ATTRIBUTE(attributes, TPMA_OBJECT, decrypt);
-	    // 3) 'fixedTPM' is SET if Key Usage is non-repudiation
+	    // 3) 'fixedTPM' is TPM_SET if Key Usage is non-repudiation
 	    badFixedTPM = IS_ATTRIBUTE(keyUsage.x509, TPMA_X509_KEY_USAGE, nonrepudiation)
 			  && !IS_ATTRIBUTE(attributes, TPMA_OBJECT, fixedTPM);
-	    // 4)'restricted' is SET if Key Usage is for key encipherment.
+	    // 4)'restricted' is TPM_SET if Key Usage is for key encipherment.
 	    badRestricted =
 		IS_ATTRIBUTE(keyUsage.x509, TPMA_X509_KEY_USAGE, keyEncipherment)
 		&& !IS_ATTRIBUTE(attributes, TPMA_OBJECT, restricted);

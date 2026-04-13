@@ -91,7 +91,7 @@ DAPreInstall_Init(
 }
 /* 8.2.3.2 DAStartup() */
 /* This function is called by TPM2_Startup() to initialize the DA parameters. In the case of
-   Startup(CLEAR), use of lockoutAuth will be enabled if the lockout recovery time is 0. Otherwise,
+   Startup(TPM_CLEAR), use of lockoutAuth will be enabled if the lockout recovery time is 0. Otherwise,
    lockoutAuth will not be enabled until the TPM has been continuously powered for the
    lockoutRecovery time. */
 /* This function requires that NV be available and not rate limiting. */

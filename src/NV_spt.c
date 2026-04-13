@@ -89,13 +89,13 @@ NvReadAccessChecks(TPM_HANDLE authHandle,  // IN: the handle that provided the
     // was checked..
     if(authHandle == TPM_RH_OWNER)
 	{
-	    // If Owner provided authorization then ONWERWRITE must be SET
+	    // If Owner provided authorization then ONWERWRITE must be TPM_SET
 	    if(!IS_ATTRIBUTE(attributes, TPMA_NV, OWNERREAD))
 		return TPM_RC_NV_AUTHORIZATION;
 	}
     else if(authHandle == TPM_RH_PLATFORM)
 	{
-	    // If Platform provided authorization then PPWRITE must be SET
+	    // If Platform provided authorization then PPWRITE must be TPM_SET
 	    if(!IS_ATTRIBUTE(attributes, TPMA_NV, PPREAD))
 		return TPM_RC_NV_AUTHORIZATION;
 	}
@@ -137,13 +137,13 @@ NvWriteAccessChecks(
     // was checked..
     if(authHandle == TPM_RH_OWNER)
 	{
-	    // If Owner provided authorization then ONWERWRITE must be SET
+	    // If Owner provided authorization then ONWERWRITE must be TPM_SET
 	    if(!IS_ATTRIBUTE(attributes, TPMA_NV, OWNERWRITE))
 		return TPM_RC_NV_AUTHORIZATION;
 	}
     else if(authHandle == TPM_RH_PLATFORM)
 	{
-	    // If Platform provided authorization then PPWRITE must be SET
+	    // If Platform provided authorization then PPWRITE must be TPM_SET
 	    if(!IS_ATTRIBUTE(attributes, TPMA_NV, PPWRITE))
 		return TPM_RC_NV_AUTHORIZATION;
 	}
@@ -233,7 +233,7 @@ TPM2B_NAME* NvGetIndexName(
 
 // NOTE: This is a lossy conversion: any expanded attributes are lost here.
 // Calling code should return an error to the user, instead of dropping their
-// data, if any of the expanded attributes are SET.
+// data, if any of the expanded attributes are TPM_SET.
 static TPMA_NV LegacyAttributesFromExpanded(TPMA_NV_EXP attributes)
 {
     UINT64 attributes64;
@@ -370,9 +370,9 @@ TPM_RC NvDefineSpace(TPMI_RH_PROVISION authHandle,
 
     // If an index is being created by the owner and shEnable is
     // clear, then we would not reach this point because ownerAuth
-    // can't be given when shEnable is CLEAR. However, if phEnable
-    // is SET but phEnableNV is CLEAR, we have to check here
-    if(authHandle == TPM_RH_PLATFORM && gc.phEnableNV == CLEAR)
+    // can't be given when shEnable is TPM_CLEAR. However, if phEnable
+    // is TPM_SET but phEnableNV is TPM_CLEAR, we have to check here
+    if(authHandle == TPM_RH_PLATFORM && gc.phEnableNV == TPM_CLEAR)
 	return TPM_RCS_HIERARCHY + blameAuthHandle;
 
     // Attribute checks
@@ -420,13 +420,13 @@ TPM_RC NvDefineSpace(TPMI_RH_PROVISION authHandle,
     switch(GET_TPM_NT(attributes))
 	{
 	  case TPM_NT_COUNTER:
-	    // Counter can't have TPMA_NV_CLEAR_STCLEAR SET (don't clear counters)
+	    // Counter can't have TPMA_NV_CLEAR_STCLEAR TPM_SET (don't clear counters)
 	    if(IS_ATTRIBUTE(attributes, TPMA_NV, CLEAR_STCLEAR))
 		return TPM_RCS_ATTRIBUTES + blamePublic;
 	    break;
 #ifdef TPM_NT_PIN_FAIL
 	  case TPM_NT_PIN_FAIL:
-	    // NV_NO_DA must be SET and AUTHWRITE must be CLEAR
+	    // NV_NO_DA must be TPM_SET and AUTHWRITE must be TPM_CLEAR
 	    // NOTE: As with a PIN_PASS index, the authValue of the index is not
 	    // available until the index is written. If AUTHWRITE is the only way to
 	    // write then index, it could never be written. Rather than go through
@@ -441,7 +441,7 @@ TPM_RC NvDefineSpace(TPMI_RH_PROVISION authHandle,
 #endif
 #ifdef TPM_NT_PIN_PASS
 	  case TPM_NT_PIN_PASS:
-	    // AUTHWRITE must be CLEAR (see note above to TPM_NT_PIN_FAIL)
+	    // AUTHWRITE must be TPM_CLEAR (see note above to TPM_NT_PIN_FAIL)
 	    if(IS_ATTRIBUTE(attributes, TPMA_NV, AUTHWRITE)
 	       || IS_ATTRIBUTE(attributes, TPMA_NV, GLOBALLOCK)
 	       || IS_ATTRIBUTE(attributes, TPMA_NV, WRITEDEFINE))
@@ -452,7 +452,7 @@ TPM_RC NvDefineSpace(TPMI_RH_PROVISION authHandle,
 	    break;
 	}
 
-    // Locks may not be SET and written cannot be SET
+    // Locks may not be TPM_SET and written cannot be TPM_SET
     if(IS_ATTRIBUTE(attributes, TPMA_NV, WRITTEN)
        || IS_ATTRIBUTE(attributes, TPMA_NV, WRITELOCKED)
        || IS_ATTRIBUTE(attributes, TPMA_NV, READLOCKED))
@@ -472,7 +472,7 @@ TPM_RC NvDefineSpace(TPMI_RH_PROVISION authHandle,
        && !IS_ATTRIBUTE(attributes, TPMA_NV, POLICYWRITE))
 	return TPM_RCS_ATTRIBUTES + blamePublic;
 
-    // An index with TPMA_NV_CLEAR_STCLEAR can't have TPMA_NV_WRITEDEFINE SET
+    // An index with TPMA_NV_CLEAR_STCLEAR can't have TPMA_NV_WRITEDEFINE TPM_SET
     if(IS_ATTRIBUTE(attributes, TPMA_NV, CLEAR_STCLEAR)
        && IS_ATTRIBUTE(attributes, TPMA_NV, WRITEDEFINE))
 	return TPM_RCS_ATTRIBUTES + blamePublic;
@@ -484,7 +484,7 @@ TPM_RC NvDefineSpace(TPMI_RH_PROVISION authHandle,
 	   && authHandle == TPM_RH_PLATFORM))
 	return TPM_RCS_ATTRIBUTES + blameAuthHandle;
 
-    // If TPMA_NV_POLICY_DELETE is SET, then the index must be defined by
+    // If TPMA_NV_POLICY_DELETE is TPM_SET, then the index must be defined by
     // the platform
     if(IS_ATTRIBUTE(attributes, TPMA_NV, POLICY_DELETE)
        && TPM_RH_PLATFORM != authHandle)

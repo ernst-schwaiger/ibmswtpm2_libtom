@@ -78,7 +78,7 @@
 // course the platform can store data separately as well, but this allows a
 // simple platform implementation to store a few bytes of data without
 // implementing a multi-layer storage system.  This function is called on
-// manufacture and CLEAR.  The buffer will contain the last value provided
+// manufacture and TPM_CLEAR.  The buffer will contain the last value provided
 // to the Core library.
 LIB_EXPORT void _plat__GetPlatformManufactureData(uint8_t* pPlatformPersistentData,
 						  uint32_t bufferSize)

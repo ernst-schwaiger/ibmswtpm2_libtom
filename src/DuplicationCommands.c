@@ -90,7 +90,7 @@ TPM2_Duplicate(
     object = HandleToObject(in->objectHandle);
     // Get new parent
     newParent = HandleToObject(in->newParentHandle);
-    // duplicate key must have fixParent bit CLEAR.
+    // duplicate key must have fixParent bit TPM_CLEAR.
     if(IS_ATTRIBUTE(object->publicArea.objectAttributes, TPMA_OBJECT, fixedParent))
 	return TPM_RCS_ATTRIBUTES + RC_Duplicate_objectHandle;
     // Do not duplicate object with NULL nameAlg
@@ -100,7 +100,7 @@ TPM2_Duplicate(
     if(in->newParentHandle != TPM_RH_NULL
        && !ObjectIsStorage(in->newParentHandle))
 	return TPM_RCS_TYPE + RC_Duplicate_newParentHandle;
-    // If the duplicated object has encryptedDuplication SET, then there must be
+    // If the duplicated object has encryptedDuplication TPM_SET, then there must be
     // an inner wrapper and the new parent may not be TPM_RH_NULL
     if(IS_ATTRIBUTE(object->publicArea.objectAttributes, TPMA_OBJECT,
 		    encryptedDuplication))
@@ -288,7 +288,7 @@ TPM2_Import(
     // Input Validation
     // to save typing
     attributes = in->objectPublic.publicArea.objectAttributes;
-    // FixedTPM and fixedParent must be CLEAR
+    // FixedTPM and fixedParent must be TPM_CLEAR
     if(IS_ATTRIBUTE(attributes, TPMA_OBJECT, fixedTPM)
        || IS_ATTRIBUTE(attributes, TPMA_OBJECT, fixedParent))
 	return TPM_RCS_ATTRIBUTES + RC_Import_objectPublic;
@@ -310,7 +310,7 @@ TPM2_Import(
 	    // be 0 as well
 	    if(in->encryptionKey.t.size != 0)
 		return TPM_RCS_SIZE + RC_Import_encryptionKey;
-	    // If encryptedDuplication is SET, then the object must have an inner
+	    // If encryptedDuplication is TPM_SET, then the object must have an inner
 	    // wrapper
 	    if(IS_ATTRIBUTE(attributes, TPMA_OBJECT, encryptedDuplication))
 		return TPM_RCS_ATTRIBUTES + RC_Import_encryptionKey;
@@ -351,7 +351,7 @@ TPM2_Import(
 				  &in->encryptionKey.b, &sensitive);
     if(result != TPM_RC_SUCCESS)
 	return RcSafeAddToResult(result, RC_Import_duplicate);
-    // If the parent of this object has fixedTPM SET, then validate this
+    // If the parent of this object has fixedTPM TPM_SET, then validate this
     // object as if it were being loaded so that validation can be skipped
     // when it is actually loaded.
     if(IS_ATTRIBUTE(parentObject->publicArea.objectAttributes, TPMA_OBJECT, fixedTPM))

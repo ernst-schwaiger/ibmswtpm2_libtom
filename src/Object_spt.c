@@ -372,7 +372,7 @@ BOOL AdjustAuthSize(TPM2B_AUTH*   auth,    // IN/OUT: value to adjust
 //*** AreAttributesForParent()
 // This function is called by create, load, and import functions.
 //
-// Note: The 'isParent' attribute is SET when an object is loaded and it has
+// Note: The 'isParent' attribute is TPM_SET when an object is loaded and it has
 // attributes that are suitable for a parent object.
 //  Return Type: BOOL
 //      TRUE(1)         properties are those of a parent
@@ -410,7 +410,7 @@ CreateChecks(OBJECT*           parentObject,
        && (sensitiveDataSize == 0))
 	return TPM_RCS_ATTRIBUTES;
     // For an ordinary object, data can only be provided when sensitiveDataOrigin
-    // is CLEAR
+    // is TPM_CLEAR
     if((parentObject != NULL)
        && (IS_ATTRIBUTE(attributes, TPMA_OBJECT, sensitiveDataOrigin))
        && (sensitiveDataSize != 0))
@@ -418,7 +418,7 @@ CreateChecks(OBJECT*           parentObject,
     switch(publicArea->type)
 	{
 	  case TPM_ALG_KEYEDHASH:
-	    // if this is a data object (sign == decrypt == CLEAR) then the
+	    // if this is a data object (sign == decrypt == TPM_CLEAR) then the
 	    // TPM cannot be the data source.
 	    if(!IS_ATTRIBUTE(attributes, TPMA_OBJECT, sign)
 	       && !IS_ATTRIBUTE(attributes, TPMA_OBJECT, decrypt)
@@ -429,8 +429,8 @@ CreateChecks(OBJECT*           parentObject,
 	    //            break;
 	  case TPM_ALG_SYMCIPHER:
 	    // A restricted key symmetric key (SYMCIPHER and KEYEDHASH)
-	    // must have sensitiveDataOrigin SET unless it has fixedParent and
-	    // fixedTPM CLEAR.
+	    // must have sensitiveDataOrigin TPM_SET unless it has fixedParent and
+	    // fixedTPM TPM_CLEAR.
 	    if(IS_ATTRIBUTE(attributes, TPMA_OBJECT, restricted))
 		if(!IS_ATTRIBUTE(attributes, TPMA_OBJECT, sensitiveDataOrigin))
 		    if(IS_ATTRIBUTE(attributes, TPMA_OBJECT, fixedParent)
@@ -646,7 +646,7 @@ SchemeChecks(OBJECT*      parentObject,  // IN: parent (null if primary seed)
 // This function validates the values in the public area of an object.
 // This function is used in the processing of TPM2_Create, TPM2_CreatePrimary,
 // TPM2_CreateLoaded(), TPM2_Load(),  TPM2_Import(), and TPM2_LoadExternal().
-// For TPM2_Import() this is only used if the new parent has fixedTPM SET. For
+// For TPM2_Import() this is only used if the new parent has fixedTPM TPM_SET. For
 // TPM2_LoadExternal(), this is not used for a public-only key
 //  Return Type: TPM_RC
 //      TPM_RC_ATTRIBUTES   'fixedTPM', 'fixedParent', or 'encryptedDuplication'
@@ -701,21 +701,21 @@ PublicAttributesValidation(
     if(IS_ATTRIBUTE(attributes, TPMA_OBJECT, sign)
        == IS_ATTRIBUTE(attributes, TPMA_OBJECT, decrypt))
 	{
-	    // a restricted key cannot have both SET or both CLEAR
+	    // a restricted key cannot have both TPM_SET or both TPM_CLEAR
 	    if(IS_ATTRIBUTE(attributes, TPMA_OBJECT, restricted))
 		return TPM_RC_ATTRIBUTES;
-	    // only a data object may have both sign and decrypt CLEAR
+	    // only a data object may have both sign and decrypt TPM_CLEAR
 	    // BTW, since we know that decrypt==sign, no need to check both
 	    if(publicArea->type != TPM_ALG_KEYEDHASH
 	       && !IS_ATTRIBUTE(attributes, TPMA_OBJECT, sign))
 		return TPM_RC_ATTRIBUTES;
 	}
     // If the object can't be duplicated (directly or indirectly) then there
-    // is no justification for having encryptedDuplication SET
+    // is no justification for having encryptedDuplication TPM_SET
     if(IS_ATTRIBUTE(attributes, TPMA_OBJECT, fixedTPM)
        && IS_ATTRIBUTE(attributes, TPMA_OBJECT, encryptedDuplication))
 	return TPM_RCS_ATTRIBUTES;
-    // If a parent object has fixedTPM CLEAR, the child must have the
+    // If a parent object has fixedTPM TPM_CLEAR, the child must have the
     // same encryptedDuplication value as its parent.
     // Primary objects are considered to have a fixedTPM parent (the seeds).
     if(parentObject != NULL && !IS_ATTRIBUTE(parentAttributes, TPMA_OBJECT, fixedTPM))
@@ -781,7 +781,7 @@ PublicAttributesValidation(
 	}
 
     // Special checks for derived objects
-    if((parentObject != NULL) && (parentObject->attributes.derivation == SET))
+    if((parentObject != NULL) && (parentObject->attributes.derivation == TPM_SET))
 	{
 	    // A derived object has the same settings for fixedTPM as its parent
 	    if(IS_ATTRIBUTE(attributes, TPMA_OBJECT, fixedTPM)
@@ -1690,5 +1690,5 @@ UnmarshalToPublic(TPMT_PUBLIC*    tOut,  // OUT: output
 // Set the external attributes for an object.
 void ObjectSetExternal(OBJECT* object)
 {
-    object->attributes.external = SET;
+    object->attributes.external = TPM_SET;
 }

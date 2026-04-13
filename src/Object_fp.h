@@ -284,7 +284,7 @@ void ComputeQualifiedName(
 //*** ObjectIsStorage()
 // This function determines if an object has the attributes associated
 // with a parent. A parent is an asymmetric or symmetric block cipher key
-// that has its 'restricted' and 'decrypt' attributes SET, and 'sign' CLEAR.
+// that has its 'restricted' and 'decrypt' attributes TPM_SET, and 'sign' TPM_CLEAR.
 //  Return Type: BOOL
 //      TRUE(1)         object is a storage key
 //      FALSE(0)        object is not a storage key

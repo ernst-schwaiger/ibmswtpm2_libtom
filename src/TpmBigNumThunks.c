@@ -322,7 +322,7 @@ LIB_EXPORT BOOL ExtMath_SetBit(Crypt_Int* bn, unsigned int bitNum)
     return BnSetBit((bigNum)bn, bitNum);
 }
 
-// This function is used to check to see if a bit is SET in a bigNum_t. The 0th bit
+// This function is used to check to see if a bit is TPM_SET in a bigNum_t. The 0th bit
 //*** ExtMath_TestBit()
 // is the LSb of d[0].
 //  Return Type: BOOL

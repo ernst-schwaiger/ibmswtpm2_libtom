@@ -78,7 +78,7 @@ BOOL AlgorithmCapGetOneImplemented(
 LIB_EXPORT
 void
 AlgorithmGetImplementedVector(
-			      ALGORITHM_VECTOR    *implemented    // OUT: the implemented bits are SET
+			      ALGORITHM_VECTOR    *implemented    // OUT: the implemented bits are TPM_SET
 			      );
 
 

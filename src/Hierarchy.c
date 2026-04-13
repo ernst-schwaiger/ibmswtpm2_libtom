@@ -157,7 +157,7 @@ void HierarchyPreInstall_Init(void)
 BOOL HierarchyStartup(STARTUP_TYPE type  // IN: start up type
 		      )
 {
-    // phEnable is SET on any startup
+    // phEnable is TPM_SET on any startup
     g_phEnable = TRUE;
 
     // Reset platformAuth, platformPolicy; enable SH and EH at TPM_RESET and

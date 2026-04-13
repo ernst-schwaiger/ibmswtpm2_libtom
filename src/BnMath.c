@@ -404,10 +404,10 @@ LIB_EXPORT bigNum BnSetWord(bigNum n, crypt_uword_t w)
 }
 
 //*** BnSetBit()
-// This function will SET a bit in a bigNum. Bit 0 is the least-significant bit in
+// This function will TPM_SET a bit in a bigNum. Bit 0 is the least-significant bit in
 // the 0th digit_t.  The function will return FALSE if the bitNum is invalid, else TRUE.
 LIB_EXPORT BOOL BnSetBit(bigNum       bn,     // IN/OUT: big number to modify
-			 unsigned int bitNum  // IN: Bit number to SET
+			 unsigned int bitNum  // IN: Bit number to TPM_SET
 			 )
 {
     crypt_uword_t offset = bitNum / RADIX_BITS;
@@ -424,7 +424,7 @@ LIB_EXPORT BOOL BnSetBit(bigNum       bn,     // IN/OUT: big number to modify
 }
 
 //*** BnTestBit()
-// This function is used to check to see if a bit is SET in a bignum_t. The 0th bit
+// This function is used to check to see if a bit is TPM_SET in a bignum_t. The 0th bit
 // is the LSb of d[0].
 //  Return Type: BOOL
 //      TRUE(1)         the bit is set

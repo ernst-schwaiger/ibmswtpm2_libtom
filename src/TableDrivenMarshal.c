@@ -467,15 +467,15 @@ Unmarshal(
 					  if(val == check[i])
 					      {
 						  // If there is an associated bit table, make sure that
-						  // the corresponding bit is SET
+						  // the corresponding bit is TPM_SET
 						  if((HAS_BITS & tmt->modifiers)
 						     && (!IS_BIT_SET32(i, &(check[tmt->singles]))))
-						      // if not SET, then this is a failure.
+						      // if not TPM_SET, then this is a failure.
 						      i = -1;
 						  break;
 					      }
 				      }
-				  // error if not found or bit not SET
+				  // error if not found or bit not TPM_SET
 				  if(i < 0)
 				      result = (TPM_RC)(sel->errorCode);
 			      }
@@ -487,7 +487,7 @@ Unmarshal(
 		  // A MIN_MAX is a range. It can have a bit field and a NULL value that is
 		  // outside of the range. If the input value is in the min-max range then
 		  // it is valid unless there is an associated bit field. Otherwise, it
-		  // it is only valid if the corresponding value in the bit field is SET.
+		  // it is only valid if the corresponding value in the bit field is TPM_SET.
 		  // The min value is 'values[0]' or 'values[1]' if there is a NULL value.
 		  // The max value is the value after min. The max value is in the table as
 		  // max minus min. This allows 'val' to be subtracted from min and then
@@ -705,7 +705,7 @@ Unmarshal(
 			  //
 			  // This type might take a null so set it in each called value, just
 			  // in case it is needed in that value. Only one value in each
-			  // composite should have the takes null SET.
+			  // composite should have the takes null TPM_SET.
 			  index |= typeIndex & NULL_MASK;
 			  result = Unmarshal(index, target, buffer, size);
 			  if(result == TPM_RC_SUCCESS)

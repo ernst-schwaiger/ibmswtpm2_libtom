@@ -165,7 +165,7 @@ TPM2_Commit(Commit_In*  in,  // IN: input parameter list
 	    if(!CryptEccIsPointOnCurve(parms->curveID, pP2))
 		return TPM_RCS_ECC_POINT + RC_Commit_s2;
 
-	    if(eccKey->attributes.publicOnly == SET)
+	    if(eccKey->attributes.publicOnly == TPM_SET)
 		return TPM_RCS_KEY + RC_Commit_signHandle;
 	}
     // If there is a P1, make sure that it is on the curve

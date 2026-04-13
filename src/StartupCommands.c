@@ -151,13 +151,13 @@ TPM2_Startup(
     // regardless of what the Startup() was. This is done to preserve the
     // H-CRTM PCR so that they don't get overwritten with the normal
     // PCR startup initialization. This basically means that g_StartupLocality3
-    // and g_DrtmPreStartup can't both be SET at the same time.
+    // and g_DrtmPreStartup can't both be TPM_SET at the same time.
     if(g_DrtmPreStartup)
 	locality = 0;
     g_StartupLocality3 = (locality == 3);
 #if USE_DA_USED
     // If there was no orderly shutdown, then there might have been a write to
-    // failedTries that didn't get recorded but only if g_daUsed was SET in the
+    // failedTries that didn't get recorded but only if g_daUsed was TPM_SET in the
     // shutdown state
     g_daUsed = (gp.orderlyState == SU_DA_USED_VALUE);
     if(g_daUsed)
@@ -176,7 +176,7 @@ TPM2_Startup(
 		return TPM_RCS_VALUE + RC_Startup_startupType;
 	    // and the part of NV used for state save must have been recovered
 	    // correctly.
-	    // NOTE: if this fails, then the caller will need to do Startup(CLEAR). The
+	    // NOTE: if this fails, then the caller will need to do Startup(TPM_CLEAR). The
 	    // code for Startup(Clear) cannot fail if the NV can't be read correctly
 	    // because that would prevent the TPM from ever getting unstuck.
 	    if(g_nvOk == FALSE)
@@ -199,7 +199,7 @@ TPM2_Startup(
 	    if(in->startupType == TPM_SU_STATE)
 	        {
 	            // If this is a startup STATE (a Resume) need to read the data
-	            // that is cleared on a startup CLEAR because this is not a Reset
+	            // that is cleared on a startup TPM_CLEAR because this is not a Reset
 	            // or Restart.
 	            NvRead(&gc, NV_STATE_CLEAR_DATA, sizeof(gc));
 	            startup = SU_RESUME;
@@ -208,7 +208,7 @@ TPM2_Startup(
 		startup = SU_RESTART;
 	}
     else
-	// Will do a TPM reset if Shutdown(CLEAR) and Startup(CLEAR) or no shutdown
+	// Will do a TPM reset if Shutdown(TPM_CLEAR) and Startup(TPM_CLEAR) or no shutdown
 	// or there was a failure reading the NV data.
 	startup = SU_RESET;
     // Startup for cryptographic library. Don't do this until after the orderly
@@ -314,18 +314,18 @@ TPM2_Shutdown(
     // this point
     RETURN_IF_NV_IS_NOT_AVAILABLE;
     // Input Validation
-    // If PCR bank has been reconfigured, a CLEAR state save is required
+    // If PCR bank has been reconfigured, a TPM_CLEAR state save is required
     if(g_pcrReConfig && in->shutdownType == TPM_SU_STATE)
 	return TPM_RCS_TYPE + RC_Shutdown_shutdownType;
     // Internal Data Update
     gp.orderlyState = in->shutdownType;
 #if USE_DA_USED
-    // CLEAR g_daUsed so that any future DA-protected access will cause the
+    // TPM_CLEAR g_daUsed so that any future DA-protected access will cause the
     // shutdown to become non-orderly. It is not sufficient to invalidate the
     // shutdown state after a DA failure because an attacker can inhibit access
     // to NV and use the fact that an update of failedTries was attempted as an
     // indication of an authorization failure. By making sure that the orderly state
-    // is CLEAR before any DA attempt, this prevents the possibility of this 'attack.'
+    // is TPM_CLEAR before any DA attempt, this prevents the possibility of this 'attack.'
     g_daUsed = FALSE;
 #endif
     // PCR private date state save

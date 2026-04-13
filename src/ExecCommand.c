@@ -95,7 +95,7 @@ extern int verbose;
 // 	  to place the response.
 // 	  request and response may point to the same buffer
 // 	  NOTE: As of February, 2016, the failure processing has been moved to the platform-specific
-// 	  code. When the TPM code encounters an unrecoverable failure, it will SET g_inFailureMode
+// 	  code. When the TPM code encounters an unrecoverable failure, it will TPM_SET g_inFailureMode
 // 	  and call _plat__Fail(). That function should not return but may call ExecuteCommand().
 LIB_EXPORT void
 ExecuteCommand(
@@ -125,7 +125,7 @@ ExecuteCommand(
     //CommandResponseSizes();
     // Set flags for NV access state. This should happen before any other
     // operation that may require a NV write. Note, that this needs to be done
-    // even when in failure mode. Otherwise, g_updateNV would stay SET while in
+    // even when in failure mode. Otherwise, g_updateNV would stay TPM_SET while in
     // Failure mode and the NV would be written on each call.
     g_updateNV = UT_NONE;
     g_clearOrderly = FALSE;

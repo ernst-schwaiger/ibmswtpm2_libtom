@@ -96,7 +96,7 @@ LIB_EXPORT uint64_t _plat__TimerRead(void);
 // This function is used to interrogate the flag indicating if the tick timer has
 // been reset.
 //
-// If the resetFlag parameter is SET, then the flag will be CLEAR before the
+// If the resetFlag parameter is TPM_SET, then the flag will be TPM_CLEAR before the
 // function returns.
 LIB_EXPORT int _plat__TimerWasReset(void);
 
@@ -104,7 +104,7 @@ LIB_EXPORT int _plat__TimerWasReset(void);
 // This function is used to interrogate the flag indicating if the tick timer has
 // been stopped. If so, this is typically a reason to roll the nonce.
 //
-// This function will CLEAR the s_timerStopped flag before returning. This provides
+// This function will TPM_CLEAR the s_timerStopped flag before returning. This provides
 // functionality that is similar to status register that is cleared when read. This
 // is the model used here because it is the one that has the most impact on the TPM
 // code as the flag can only be accessed by one entity in the TPM. Any other
@@ -305,7 +305,7 @@ LIB_EXPORT void _plat__ACT_SetSignaled(uint32_t act, int on);
 //*** _plat__ACT_UpdateCounter()
 // This function is used to write the newValue for the counter. If an update is
 // pending, then no update occurs and the function returns FALSE. If 'setSignaled'
-// is TRUE, then the ACT signaled state is SET and if 'newValue' is 0, nothing
+// is TRUE, then the ACT signaled state is TPM_SET and if 'newValue' is 0, nothing
 // is posted.
 LIB_EXPORT int _plat__ACT_UpdateCounter(uint32_t act,      // IN: ACT to update
 					uint32_t newValue  // IN: the value to post
@@ -377,7 +377,7 @@ LIB_EXPORT uint32_t _plat__GetUnique(uint32_t       which,
 // course the platform can store data separately as well, but this allows a
 // simple platform implementation to store a few bytes of data without
 // implementing a multi-layer storage system.  This function is called on
-// manufacture and CLEAR.  The buffer will contain the last value provided
+// manufacture and TPM_CLEAR.  The buffer will contain the last value provided
 // to the Core library.
 LIB_EXPORT void _plat__GetPlatformManufactureData(uint8_t* pPlatformPersistentData,
 						  uint32_t bufferSize);

@@ -238,7 +238,7 @@ const TPMT_ECC_SCHEME* CryptGetCurveSignScheme(
 // If 'c' is NULL, it indicates that 'r' is being generated
 // for TPM2_Commit.
 // If 'c' is not NULL, the TPM will validate that the 'gr.commitArray'
-// bit associated with the input value of 'c' is SET. If not, the TPM
+// bit associated with the input value of 'c' is TPM_SET. If not, the TPM
 // returns FALSE and no 'r' value is generated.
 //  Return Type: BOOL
 //      TRUE(1)         r value computed
@@ -265,7 +265,7 @@ BOOL CryptGenerateR(TPM2B_ECC_PARAMETER* r,        // OUT: the generated random 
     if(c != NULL)
 	{
 	    // if the array bit is not set, can't use the value.
-	    if(!TEST_BIT((*c & COMMIT_INDEX_MASK), gr.commitArray))
+	    if(!TPM_TEST_BIT((*c & COMMIT_INDEX_MASK), gr.commitArray))
 		return FALSE;
 
 	    // If it is the sign phase, figure out what the counter value was
@@ -328,14 +328,14 @@ BOOL CryptGenerateR(TPM2B_ECC_PARAMETER* r,        // OUT: the generated random 
 
 //*** CryptCommit()
 // This function is called when the count value is committed. The 'gr.commitArray'
-// value associated with the current count value is SET and g_commitCounter is
+// value associated with the current count value is TPM_SET and g_commitCounter is
 // incremented. The low-order 16 bits of old value of the counter is returned.
 UINT16
 CryptCommit(void)
 {
     UINT16 oldCount = (UINT16)gr.commitCounter;
     gr.commitCounter++;
-    SET_BIT(oldCount & COMMIT_INDEX_MASK, gr.commitArray);
+    TPM_SET_BIT(oldCount & COMMIT_INDEX_MASK, gr.commitArray);
     return oldCount;
 }
 

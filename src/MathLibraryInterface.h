@@ -290,17 +290,17 @@ LIB_EXPORT unsigned ExtMath_SizeInBits(const Crypt_Int* n);
 
 //*** ExtMath_SetBit()
 //
-// This function will SET a bit in a Crypt_Int*. Bit 0 is the least-significant
+// This function will TPM_SET a bit in a Crypt_Int*. Bit 0 is the least-significant
 // bit in the 0th digit_t. The function returns TRUE if the bitNum is within the
 // range valid for the given number.  If bitNum is too large, the function
 // should return FALSE, and the TPM will enter failure mode.
 // Return Type: BOOL
 LIB_EXPORT BOOL ExtMath_SetBit(Crypt_Int*   bn,     // IN/OUT: big number to modify
-			       unsigned int bitNum  // IN: Bit number to SET
+			       unsigned int bitNum  // IN: Bit number to TPM_SET
 			       );
 
 //*** ExtMath_TestBit()
-// This function is used to check to see if a bit is SET in a bignum_t. The 0th bit
+// This function is used to check to see if a bit is TPM_SET in a bignum_t. The 0th bit
 // is the LSb of d[0].
 //  Return Type: BOOL
 //      TRUE(1)         the bit is set

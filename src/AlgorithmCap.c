@@ -258,16 +258,16 @@ BOOL AlgorithmCapGetOneImplemented(
 LIB_EXPORT
 void
 AlgorithmGetImplementedVector(
-			      ALGORITHM_VECTOR    *implemented    // OUT: the implemented bits are SET
+			      ALGORITHM_VECTOR    *implemented    // OUT: the implemented bits are TPM_SET
 			      )
 {
     int                      index;
     // Nothing implemented until we say it is
     MemorySet(implemented, 0, sizeof(ALGORITHM_VECTOR));
-    // Go through the list of implemented algorithms and SET the corresponding bit in
+    // Go through the list of implemented algorithms and TPM_SET the corresponding bit in
     // in the implemented vector
     for(index = (sizeof(s_algorithms) / sizeof(s_algorithms[0])) - 1;
 	index >= 0; index--)
-	SET_BIT(s_algorithms[index].algID, *implemented);
+	TPM_SET_BIT(s_algorithms[index].algID, *implemented);
     return;
 }

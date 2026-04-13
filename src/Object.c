@@ -76,14 +76,14 @@
 // Note: This could be converted to a macro.
 void ObjectFlush(OBJECT* object)
 {
-    object->attributes.occupied = CLEAR;
+    object->attributes.occupied = TPM_CLEAR;
 }
 
 //*** ObjectSetInUse()
 // This access function sets the occupied attribute of an object slot.
 void ObjectSetInUse(OBJECT* object)
 {
-    object->attributes.occupied = SET;
+    object->attributes.occupied = TPM_SET;
 }
 
 //*** ObjectStartup()
@@ -117,7 +117,7 @@ void ObjectCleanupEvict(void)
 	{
 	    // If an object is a temporary evict object, flush it from slot
 	    OBJECT* object = &s_objects[i];
-	    if(object->attributes.evict == SET)
+	    if(object->attributes.evict == TPM_SET)
 		ObjectFlush(object);
 	}
     return;
@@ -156,8 +156,8 @@ BOOL ObjectIsSequence(OBJECT* object  // IN: handle to be checked
 		      )
 {
     pAssert(object != NULL);
-    return (object->attributes.hmacSeq == SET || object->attributes.hashSeq == SET
-	    || object->attributes.eventSeq == SET);
+    return (object->attributes.hmacSeq == TPM_SET || object->attributes.hashSeq == TPM_SET
+	    || object->attributes.eventSeq == TPM_SET);
 }
 
 //*** HandleToObject()
@@ -243,7 +243,7 @@ OBJECT* FindEmptyObjectSlot(TPMI_DH_OBJECT* handle  // OUT: (optional)
     for(i = 0; i < MAX_LOADED_OBJECTS; i++)
 	{
 	    object = &s_objects[i];
-	    if(object->attributes.occupied == CLEAR)
+	    if(object->attributes.occupied == TPM_CLEAR)
 		{
 		    if(handle)
 			*handle = i + TRANSIENT_FIRST;
@@ -284,28 +284,28 @@ void ObjectSetLoadedAttributes(OBJECT* object,  // IN: object attributes to fina
     TPMA_OBJECT objectAttributes = object->publicArea.objectAttributes;
     //
     // Copy the stClear attribute from the public area. This could be overwritten
-    // if the parent has stClear SET
+    // if the parent has stClear TPM_SET
     object->attributes.stClear = IS_ATTRIBUTE(objectAttributes, TPMA_OBJECT, stClear);
     // If parent handle is a permanent handle, it is a primary (unless it is NULL
     if(parent == NULL)
 	{
 	    object->hierarchy          = parentHandle;
-	    object->attributes.primary = SET;
+	    object->attributes.primary = TPM_SET;
 	    switch(HierarchyNormalizeHandle(object->hierarchy))
 		{
 		  case TPM_RH_ENDORSEMENT:
-		    object->attributes.epsHierarchy = SET;
+		    object->attributes.epsHierarchy = TPM_SET;
 		    break;
 		  case TPM_RH_OWNER:
-		    object->attributes.spsHierarchy = SET;
+		    object->attributes.spsHierarchy = TPM_SET;
 		    break;
 		  case TPM_RH_PLATFORM:
-		    object->attributes.ppsHierarchy = SET;
+		    object->attributes.ppsHierarchy = TPM_SET;
 		    break;
 		  default:
 		    // Treat the temporary attribute as a hierarchy
-		    object->attributes.temporary = SET;
-		    object->attributes.primary   = CLEAR;
+		    object->attributes.temporary = TPM_SET;
+		    object->attributes.primary   = TPM_CLEAR;
 		    break;
 		}
 	}
@@ -314,7 +314,7 @@ void ObjectSetLoadedAttributes(OBJECT* object,  // IN: object attributes to fina
 	    // is this a stClear object
 	    object->attributes.stClear =
 		(IS_ATTRIBUTE(objectAttributes, TPMA_OBJECT, stClear)
-		 || (parent->attributes.stClear == SET));
+		 || (parent->attributes.stClear == TPM_SET));
 	    object->attributes.epsHierarchy = parent->attributes.epsHierarchy;
 	    object->attributes.spsHierarchy = parent->attributes.spsHierarchy;
 	    object->attributes.ppsHierarchy = parent->attributes.ppsHierarchy;
@@ -324,7 +324,7 @@ void ObjectSetLoadedAttributes(OBJECT* object,  // IN: object attributes to fina
 					   || object->attributes.external;
 	    object->hierarchy = parent->hierarchy;
 	}
-    // If this is an external object, set the QN == name but don't SET other
+    // If this is an external object, set the QN == name but don't TPM_SET other
     // key properties ('parent' or 'derived')
     if(object->attributes.external)
 	object->qualifiedName = object->name;
@@ -339,9 +339,9 @@ void ObjectSetLoadedAttributes(OBJECT* object,  // IN: object attributes to fina
 		    // This is a parent. If it is not a KEYEDHASH, it is an ordinary parent.
 		    // Otherwise, it is a derivation parent.
 		    if(object->publicArea.type == TPM_ALG_KEYEDHASH)
-			object->attributes.derivation = SET;
+			object->attributes.derivation = TPM_SET;
 		    else
-			object->attributes.isParent = SET;
+			object->attributes.isParent = TPM_SET;
 		}
 	    ComputeQualifiedName(parentHandle,
 				 object->publicArea.nameAlg,
@@ -444,7 +444,7 @@ ObjectLoad(OBJECT* object,           // IN: pointer to object slot
 	    object->publicArea = *publicArea;
 	    // Copy sensitive if there is one
 	    if(sensitive == NULL) {			// libtpms changed begin
-		object->attributes.publicOnly = SET;
+		object->attributes.publicOnly = TPM_SET;
 		MemorySet(&object->sensitive, 0, sizeof(object->sensitive)); // needed for libtpms.
 	    }						// libtpms changed end
 	    else
@@ -490,7 +490,7 @@ static HASH_OBJECT* AllocateSequenceSlot(
 
 	    // A sequence object is considered to be in the NULL hierarchy so it should
 	    // be marked as temporary so that it can't be persisted
-	    object->attributes.temporary = SET;
+	    object->attributes.temporary = TPM_SET;
 
 	    // A sequence object is DA exempt.
 	    SET_ATTRIBUTE(object->objectAttributes, TPMA_OBJECT, noDA);
@@ -525,7 +525,7 @@ ObjectCreateHMACSequence(
     if(hmacObject == NULL)
 	return TPM_RC_OBJECT_MEMORY;
     // Set HMAC sequence bit
-    hmacObject->attributes.hmacSeq = SET;
+    hmacObject->attributes.hmacSeq = TPM_SET;
 
 #  if !SMAC_IMPLEMENTED
     if(CryptHmacStart(&hmacObject->state.hmacState,
@@ -561,7 +561,7 @@ ObjectCreateHashSequence(TPMI_ALG_HASH   hashAlg,   // IN: hash algorithm
     if(hashObject == NULL)
 	return TPM_RC_OBJECT_MEMORY;
     // Set hash sequence bit
-    hashObject->attributes.hashSeq = SET;
+    hashObject->attributes.hashSeq = TPM_SET;
 
     // Start hash for hash sequence
     CryptHashStart(&hashObject->state.hashState[0], hashAlg);
@@ -586,7 +586,7 @@ ObjectCreateEventSequence(TPM2B_AUTH*     auth,      // IN: authValue
     if(hashObject == NULL)
 	return TPM_RC_OBJECT_MEMORY;
     // Set the event sequence attribute
-    hashObject->attributes.eventSeq = SET;
+    hashObject->attributes.eventSeq = TPM_SET;
 
     // Initialize hash states for each implemented PCR algorithms
     for(count = 0; (hash = CryptHashGetAlgByIndex(count)) != TPM_ALG_NULL; count++)
@@ -686,15 +686,15 @@ void ObjectFlushHierarchy(TPMI_RH_HIERARCHY hierarchy  // IN: hierarchy to be fl
 		    switch(hierarchy)
 			{
 			  case TPM_RH_PLATFORM:
-			    if(s_objects[i].attributes.ppsHierarchy == SET)
+			    if(s_objects[i].attributes.ppsHierarchy == TPM_SET)
 				s_objects[i].attributes.occupied = FALSE;
 			    break;
 			  case TPM_RH_OWNER:
-			    if(s_objects[i].attributes.spsHierarchy == SET)
+			    if(s_objects[i].attributes.spsHierarchy == TPM_SET)
 				s_objects[i].attributes.occupied = FALSE;
 			    break;
 			  case TPM_RH_ENDORSEMENT:
-			    if(s_objects[i].attributes.epsHierarchy == SET)
+			    if(s_objects[i].attributes.epsHierarchy == TPM_SET)
 				s_objects[i].attributes.occupied = FALSE;
 			    break;
 			  default:
@@ -730,11 +730,11 @@ ObjectLoadEvict(TPM_HANDLE* handle,  // IN:OUT: evict object handle.  If success
     if(*handle >= PLATFORM_PERSISTENT)
 	{
 	    // belongs to platform
-	    if(g_phEnable == CLEAR)
+	    if(g_phEnable == TPM_CLEAR)
 		return TPM_RC_HANDLE;
 	}
     // belongs to owner
-    else if(gc.shEnable == CLEAR)
+    else if(gc.shEnable == TPM_CLEAR)
 	return TPM_RC_HANDLE;
     // Try to allocate a slot for an object
     object = ObjectAllocateSlot(handle);
@@ -755,7 +755,7 @@ ObjectLoadEvict(TPM_HANDLE* handle,  // IN:OUT: evict object handle.  If success
     // If the associated hierarchy is disabled, make it look like the
     // handle is not defined
     if(HierarchyNormalizeHandle(object->hierarchy) == TPM_RH_ENDORSEMENT
-       && gc.ehEnable == CLEAR && GetCommandCode(commandIndex) != TPM_CC_EvictControl)
+       && gc.ehEnable == TPM_CLEAR && GetCommandCode(commandIndex) != TPM_CC_EvictControl)
 	return TPM_RC_HANDLE;
 
     return result;
@@ -848,7 +848,7 @@ void ComputeQualifiedName(
 //*** ObjectIsStorage()
 // This function determines if an object has the attributes associated
 // with a parent. A parent is an asymmetric or symmetric block cipher key
-// that has its 'restricted' and 'decrypt' attributes SET, and 'sign' CLEAR.
+// that has its 'restricted' and 'decrypt' attributes TPM_SET, and 'sign' TPM_CLEAR.
 //  Return Type: BOOL
 //      TRUE(1)         object is a storage key
 //      FALSE(0)        object is not a storage key
@@ -897,7 +897,7 @@ ObjectCapGetLoaded(TPMI_DH_OBJECT handle,     // IN: start handle
 	    if(s_objects[i].attributes.occupied == TRUE)
 		{
 		    // A valid transient object can not be the copy of a persistent object
-		    pAssert(s_objects[i].attributes.evict == CLEAR);
+		    pAssert(s_objects[i].attributes.evict == TPM_CLEAR);
 
 		    if(handleList->count < count)
 			{
@@ -933,7 +933,7 @@ BOOL ObjectCapGetOneLoaded(TPMI_DH_OBJECT handle)  // IN: handle
 	    if(s_objects[i].attributes.occupied == TRUE)
 		{
 		    // A valid transient object can not be the copy of a persistent object
-		    pAssert(s_objects[i].attributes.evict == CLEAR);
+		    pAssert(s_objects[i].attributes.evict == TPM_CLEAR);
 
 		    return TRUE;
 		}

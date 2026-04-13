@@ -81,27 +81,27 @@
 #  include "KdfTestData.h"
 
 #  define TEST_DEFAULT_TEST_HASH(vector)	      \
-    if(TEST_BIT(DEFAULT_TEST_HASH, g_toTest))	      \
+    if(TPM_TEST_BIT(DEFAULT_TEST_HASH, g_toTest))	      \
 	TestHash(DEFAULT_TEST_HASH, vector);
 
 // Make sure that the algorithm has been tested
 #  define CLEAR_BOTH(alg)		  \
     {					  \
-	CLEAR_BIT(alg, *toTest);	  \
+	TPM_CLEAR_BIT(alg, *toTest);	  \
 	if(toTest != &g_toTest)			  \
-	    CLEAR_BIT(alg, g_toTest);		  \
+	    TPM_CLEAR_BIT(alg, g_toTest);		  \
     }
 
 #  define SET_BOTH(alg)			\
     {					\
-	SET_BIT(alg, *toTest);		\
+	TPM_SET_BIT(alg, *toTest);		\
 	if(toTest != &g_toTest)			\
-	    SET_BIT(alg, g_toTest);		\
+	    TPM_SET_BIT(alg, g_toTest);		\
     }
 
 #  define TEST_BOTH(alg)						\
-    ((toTest != &g_toTest) ? TEST_BIT(alg, *toTest) || TEST_BIT(alg, g_toTest) \
-     : TEST_BIT(alg, *toTest))
+    ((toTest != &g_toTest) ? TPM_TEST_BIT(alg, *toTest) || TPM_TEST_BIT(alg, g_toTest) \
+     : TPM_TEST_BIT(alg, *toTest))
 
 // Can only cancel if doing a list.
 #  define CHECK_CANCELED				   \
@@ -259,7 +259,7 @@ static TPM_RC TestSymmetric(TPM_ALG_ID alg, ALGORITHM_VECTOR* toTest)
     SYM_INDEX  index;
     TPM_ALG_ID mode;
     //
-    if(!TEST_BIT(alg, *toTest))
+    if(!TPM_TEST_BIT(alg, *toTest))
 	return TPM_RC_SUCCESS;
     if(alg == TPM_ALG_AES || alg == TPM_ALG_SM4 || alg == TPM_ALG_CAMELLIA)
 	{
@@ -273,7 +273,7 @@ static TPM_RC TestSymmetric(TPM_ALG_ID alg, ALGORITHM_VECTOR* toTest)
 			{
 			    for(mode = SYM_MODE_FIRST; mode <= SYM_MODE_LAST; mode++)
 				{
-				    if(TEST_BIT(mode, *toTest))
+				    if(TPM_TEST_BIT(mode, *toTest))
 					TestSymmetricAlgorithm(&c_symTestValues[index], mode);
 				}
 			}
@@ -296,7 +296,7 @@ static TPM_RC TestSymmetric(TPM_ALG_ID alg, ALGORITHM_VECTOR* toTest)
 		    // tested first. That means that all of their modes would have been
 		    // tested for all key sizes. If there is no block cipher left to
 		    // test, then clear this mode bit.
-		    if(!TEST_BIT(TPM_ALG_AES, *toTest) && !TEST_BIT(TPM_ALG_SM4, *toTest))
+		    if(!TPM_TEST_BIT(TPM_ALG_AES, *toTest) && !TPM_TEST_BIT(TPM_ALG_SM4, *toTest))
 			{
 			    CLEAR_BOTH(alg);
 			}
@@ -304,7 +304,7 @@ static TPM_RC TestSymmetric(TPM_ALG_ID alg, ALGORITHM_VECTOR* toTest)
 			{
 			    for(index = 0; index < NUM_SYMS; index++)
 				{
-				    if(TEST_BIT(c_symTestValues[index].alg, *toTest))
+				    if(TPM_TEST_BIT(c_symTestValues[index].alg, *toTest))
 					TestSymmetricAlgorithm(&c_symTestValues[index], alg);
 				}
 			    // have tested this mode for all algorithms
@@ -552,10 +552,10 @@ static TPM_RC TestRsa(TPM_ALG_ID alg, ALGORITHM_VECTOR* toTest)
 	    // 'toTest' is pointing at g_toTest. If so, this is an isolated test
 	    // an need to go ahead and do the test;
 	    if((toTest == &g_toTest)
-	       || (!TEST_BIT(TPM_ALG_RSASSA, *toTest)
-		   && !TEST_BIT(TPM_ALG_RSAES, *toTest)
-		   && !TEST_BIT(TPM_ALG_RSAPSS, *toTest)
-		   && !TEST_BIT(TPM_ALG_OAEP, *toTest)))
+	       || (!TPM_TEST_BIT(TPM_ALG_RSASSA, *toTest)
+		   && !TPM_TEST_BIT(TPM_ALG_RSAES, *toTest)
+		   && !TPM_TEST_BIT(TPM_ALG_RSAPSS, *toTest)
+		   && !TPM_TEST_BIT(TPM_ALG_OAEP, *toTest)))
 		// Not running a list of tests or no other tests on the list
 		// so run the test now
 		result = TestRsaEncryptDecrypt(alg, toTest);
@@ -735,9 +735,9 @@ static TPM_RC TestEcc(TPM_ALG_ID alg, ALGORITHM_VECTOR* toTest)
 	    // If toTest is not a self-test list
 	    if((toTest == &g_toTest)
 	       // or this is the only ECC test in the list
-	       || !(TEST_BIT(TPM_ALG_ECDSA, *toTest)
-		    || TEST_BIT(ALG_ECSCHNORR, *toTest)
-		    || TEST_BIT(TPM_ALG_SM2, *toTest)))
+	       || !(TPM_TEST_BIT(TPM_ALG_ECDSA, *toTest)
+		    || TPM_TEST_BIT(ALG_ECSCHNORR, *toTest)
+		    || TPM_TEST_BIT(TPM_ALG_SM2, *toTest)))
 		{
 		    result = TestECDH(alg, toTest);
 		}
@@ -802,10 +802,10 @@ TestAlgorithm(TPM_ALG_ID alg, ALGORITHM_VECTOR* toTest)
 	    // if 'alg' was TPM_ALG_ERROR, then we will be cycling through
 	    // values, some of which may not be implemented. If the bit in toTest
 	    // happens to be set, then we could either generated an assert, or just
-	    // silently CLEAR it. Decided to just clear.
-	    if(!TEST_BIT(alg, g_implementedAlgorithms))
+	    // silently TPM_CLEAR it. Decided to just clear.
+	    if(!TPM_TEST_BIT(alg, g_implementedAlgorithms))
 		{
-		    CLEAR_BIT(alg, *toTest);
+		    TPM_CLEAR_BIT(alg, *toTest);
 		    continue;
 		}
 	    // Process whatever is left.
@@ -854,7 +854,7 @@ TestAlgorithm(TPM_ALG_ID alg, ALGORITHM_VECTOR* toTest)
 			// to test one of the modes for the symmetric algorithms. If
 			// initializing for a SelfTest(FULL_TEST), allow all the modes.
 			if(toTest == &g_toTest)
-			    CLEAR_BIT(alg, *toTest);
+			    TPM_CLEAR_BIT(alg, *toTest);
 		    break;
 #  if !ALG_HMAC
 #    error HMAC is required in all TPM implementations
@@ -926,7 +926,7 @@ TestAlgorithm(TPM_ALG_ID alg, ALGORITHM_VECTOR* toTest)
 		    break;
 #  endif  // ALG_ECC
 		  default:
-		    CLEAR_BIT(alg, *toTest);
+		    TPM_CLEAR_BIT(alg, *toTest);
 		    break;
 		}
 	    if(result != TPM_RC_SUCCESS)

@@ -511,9 +511,9 @@ SessionCreate(TPM_SE         sessionType,    // IN: the session type
 	    *sessionHandle += POLICY_SESSION_FIRST;
 
 	    // For TPM_SE_POLICY or TPM_SE_TRIAL
-	    session->attributes.isPolicy = SET;
+	    session->attributes.isPolicy = TPM_SET;
 	    if(sessionType == TPM_SE_TRIAL)
-		session->attributes.isTrialPolicy = SET;
+		session->attributes.isTrialPolicy = TPM_SET;
 
 	    SessionSetStartTime(session);
 
@@ -568,7 +568,7 @@ SessionCreate(TPM_SE         sessionType,    // IN: the session type
     // Policy session is not bound to an entity
     if(bind != TPM_RH_NULL && sessionType == TPM_SE_HMAC)
 	{
-	    session->attributes.isBound = SET;
+	    session->attributes.isBound = TPM_SET;
 	    SessionComputeBoundEntity(bind, &session->u1.boundEntity);
 	}
     // If there is a bind object and it is subject to DA, then use of this session
@@ -577,7 +577,7 @@ SessionCreate(TPM_SE         sessionType,    // IN: the session type
 				    && (IsDAExempted(bind) == FALSE);
 
     // If the session is bound, then check to see if it is bound to lockoutAuth
-    session->attributes.isLockoutBound = (session->attributes.isDaBound == SET)
+    session->attributes.isLockoutBound = (session->attributes.isDaBound == TPM_SET)
 					 && (bind == TPM_RH_LOCKOUT);
     return TPM_RC_SUCCESS;
 }
@@ -857,7 +857,7 @@ void SessionResetPolicyData(SESSION* session  // IN: the session to reset
     MemorySet(&session->attributes, 0, sizeof(SESSION_ATTRIBUTES));
 
     // Restore the policy attributes
-    session->attributes.isPolicy      = SET;
+    session->attributes.isPolicy      = TPM_SET;
     session->attributes.isTrialPolicy = oldAttributes.isTrialPolicy;
 
     // Restore the bind attributes

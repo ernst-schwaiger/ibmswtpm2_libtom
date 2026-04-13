@@ -77,7 +77,7 @@ BOOL AdjustAuthSize(TPM2B_AUTH*   auth,    // IN/OUT: value to adjust
 //*** AreAttributesForParent()
 // This function is called by create, load, and import functions.
 //
-// Note: The 'isParent' attribute is SET when an object is loaded and it has
+// Note: The 'isParent' attribute is TPM_SET when an object is loaded and it has
 // attributes that are suitable for a parent object.
 //  Return Type: BOOL
 //      TRUE(1)         properties are those of a parent
@@ -126,7 +126,7 @@ SchemeChecks(OBJECT*      parentObject,  // IN: parent (null if primary seed)
 // This function validates the values in the public area of an object.
 // This function is used in the processing of TPM2_Create, TPM2_CreatePrimary,
 // TPM2_CreateLoaded(), TPM2_Load(),  TPM2_Import(), and TPM2_LoadExternal().
-// For TPM2_Import() this is only used if the new parent has fixedTPM SET. For
+// For TPM2_Import() this is only used if the new parent has fixedTPM TPM_SET. For
 // TPM2_LoadExternal(), this is not used for a public-only key.
 // If parentObject is not NULL, then primaryHandle is not used.
 //  Return Type: TPM_RC

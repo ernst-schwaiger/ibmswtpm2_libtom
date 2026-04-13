@@ -89,7 +89,7 @@ EntityGetLoadStatus(COMMAND* command  // IN/OUT: command parsing structure
 	    switch(HandleGetType(handle))
 		{
 		    // For handles associated with hierarchies, the entity is present
-		    // only if the associated enable is SET.
+		    // only if the associated enable is TPM_SET.
 		  case TPM_HT_PERMANENT:
 		    switch(handle)
 			{
@@ -150,7 +150,7 @@ EntityGetLoadStatus(COMMAND* command  // IN/OUT: command parsing structure
 			    SESSION* session;
 			    session = SessionGet(handle);
 			    // Check if the session is a HMAC session
-			    if(session->attributes.isPolicy == SET)
+			    if(session->attributes.isPolicy == TPM_SET)
 				result = TPM_RC_HANDLE;
 			}
 		    else
@@ -165,7 +165,7 @@ EntityGetLoadStatus(COMMAND* command  // IN/OUT: command parsing structure
 			    SESSION* session;
 			    session = SessionGet(handle);
 			    // Check if the session is a policy session
-			    if(session->attributes.isPolicy == CLEAR)
+			    if(session->attributes.isPolicy == TPM_CLEAR)
 				result = TPM_RC_HANDLE;
 			}
 		    else
@@ -288,7 +288,7 @@ EntityGetAuthValue(TPMI_DH_ENTITY handle,  // IN: handle of entity
 			  // Authorization is available only when the private portion of
 			  // the object is loaded.  The check should be made before
 			  // this function is called
-			  pAssert(object->attributes.publicOnly == CLEAR);
+			  pAssert(object->attributes.publicOnly == TPM_CLEAR);
 			  pAuth = &object->sensitive.authValue;
 		      }
 	      }
@@ -437,7 +437,7 @@ TPM2B_NAME* EntityGetName(TPMI_DH_ENTITY handle,  // IN: handle of entity
 // This function returns the hierarchy handle associated with an entity.
 // a) A handle that is a hierarchy handle is associated with itself.
 // b) An NV index belongs to TPM_RH_PLATFORM if TPMA_NV_PLATFORMCREATE,
-//    is SET, otherwise it belongs to TPM_RH_OWNER
+//    is TPM_SET, otherwise it belongs to TPM_RH_OWNER
 // c) An object handle belongs to its hierarchy.
 TPMI_RH_HIERARCHY
 EntityGetHierarchy(TPMI_DH_ENTITY handle  // IN :handle of entity

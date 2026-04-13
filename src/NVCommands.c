@@ -98,9 +98,9 @@ TPM2_NV_DefineSpace(
 	return TPM_RCS_SIZE + RC_NV_DefineSpace_auth;
     // If an index is being created by the owner and shEnable is
     // clear, then we would not reach this point because ownerAuth
-    // can't be given when shEnable is CLEAR. However, if phEnable
-    // is SET but phEnableNV is CLEAR, we have to check here
-    if(in->authHandle == TPM_RH_PLATFORM && gc.phEnableNV == CLEAR)
+    // can't be given when shEnable is TPM_CLEAR. However, if phEnable
+    // is TPM_SET but phEnableNV is TPM_CLEAR, we have to check here
+    if(in->authHandle == TPM_RH_PLATFORM && gc.phEnableNV == TPM_CLEAR)
 	return TPM_RCS_HIERARCHY + RC_NV_DefineSpace_authHandle;
     // Attribute checks
     // Eliminate the unsupported types
@@ -147,13 +147,13 @@ TPM2_NV_DefineSpace(
     switch(GET_TPM_NT(attributes))
 	{
 	  case TPM_NT_COUNTER:
-	    // Counter can't have TPMA_NV_CLEAR_STCLEAR SET (don't clear counters)
+	    // Counter can't have TPMA_NV_CLEAR_STCLEAR TPM_SET (don't clear counters)
 	    if(IS_ATTRIBUTE(attributes, TPMA_NV, CLEAR_STCLEAR))
 		return TPM_RCS_ATTRIBUTES + RC_NV_DefineSpace_publicInfo;
 	    break;
 #ifdef TPM_NT_PIN_FAIL
 	  case TPM_NT_PIN_FAIL:
-	    // NV_NO_DA must be SET and AUTHWRITE must be CLEAR
+	    // NV_NO_DA must be TPM_SET and AUTHWRITE must be TPM_CLEAR
 	    // NOTE: As with a PIN_PASS index, the authValue of the index is not
 	    // available until the index is written. If AUTHWRITE is the only way to
 	    // write then index, it could never be written. Rather than go through
@@ -168,7 +168,7 @@ TPM2_NV_DefineSpace(
 #endif
 #ifdef TPM_NT_PIN_PASS
 	  case TPM_NT_PIN_PASS:
-	    // AUTHWRITE must be CLEAR (see note above to TPM_NT_PIN_FAIL)
+	    // AUTHWRITE must be TPM_CLEAR (see note above to TPM_NT_PIN_FAIL)
 	    if(IS_ATTRIBUTE(attributes, TPMA_NV, AUTHWRITE)
 	       || IS_ATTRIBUTE(attributes, TPMA_NV, GLOBALLOCK)
 	       || IS_ATTRIBUTE(attributes, TPMA_NV, WRITEDEFINE))
@@ -178,7 +178,7 @@ TPM2_NV_DefineSpace(
 	  default:
 	    break;
 	}
-    // Locks may not be SET and written cannot be SET
+    // Locks may not be TPM_SET and written cannot be TPM_SET
     if(IS_ATTRIBUTE(attributes, TPMA_NV, WRITTEN)
        || IS_ATTRIBUTE(attributes, TPMA_NV, WRITELOCKED)
        || IS_ATTRIBUTE(attributes, TPMA_NV, READLOCKED))
@@ -195,7 +195,7 @@ TPM2_NV_DefineSpace(
        && !IS_ATTRIBUTE(attributes, TPMA_NV, AUTHWRITE)
        && !IS_ATTRIBUTE(attributes, TPMA_NV, POLICYWRITE))
 	return TPM_RCS_ATTRIBUTES + RC_NV_DefineSpace_publicInfo;
-    // An index with TPMA_NV_CLEAR_STCLEAR can't have TPMA_NV_WRITEDEFINE SET
+    // An index with TPMA_NV_CLEAR_STCLEAR can't have TPMA_NV_WRITEDEFINE TPM_SET
     if(IS_ATTRIBUTE(attributes, TPMA_NV, CLEAR_STCLEAR)
        &&  IS_ATTRIBUTE(attributes, TPMA_NV, WRITEDEFINE))
 	return TPM_RCS_ATTRIBUTES + RC_NV_DefineSpace_publicInfo;
@@ -205,7 +205,7 @@ TPM2_NV_DefineSpace(
        || (!IS_ATTRIBUTE(attributes, TPMA_NV, PLATFORMCREATE)
 	   && in->authHandle == TPM_RH_PLATFORM))
 	return TPM_RCS_ATTRIBUTES + RC_NV_DefineSpace_authHandle;
-    // If TPMA_NV_POLICY_DELETE is SET, then the index must be defined by
+    // If TPMA_NV_POLICY_DELETE is TPM_SET, then the index must be defined by
     // the platform
     if(IS_ATTRIBUTE(attributes, TPMA_NV, POLICY_DELETE)
        &&  TPM_RH_PLATFORM != in->authHandle)
@@ -240,7 +240,7 @@ TPM2_NV_UndefineSpace(
 	fclose(f);
     }
     // Input Validation
-    // This command can't be used to delete an index with TPMA_NV_POLICY_DELETE SET
+    // This command can't be used to delete an index with TPMA_NV_POLICY_DELETE TPM_SET
     if(IS_ATTRIBUTE(nvIndex->publicArea.attributes, TPMA_NV, POLICY_DELETE))
 	return TPM_RCS_ATTRIBUTES + RC_NV_UndefineSpace_nvIndex;
     // The owner may only delete an index that was defined with ownerAuth. The
@@ -272,7 +272,7 @@ TPM2_NV_UndefineSpaceSpecial(
 	fclose(f);
     }
     // Input Validation
-    // This operation only applies when the TPMA_NV_POLICY_DELETE attribute is SET
+    // This operation only applies when the TPMA_NV_POLICY_DELETE attribute is TPM_SET
     if(!IS_ATTRIBUTE(nvIndex->publicArea.attributes, TPMA_NV, POLICY_DELETE))
 	return TPM_RCS_ATTRIBUTES + RC_NV_UndefineSpaceSpecial_nvIndex;
     // Internal Data Update
@@ -354,8 +354,8 @@ TPM2_NV_Write(
        && in->data.t.size < nvIndex->publicArea.dataSize)
 	return TPM_RC_NV_RANGE;
     // Internal Data Update
-    // Perform the write.  This called routine will SET the TPMA_NV_WRITTEN
-    // attribute if it has not already been SET. If NV isn't available, an error
+    // Perform the write.  This called routine will TPM_SET the TPMA_NV_WRITTEN
+    // attribute if it has not already been TPM_SET. If NV isn't available, an error
     // will be returned.
     return NvWriteIndexData(nvIndex, in->offset, in->data.t.size,
 			    in->data.t.buffer);
@@ -470,7 +470,7 @@ TPM2_NV_Extend(
     // Complete hash
     CryptHashEnd2B(&hashState, &newDigest.b);
     // Write extended hash back.
-    // Note, this routine will SET the TPMA_NV_WRITTEN attribute if necessary
+    // Note, this routine will TPM_SET the TPMA_NV_WRITTEN attribute if necessary
     return NvWriteIndexData(nvIndex, 0, newDigest.t.size, newDigest.t.buffer);
 }
 #endif // CC_NV_Extend
@@ -553,7 +553,7 @@ TPM2_NV_WriteLock(
 	return TPM_RCS_ATTRIBUTES + RC_NV_WriteLock_nvIndex;
     // Internal Data Update
     // Set the WRITELOCK attribute.
-    // Note: if TPMA_NV_WRITELOCKED were already SET, then the write access check
+    // Note: if TPMA_NV_WRITELOCKED were already TPM_SET, then the write access check
     // above would have failed and this code isn't executed.
     SET_ATTRIBUTE(nvAttributes, TPMA_NV, WRITELOCKED);
     // Write index info back
@@ -854,7 +854,7 @@ TPM2_NV_ReadPublic2(NV_ReadPublic2_In*  in,  // IN: input parameter list
 //                                  is not consistent with 'publicInfo->attributes'
 //                                  (this includes the case when the index is
 //                                   larger than a MAX_NV_BUFFER_SIZE but the
-//                                   TPMA_NV_WRITEALL attribute is SET)
+//                                   TPMA_NV_WRITEALL attribute is TPM_SET)
 TPM_RC
 TPM2_NV_DefineSpace2(NV_DefineSpace2_In* in  // IN: input parameter list
 		     )

@@ -1749,7 +1749,7 @@ CryptValidateKeys(TPMT_PUBLIC*    publicArea,
 	    // exponent.
 	    // NOTE: This implementation only supports key sizes that are multiples
 	    // of 1024 bits which means that the MSb of the 0th byte will always be
-	    // SET in any prime and in the public modulus.
+	    // TPM_SET in any prime and in the public modulus.
 	    if((unique->rsa.t.size != keySizeInBytes)
 	       || (unique->rsa.t.buffer[0] < 0x80))
 		return TPM_RCS_KEY + blamePublic;
@@ -1758,7 +1758,7 @@ CryptValidateKeys(TPMT_PUBLIC*    publicArea,
 	    if(sensitive != NULL)
 		{
 		    // If there is a sensitive area, it has to be the correct size
-		    // including having the correct high order bit SET.
+		    // including having the correct high order bit TPM_SET.
 		    if(((sensitive->sensitive.rsa.t.size * 2) != keySizeInBytes)
 		       || (sensitive->sensitive.rsa.t.buffer[0] < 0x80))
 			return TPM_RCS_KEY_SIZE + blameSensitive;
@@ -1996,7 +1996,7 @@ BOOL CryptSmacIsValidAlg(TPM_ALG_ID alg,
 
 //*** CryptSymModeIsValid()
 // Function checks to see if an algorithm ID is a valid, symmetric block cipher
-// mode for the TPM. If 'flag' is SET, them TPM_ALG_NULL is a valid mode.
+// mode for the TPM. If 'flag' is TPM_SET, them TPM_ALG_NULL is a valid mode.
 // not include the modes used for SMAC
 BOOL CryptSymModeIsValid(TPM_ALG_ID mode, BOOL flag)
 {

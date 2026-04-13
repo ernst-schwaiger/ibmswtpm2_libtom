@@ -124,7 +124,7 @@ BOOL TimeStartup(STARTUP_TYPE type  // IN: start up type
 // NV is checked for availability. If it is not available or is rate limiting, then
 // go.clock is not updated and the function returns an error. If 'newTime' would
 // not cause an NV write, then go.clock is updated. If an NV write occurs, then
-// go.safe is SET.
+// go.safe is TPM_SET.
 void TimeClockUpdate(UINT64 newTime  // IN: New time value in mS.
 		     )
 {
@@ -135,7 +135,7 @@ void TimeClockUpdate(UINT64 newTime  // IN: New time value in mS.
 	{
 	    pAssert(g_NvStatus == TPM_RC_SUCCESS);
 
-	    // Going to update the NV time state so SET the safe flag
+	    // Going to update the NV time state so TPM_SET the safe flag
 	    go.clockSafe = YES;
 
 	    // update the time

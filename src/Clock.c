@@ -234,7 +234,7 @@ LIB_EXPORT uint64_t _plat__TimerRead(void)
 // This function is used to interrogate the flag indicating if the tick timer has
 // been reset.
 //
-// If the resetFlag parameter is SET, then the flag will be CLEAR before the
+// If the resetFlag parameter is TPM_SET, then the flag will be TPM_CLEAR before the
 // function returns.
 LIB_EXPORT int _plat__TimerWasReset(void)
 {
@@ -247,7 +247,7 @@ LIB_EXPORT int _plat__TimerWasReset(void)
 // This function is used to interrogate the flag indicating if the tick timer has
 // been stopped. If so, this is typically a reason to roll the nonce.
 //
-// This function will CLEAR the s_timerStopped flag before returning. This provides
+// This function will TPM_CLEAR the s_timerStopped flag before returning. This provides
 // functionality that is similar to status register that is cleared when read. This
 // is the model used here because it is the one that has the most impact on the TPM
 // code as the flag can only be accessed by one entity in the TPM. Any other

@@ -104,10 +104,10 @@ typedef struct
 
 typedef struct
 {
-    // SET if the PCR value should be saved in state save
+    // TPM_SET if the PCR value should be saved in state save
     unsigned int stateSave : 1;
 
-    // SET if the PCR is part of the "TCB group", causes the PCR counter not to increment
+    // TPM_SET if the PCR is part of the "TCB group", causes the PCR counter not to increment
     unsigned int doNotIncrementPcrCounter : 1;
 
     // PCRs may support policy or auth-value authorization.
@@ -134,7 +134,7 @@ typedef struct
     unsigned int authValuesGroup : MAX_PCR_GROUP_BITS;
 
     // these bitfields indicating the localities that can
-    // reset or extend this PCR. A SET bit indicates the PCR can
+    // reset or extend this PCR. A TPM_SET bit indicates the PCR can
     // be extended or reset from that locality.  The low-order bit in
     // each field is locality zero, and the high-order bit is locality 4.
     unsigned int resetLocality  : 5;

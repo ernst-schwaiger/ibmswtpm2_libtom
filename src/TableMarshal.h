@@ -91,9 +91,9 @@
 
 // A structure will have a list of marshal indexes to indicate what to unmarshal. When
 // that index appears in a structure/union, the value will contain a flag to indicate
-// that the NULL_FLAG should be SET on the call to Unmarshal() to unmarshal the type.
+// that the NULL_FLAG should be TPM_SET on the call to Unmarshal() to unmarshal the type.
 // The caller simply takes the entry and passes it to Unmarshal() to indicate that the
-// NULL_FLAG is SET. There is also the opportunity to SET the NULL_FLAG in the called
+// NULL_FLAG is TPM_SET. There is also the opportunity to TPM_SET the NULL_FLAG in the called
 // structure if the NULL_FLAG was set in the call to the calling structure. This is
 // indicated by:
 #define NULL_MASK ~(NULL_FLAG)
@@ -235,7 +235,7 @@ typedef struct listModifier
 #define GET_ELEMENT_SIZE(val)   GET_ELEMENT_NUMBER(val)
 #define SET_ELEMENT_SIZE(val)   SET_ELEMENT_NUMBER(val)
 // This determines if the null flag is propagated to this type. If generate, the
-// NULL_FLAG is SET in the index value. This flag is one bit (7)
+// NULL_FLAG is TPM_SET in the index value. This flag is one bit (7)
 #define ELEMENT_PROPAGATE (PROPAGATE_NULL)
 
 #define INDEX_MASK ((UINT16)NULL_MASK)
