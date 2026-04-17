@@ -140,11 +140,19 @@ LIB_EXPORT uint64_t _plat__RealTime(void)
     if(sysTime.dstflag)
 	time -= 1000 * 60 * 60;  // mSec/sec * sec/min * min/hour = ms/hour
 #else
+
+#ifndef UART_TPM
     // hopefully, this will work with most UNIX systems
     struct timespec systime;
     //
     clock_gettime(CLOCK_MONOTONIC, &systime);
     time = (clock64_t)systime.tv_sec * 1000 + (systime.tv_nsec / 1000000);
+#else
+    // We are on the STM32 TPM here
+    // FIXME: implement this function using HW timers
+    time = 0;
+#endif
+
 #endif
     return time;
 }

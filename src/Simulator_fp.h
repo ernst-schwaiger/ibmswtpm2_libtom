@@ -74,7 +74,9 @@
 
 //*** PlatformServer()
 // This function processes incoming platform requests.
+#ifndef UART_TPM
 bool PlatformServer(SOCKET s);
+#endif
 
 //*** PlatformSvcRoutine()
 // This function is called to set up the socket interfaces to listen for
@@ -108,6 +110,7 @@ int StartTcpServer(int *PortNumber, int *PortNumberPlatform);
 //*** ReadBytes()
 // This function reads the indicated number of bytes ('NumBytes') into buffer
 // from the indicated socket.
+#ifndef UART_TPM
 bool ReadBytes(SOCKET s, char* buffer, int NumBytes);
 
 //*** WriteBytes()
@@ -137,6 +140,7 @@ bool WriteVarBytes(SOCKET s, char* buffer, int BytesToSend);
 // Processing incoming TPM command requests using the protocol / interface
 // defined above.
 bool TpmServer(SOCKET s);
+#endif
 
 //** From TPMCmdp.c
 

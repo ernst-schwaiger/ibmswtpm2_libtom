@@ -21,9 +21,10 @@ DONE
 - Check: Is BnEccAdd() actually invoked somewhere?
 DONE, not invoked, even via reg.sh -a
 - Optimize CurveInitialize: Return a curve if it is already statically initialized, only create a curve if it is not present yet.
+OPEN
 - Find flags in ibmswtpm2 that can be turned off for code size reduction, lookup candidates for LibTomCrypt/LibTomMath optimizations
   - See flags in src/libtomcrypt/src/headers/tomcrypt_custom.h and in src/libtommath/tommath_class.h
-
+DONE
 
 ## Compile ibmswtpm on Raspberry PI w 32 bit binary
 - To obtain code size estimations
@@ -33,13 +34,6 @@ Install additional compiler packages (done on Raspbian Bookworm)
 - sudo apt install gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross binutils-arm-linux-gnueabihf
 - for executing the 32 bit binary: sudo apt install libc6:armhf libstdc++6:armhf
 - use toolchainfile in makefile for ARM 32 bit EABI
-
-## Port ibmswtpm2 to Embedded target
-
-- Find source code that writes tpm state to file system, deactivate code
-- On target, add TcpIp stack (wolftcpip?), replace posix code by embedded TcpIp stack
-- Integrate HW timers to tpm code
-- Integrate RNG to tpm code
 
 ## Install perf on WSL2
 
@@ -148,21 +142,24 @@ systemctl status serial-getty@ttyAMA0.service
 
 reboot again
 
-### Virtual Sockets Based on Serial Embedded Interfaces
+### Port from Tcp to UART
 
+- Implement in UART Server the following functions
+
+```c
 bool ReadBytes(SOCKET s, char *buffer, int NumBytes)
 bool WriteBytes(SOCKET s, char *buffer, int NumBytes)
 bool WriteUINT32(SOCKET s, uint32_t val)
 bool ReadUINT32(SOCKET s, uint32_t *val)
 bool ReadVarBytes(SOCKET s, char *buffer, uint32_t *BytesReceived, int MaxLen)
 bool WriteVarBytes(SOCKET s, char *buffer, int BytesToSend)
+```
+- In Clock.c, go through the functions and adapt them to use the HW timers of the STM32 board
+- Find out which function requires that we have to provide _gettimeofday
+- Compare the STM32 linker output with the function symbols in the Linux Tpm server binary: Are we missing parts of the STM functions?
+- Check all the FIXMEs in the STM32 Tpm Code
+- Find source code that writes tpm state to file system, deactivate code
+- Integrate HW timers to tpm code
+- Integrate RNG to tpm code (they are using different RNGs than libtomcrypt)
+- Adapt Unix Makefile such that *fixed* versions of LibTomCrypt and LibTomMath are checked out
 
-static int CreateSocket(int PortNumber, SOCKET listenSocket, socklen_t addr_len, int domain)
-WriteVarBytes
-FD_SET
-FD_ISSET
-read()
-write()
-accept()
-close()
-select()

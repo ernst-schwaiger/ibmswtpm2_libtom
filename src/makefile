@@ -122,6 +122,10 @@ LNFLAGS_INCLUDE = 	\
 CCFLAGS = $(CCFLAGS_WARNINGS) -c $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) $(CCFLAGS_INCLUDE)
 LNFLAGS = $(LNFLAGS_LIBS) $(LNFLAGS_OPTS) $(LNFLAGS_INCLUDE)
 
+# LibTomCrypt and LibTomMath do not publish releases, so we have to stick to fixed revisions
+LIBTOMCRYPT_HASH = 63af5f6dc15a686ff2099676e0fd02550ec87659
+LIBTOMMATH_HASH = 839ae9ea66718705fba2b5773d1bdfb2b457cea4
+
 all:	tpm_server_$(BUILD_MODE)
 
 # contributed code, not tested
@@ -148,7 +152,8 @@ libtomcrypt/$(BUILD_MODE)/libtomcrypt.a: libtomcrypt libtommath/$(BUILD_MODE)/li
 
 # checkout libtomcrypt, patch descriptor table (remove unused functions)
 libtomcrypt:
-	git clone --depth 1 https://github.com/libtom/libtomcrypt.git
+	git clone --depth 1 https://github.com/libtom/libtomcrypt.git 
+	cd libtomcrypt && git fetch --depth 1 origin $(LIBTOMCRYPT_HASH) && git checkout $(LIBTOMCRYPT_HASH)
 	cp patch/libtomcrypt/tomcrypt_custom.h libtomcrypt/src/headers
 	cp patch/libtomcrypt/ltm_desc.c libtomcrypt/src/math/
 	cp patch/libtomcrypt/tweetnacl.c libtomcrypt/src/pk/ec25519
@@ -161,6 +166,7 @@ libtommath/$(BUILD_MODE)/libtommath.a: libtommath
 # checkout libtomcrypt, patch class config files (remove unused functions)
 libtommath:
 	git clone --depth 1 https://github.com/libtom/libtommath.git
+	cd libtommath && git fetch --depth 1 origin $(LIBTOMMATH_HASH) && git checkout $(LIBTOMMATH_HASH)
 	cp patch/libtommath/tommath_class.h libtommath
 	cp patch/libtommath/tommath_superclass.h libtommath
 

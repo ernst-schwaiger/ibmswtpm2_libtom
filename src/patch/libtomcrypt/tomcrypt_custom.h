@@ -364,7 +364,8 @@
 #define LTC_CHACHA20_PRNG
 
 /* Fortuna PRNG */
-#define LTC_FORTUNA
+// Do not compile LTC fortuna as it requires system time
+//#define LTC_FORTUNA
 
 /* Greg's SOBER128 stream cipher based PRNG */
 #define LTC_SOBER128
