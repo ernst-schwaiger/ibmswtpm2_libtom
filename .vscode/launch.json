@@ -11,7 +11,7 @@
             "name": "RunTomDemo",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/src/tpm_server",
+            "program": "${workspaceFolder}/src/tpm_server_Debug",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
