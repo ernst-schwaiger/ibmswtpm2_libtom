@@ -22,14 +22,17 @@
 |crossCompileARM|Compile tpm server on ARM32 Platform, for getting code size estimations|DONE|
 |portToSTM32|Compile ibmswtpm on STM32|DONE|
 |portToSTM32|Replace TCP communication by communication via UART in TPM32|ONGOING|
-|portToSTM32|Adapt ibmtss test suite to use UART instead of TCP|OPEN|
+|portToSTM32|Adapt ibmtss test suite to use UART instead of TCP|ONGOING|
+|portToSTM32|In UARTServer.c, refactor/cleanup TpmServer() function|ONGOING|
+|portToSTM32|Simplify Rx function in UARTServer.c, no ringbuffer needed, but a linear buffer and a timer when a byte was received on UART|ONGOING|
+|portToSTM32|In the whole tpm code, replace the printfs with a macro which allows output going to the STM32 debug console.|ONGOING|
+|portToSTM32|In NVMem.c, check the functions needed for saving the TPM state. Can we use an Sd card on the STM32 board instead?, Static state is stored in variable s_NV|OPEN|
 |portToSTM32|In Clock.c, go through the functions and adapt them to use the HW timers of the STM32 board|OPEN|
 |portToSTM32|Find out which function requires that we have to provide _gettimeofday|OPEN|
-|portToSTM32|ACompare the STM32 linker output with the function symbols in the Linux Tpm server binary: Are we missing parts of the STM functions?|OPEN|
+|portToSTM32|Compare the STM32 linker output with the function symbols in the Linux Tpm server binary: Are we missing parts of the STM functions?|OPEN|
 |portToSTM32|Check all the FIXMEs in the STM32 Tpm Code|OPEN|
 |portToSTM32|Find source code that writes tpm state to file system, deactivate code|OPEN|
 |portToSTM32|Integrate HW timers to tpm code|OPEN|
-|portToSTM32|Integrate RNG to tpm code (they are using different RNGs than libtomcrypt)|OPEN|
 |portToSTM32|Integrate RNG to tpm code (they are using different RNGs than libtomcrypt)|OPEN|
 
 ## HOWTOs
@@ -73,6 +76,35 @@ sudo apt-get -y install linux-perf
   - make clean && make all -sj
   - in utils/certificates/rootcerts.txt fix the certificate paths, remove everything before "certificates", the relative path will work with reg.sh
   - use utils/reg.sh to execute tests (the ibmswtpm2 server must have been started)
+
+### install ibmtss on Linux for communication via ttyAMA0
+
+run `patchibmtss/buildtssforUART.sh`, which executes the steps below
+
+- before `configure` step:
+  - patch Makefile.am, replace `/dev/tpmrm0` by `/dev/ttyAMA` (same in Makefile.in?)
+  - patch tsstransmit.c:, put error message in #if 0, rest in #else, both in TSS_TransmitPlatform and in TSS_TransmitCommand()
+
+```c
+#ifndef TPM_TSS_NODEV
+    if ((strcmp(tssContext->tssInterfaceType, "dev") == 0)) {
+#if 0
+	if (tssVerbose) printf("TSS_TransmitPlatform: device %s unsupported\n",
+			       tssContext->tssInterfaceType);
+	rc = TSS_RC_INSUPPORTED_INTERFACE;	
+#else
+    uint32_t response;
+    uint32_t read = sizeof(response);
+
+	rc = TSS_Dev_Transmit(tssContext, (uint8_t *)&response, &read, (uint8_t *)&command, sizeof(command), message); 
+#endif
+```
+
+- Same as above, but different configure: `./configure --prefix=${HOME}/local --disable-tpm-1.2 --enable-debug`
+- Before compilation:
+- patch Makefile.am, replace `/dev/tpmrm0` by `/dev/ttyAMA` (same in Makefile.in?)
+- 
+
 
 ### Configure serial communication on Raspbian
 

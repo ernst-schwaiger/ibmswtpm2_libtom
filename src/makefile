@@ -160,7 +160,7 @@ libtomcrypt:
 
 libtommath/$(BUILD_MODE)/libtommath.a: libtommath
 	cmake -S libtommath -B libtommath/$(BUILD_MODE) $(CMAKE_TOOLCHAIN_FILE) \
-		"-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_TPM -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
+		"-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_TPM -DLTM_DESC -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
 	cmake --build libtommath/$(BUILD_MODE) -j
 
 # checkout libtomcrypt, patch class config files (remove unused functions)
