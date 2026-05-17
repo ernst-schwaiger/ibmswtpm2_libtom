@@ -64,7 +64,7 @@ static uint32_t TSS_Dev_Open(TSS_CONTEXT *tssContext);
 static uint32_t TSS_Dev_SendCommand(int dev_fd, const uint8_t *buffer, uint16_t length,
 				    const char *message);
 static uint32_t TSS_Dev_ReceiveResponse(int dev_fd, uint8_t *buffer, uint32_t *length);
-static uint32_t TSS_Dev_ReceivePlatformResponse(int dev_fd, uint32_t *buffer, uint32_t *length);
+static uint32_t TSS_Dev_ReceivePlatformResponse(int dev_fd, uint8_t *buffer, uint32_t *length);
 
 /* global configuration */
 
@@ -218,6 +218,39 @@ static uint32_t TSS_Dev_SendCommand(int dev_fd,
     return rc;
 }
 
+// ttyAMA0
+int readFromTTY(int dev_fd, uint8_t *buffer, size_t bufLen)
+{
+    int irc = read(dev_fd, buffer, bufLen);
+    if (irc >= 16)
+    {
+        // The RASP TTY seems to only return 16 byte chunks, even if more data is available
+        // however, read on TTY is blocking, wo we have to read *exactly* the number of bytes
+        // to read in, otherwise, the call blocks, TPM 2.0 specifies the length of the whole
+        // payload in bytes 2..5 (in Big Endian)
+        size_t totalNumBytes = (buffer[2] << 24) + (buffer[3] << 16) + (buffer[4] << 8) + buffer[5];
+        if (tssVverbose) printf("TSS_Dev_ReceiveResponse: total bytes to receive: %ul\n", totalNumBytes);
+        while (totalNumBytes > irc)
+        {
+            int rxBytes = read(dev_fd, &buffer[irc], bufLen - irc);
+
+            if (rxBytes > 0)
+            {
+                irc += rxBytes;
+                if (tssVverbose) printf("TSS_Dev_ReceiveResponse: read additional: %ul bytes\n", rxBytes);
+            }
+            else
+            {
+                if (tssVverbose) printf("TSS_Dev_ReceiveResponse: failed reading additional bytes\n");
+                return rxBytes;
+            }
+        }
+    }
+
+    return irc;
+}
+
+
 /* TSS_Dev_ReceiveResponse() reads a response buffer from the device.  'buffer' must be at least
    MAX_RESPONSE_SIZE bytes.
 
@@ -238,7 +271,8 @@ static uint32_t TSS_Dev_ReceiveResponse(int dev_fd, uint8_t *buffer, uint32_t *l
     if (tssVverbose) printf("TSS_Dev_ReceiveResponse:\n");
     /* read the TPM device */
     if (rc == 0) {
-	irc = read(dev_fd, buffer, MAX_RESPONSE_SIZE);
+	/* irc = read(dev_fd, buffer, MAX_RESPONSE_SIZE); */
+    irc = readFromTTY(dev_fd, buffer, MAX_RESPONSE_SIZE);
 	if (irc <= 0) {
 	    rc = TSS_RC_BAD_CONNECTION;
 	    if (irc < 0) {
@@ -289,7 +323,7 @@ static uint32_t TSS_Dev_ReceiveResponse(int dev_fd, uint8_t *buffer, uint32_t *l
     return rc;
 }
 
-static uint32_t TSS_Dev_ReceivePlatformResponse(int dev_fd, uint32_t *buffer, uint32_t *length)
+static uint32_t TSS_Dev_ReceivePlatformResponse(int dev_fd, uint8_t *buffer, uint32_t *length)
 {
     uint32_t 	rc = 0;
     int 	irc;		/* read() return code, negative is error, positive is length */
@@ -301,7 +335,8 @@ static uint32_t TSS_Dev_ReceivePlatformResponse(int dev_fd, uint32_t *buffer, ui
     if (tssVverbose) printf("TSS_Dev_ReceivePlatformResponse:\n");
     /* read the TPM device */
     if (rc == 0) {
-	irc = read(dev_fd, (char *)buffer, sizeof(uint32_t));
+	/* irc = read(dev_fd, (char *)buffer, MAX_RESPONSE_SIZE); */
+    irc = readFromTTY(dev_fd, (char *)buffer, MAX_RESPONSE_SIZE);
 	if (irc <= 0) {
 	    rc = TSS_RC_BAD_CONNECTION;
 	    if (irc < 0) {

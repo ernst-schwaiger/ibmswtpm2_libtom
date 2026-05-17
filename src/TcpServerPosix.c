@@ -86,6 +86,8 @@
 //#include "Platform_fp.h"	/* kgold */
 #include "PlatformACT_fp.h"	/* added kgold */
 
+#include "malloc_debug.h"
+
 bool				/* kgold */
 ReadUINT32(
 	   SOCKET           s,
@@ -836,6 +838,7 @@ TpmServer(
 		    printf("Unrecognized TPM interface command %08x\n", Command);
 		    return true;
 		}
+		printMallocInfo();
 	    ok = WriteUINT32(s,0);
 	    if(!ok)
 		return true;

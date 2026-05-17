@@ -63,7 +63,8 @@ CCFLAGS_SYMBOLS = 	\
 	-DTPM_POSIX		\
 	-D_POSIX_		\
 	-DTPM_NUVOTON	\
-	-DLTM_TPM
+	-DLTM_TPM		\
+	-DMP_MALLOC_DEBUG
 
 # add this line for big endian platforms
 #	-DBIG_ENDIAN_TPM=YES
@@ -160,7 +161,7 @@ libtomcrypt:
 
 libtommath/$(BUILD_MODE)/libtommath.a: libtommath
 	cmake -S libtommath -B libtommath/$(BUILD_MODE) $(CMAKE_TOOLCHAIN_FILE) \
-		"-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_TPM -DLTM_DESC -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
+		"-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_TPM -DLTM_DESC -DMP_MALLOC_DEBUG -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
 	cmake --build libtommath/$(BUILD_MODE) -j
 
 # checkout libtomcrypt, patch class config files (remove unused functions)
@@ -169,6 +170,7 @@ libtommath:
 	cd libtommath && git fetch --depth 1 origin $(LIBTOMMATH_HASH) && git checkout $(LIBTOMMATH_HASH)
 	cp patch/libtommath/tommath_class.h libtommath
 	cp patch/libtommath/tommath_superclass.h libtommath
+	cp patch/libtommath/tommath_private.h libtommath
 
 clean:		
 	rm -rf tpm_server_$(BUILD_MODE) $(BUILD_MODE) libtomcrypt/$(BUILD_MODE) libtommath/$(BUILD_MODE) *~ *.gcda *.gcno test.tracefile test.lcov coverage
