@@ -19,21 +19,27 @@
 |ibmswtpm2LibTom|Check: Is BnEccAdd() actually invoked somewhere? (No, not invoked even by "reg.sh -a")|DONE|
 |ibmswtpm2LibTom|Optimize CurveInitialize: Return a curve if it is already statically initialized, only create a curve if it is not present yet.|OPEN|
 |ibmswtpm2LibTom|Remove unused, but linked LibTom functions via tomcrypt_custom.h, tommath_class.h, tommath_superclass.h|DONE|
+|ibmswtpm2LibTom|Replace LibTomMath with TomsFastMath do avoid heap fragmentation|DONE|
 |crossCompileARM|Compile tpm server on ARM32 Platform, for getting code size estimations|DONE|
 |portToSTM32|Compile ibmswtpm on STM32|DONE|
-|portToSTM32|Replace TCP communication by communication via UART in TPM32|ONGOING|
-|portToSTM32|Adapt ibmtss test suite to use UART instead of TCP|ONGOING|
+|portToSTM32|Replace TCP communication by communication via UART in TPM32|DONE|
+|portToSTM32|Adapt ibmtss test suite to use UART instead of TCP|DONE|
 |portToSTM32|In UARTServer.c, refactor/cleanup TpmServer() function|ONGOING|
 |portToSTM32|Simplify Rx function in UARTServer.c, no ringbuffer needed, but a linear buffer and a timer when a byte was received on UART|ONGOING|
-|portToSTM32|In the whole tpm code, replace the printfs with a macro which allows output going to the STM32 debug console.|ONGOING|
-|portToSTM32|In NVMem.c, check the functions needed for saving the TPM state. Can we use an Sd card on the STM32 board instead?, Static state is stored in variable s_NV|OPEN|
+|portToSTM32|Redirect printf statements to TeraTerm console.|DONE|
+|portToSTM32|In App\tpm\PlatformData.h, set `FILE_BACKED_NV` back to `YES`, after file-based state is implemented|DONE|
+|portToSTM32|In NVMem.c, check the functions needed for saving the TPM state. Can we use an Sd card on the STM32 board instead?, Static state is stored in variable s_NV|DONE|
 |portToSTM32|In Clock.c, go through the functions and adapt them to use the HW timers of the STM32 board|OPEN|
 |portToSTM32|Find out which function requires that we have to provide _gettimeofday|OPEN|
 |portToSTM32|Compare the STM32 linker output with the function symbols in the Linux Tpm server binary: Are we missing parts of the STM functions?|OPEN|
 |portToSTM32|Check all the FIXMEs in the STM32 Tpm Code|OPEN|
-|portToSTM32|Find source code that writes tpm state to file system, deactivate code|OPEN|
+|portToSTM32|Find source code that writes tpm state to file system, check if redirection to sd card is possible|OPEN|
 |portToSTM32|Integrate HW timers to tpm code|OPEN|
-|portToSTM32|Integrate RNG to tpm code (they are using different RNGs than libtomcrypt)|OPEN|
+|portToSTM32|Integrate RNG to tpm code (they are using different RNGs than libtomcrypt)|DONE|
+|portToSTM32|Optimize SD card access like outlined in https://www.youtube.com/watch?v=KNuMM7NdgYw (HW flow control is turned on here (we have set it to off))|DONE|
+|portToSTM32|Use PLL clock for system clock, increase clock rate to 240MHz|OPEN|
+
+
 
 ## HOWTOs
 
@@ -157,3 +163,22 @@ verifyCertificateI: Error in X509_verify_cert verifying certificate
 processRoot: EK certificate did not verify
 createek: failed, rc 000b007e
 TSS_RC_X509_ERROR - X509 parse or verify error
+
+## Using SD Card on STM32H747I-DISCO Board
+
+- SDIO can be clocked at 48MHz max
+- HW flow control is turned on (we have set it off)
+
+## Redirecting printf() to console
+
+Implement in main.c below Private User Code:
+
+int _write(int fd, unsigned char *buf, int len)
+{
+  if ((fd == 1) || (fd == 2))
+  {
+    HAL_UART_Transmit
+  }
+}
+
+
