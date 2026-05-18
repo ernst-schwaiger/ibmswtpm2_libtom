@@ -20,8 +20,14 @@ typedef const BYTE* desKeyPointers[3];
 // This does any initialization required by the support library.
 LIB_EXPORT int BnSupportLibInit(void)
 {
+#ifdef TOMS_FASTMATH
+    crypt_mp_init("TomsFastMath");
+#else
     crypt_mp_init("LibTomMath");
+#endif
+
+
     return TRUE;
 }
 
-#endif  // HASH_LIB_OSSL || MATH_LIB_OSSL || SYM_LIB_OSSL
+#endif  // HASH_LIB_TOM || MATH_LIB_TOM || SYM_LIB_TOM

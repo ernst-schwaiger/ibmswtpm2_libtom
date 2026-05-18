@@ -38,8 +38,10 @@
 #################################################################################
 
 # Debug, Release, Coverage, Flamegraph
-BUILD_MODE ?= Debug
-IS_32BIT   ?= False
+BUILD_MODE 			?= Debug
+IS_32BIT   			?= False
+# switch between LibTomMath and TomsFastMath
+USE_TOMS_FASTMATH 	?= True
 
 ifeq ($(IS_32BIT), True)
 	CC = arm-linux-gnueabihf-gcc
@@ -70,14 +72,27 @@ CCFLAGS_SYMBOLS = 	\
 #	-DBIG_ENDIAN_TPM=YES
 
 CCFLAGS_INCLUDE =	\
-	-Ilibtommath \
 	-Ilibtomcrypt/src/headers
 
 LNFLAGS_LIBS = 	\
 	-lpthread	\
 	-ltomcrypt	\
-	-ltommath	\
 	-lrt
+
+ifeq ($(USE_TOMS_FASTMATH), True)
+	CCFLAGS_SYMBOLS += -DTOMS_FASTMATH
+	CCFLAGS_INCLUDE += -Itomsfastmath/src/headers
+	LNFLAGS_LIBS += -ltfm
+	TOMMATH_LIB_DIR=tomsfastmath
+	TOMMATH_LIB_FILE=libtfm.a
+	TOMCRYPT_MATHFLAGS=-DWITH_LTM=FALSE -DWITH_TFM=TRUE -DMPI_PROVIDER=WITH_TFM
+else
+	CCFLAGS_INCLUDE += -Ilibtommath
+	LNFLAGS_LIBS += -ltommath
+	TOMMATH_LIB_DIR=libtommath
+	TOMMATH_LIB_FILE=libtommath.a
+	TOMCRYPT_MATHFLAGS=
+endif
 
 ifeq ($(BUILD_MODE), Debug)
 # DEBUG info, ASAN turned on, optimizations turned off
@@ -86,7 +101,7 @@ ifeq ($(BUILD_MODE), Debug)
 	LNFLAGS_OPTS = -fsanitize=address
 
 	LNFLAGS_INCLUDE = 	\
-		-Llibtommath/buildasan \
+		-L$(TOMMATH_LIB_DIR)/buildasan \
 		-Llibtomcrypt/buildasan		
 else ifeq ($(BUILD_MODE), Release)
 # DEBUG info, ASAN turned off, optimzations turned on
@@ -94,7 +109,7 @@ else ifeq ($(BUILD_MODE), Release)
 		-O2
 
 	LNFLAGS_INCLUDE = 	\
-	-L$(PROJECT_FOLDER)/../libtommath/buildrelease \
+	-L$(PROJECT_FOLDER)/../$(TOMMATH_LIB_DIR)/buildrelease \
 	-L$(PROJECT_FOLDER)/../libtomcrypt/buildrelease
 else ifeq ($(BUILD_MODE), Coverage)
 # Coverage build
@@ -103,29 +118,30 @@ else ifeq ($(BUILD_MODE), Coverage)
 	LNFLAGS_OPTS = --coverage
 
 	LNFLAGS_INCLUDE = 	\
-		-L$(PROJECT_FOLDER)/../libtommath/buildcov \
+		-L$(PROJECT_FOLDER)/../$(TOMMATH_LIB_DIR)/buildcov \
 		-L$(PROJECT_FOLDER)/../libtomcrypt/buildcov		
 else ifeq ($(BUILD_MODE), Flamegraph)
 	CCFLAGS_OPT = -g -O2 -fno-omit-frame-pointer
 	LNFLAGS_OPTS = -fno-omit-frame-pointer
 
 	LNFLAGS_INCLUDE = 	\
-		-L$(PROJECT_FOLDER)/../libtommath/buildflame \
+		-L$(PROJECT_FOLDER)/../$(TOMMATH_LIB_DIR)/buildflame \
 		-L$(PROJECT_FOLDER)/../libtomcrypt/buildflame		
 else
     $(error "Unknown build configuration: $(BUILD_MODE)")
 endif
 
 LNFLAGS_INCLUDE = 	\
-	-Llibtommath/$(BUILD_MODE) \
+	-L$(TOMMATH_LIB_DIR)/$(BUILD_MODE) \
 	-Llibtomcrypt/$(BUILD_MODE)		
 
 CCFLAGS = $(CCFLAGS_WARNINGS) -c $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) $(CCFLAGS_INCLUDE)
 LNFLAGS = $(LNFLAGS_LIBS) $(LNFLAGS_OPTS) $(LNFLAGS_INCLUDE)
 
-# LibTomCrypt and LibTomMath do not publish releases, so we have to stick to fixed revisions
-LIBTOMCRYPT_HASH = 63af5f6dc15a686ff2099676e0fd02550ec87659
-LIBTOMMATH_HASH = 839ae9ea66718705fba2b5773d1bdfb2b457cea4
+# LibTomCrypt and LibTomMath/TomsFastMath do not publish releases, so we have to stick to fixed revisions
+LIBTOMCRYPT_HASH 	= 63af5f6dc15a686ff2099676e0fd02550ec87659
+LIBTOMMATH_HASH 	= 839ae9ea66718705fba2b5773d1bdfb2b457cea4
+TOMSFASTMATH_HASH 	= b2b4d030cf12431946b3fc485847b2ca026278c1
 
 all:	tpm_server_$(BUILD_MODE)
 
@@ -143,11 +159,11 @@ $(BUILD_MODE)/TcpServerPosix.o	: $(HEADERS)
 .PHONY:		clean
 .PRECIOUS:	%.o
 
-tpm_server_$(BUILD_MODE): $(OBJFILES) libtomcrypt/$(BUILD_MODE)/libtomcrypt.a libtommath/$(BUILD_MODE)/libtommath.a
+tpm_server_$(BUILD_MODE): $(OBJFILES) libtomcrypt/$(BUILD_MODE)/libtomcrypt.a $(TOMMATH_LIB_DIR)/$(BUILD_MODE)/$(TOMMATH_LIB_FILE)
 	$(CC) $(OBJFILES) $(LNFLAGS) -o tpm_server_$(BUILD_MODE)
 
-libtomcrypt/$(BUILD_MODE)/libtomcrypt.a: libtomcrypt libtommath/$(BUILD_MODE)/libtommath.a
-	cmake -S libtomcrypt -B libtomcrypt/$(BUILD_MODE) $(CMAKE_TOOLCHAIN_FILE) \
+libtomcrypt/$(BUILD_MODE)/libtomcrypt.a: libtomcrypt $(TOMMATH_LIB_DIR)/$(BUILD_MODE)/$(TOMMATH_LIB_FILE)
+	cmake -S libtomcrypt -B libtomcrypt/$(BUILD_MODE) $(TOMCRYPT_MATHFLAGS) $(CMAKE_TOOLCHAIN_FILE) \
 		"-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_TPM -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
 	cmake --build libtomcrypt/$(BUILD_MODE) -j
 
@@ -164,7 +180,7 @@ libtommath/$(BUILD_MODE)/libtommath.a: libtommath
 		"-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_TPM -DLTM_DESC -DMP_MALLOC_DEBUG -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
 	cmake --build libtommath/$(BUILD_MODE) -j
 
-# checkout libtomcrypt, patch class config files (remove unused functions)
+# checkout libtommath, patch class config files (remove unused functions)
 libtommath:
 	git clone --depth 1 https://github.com/libtom/libtommath.git
 	cd libtommath && git fetch --depth 1 origin $(LIBTOMMATH_HASH) && git checkout $(LIBTOMMATH_HASH)
@@ -172,22 +188,33 @@ libtommath:
 	cp patch/libtommath/tommath_superclass.h libtommath
 	cp patch/libtommath/tommath_private.h libtommath
 
+
+tomsfastmath/$(BUILD_MODE)/libtfm.a: tomsfastmath
+	cmake -S tomsfastmath -B tomsfastmath/$(BUILD_MODE) $(CMAKE_TOOLCHAIN_FILE) \
+		"-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_TPM -DTFM_DESC -DMP_MALLOC_DEBUG -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
+	cmake --build tomsfastmath/$(BUILD_MODE) -j
+
+# checkout tomsfastmath, patch class config files (remove unused functions)
+tomsfastmath:
+	git clone --depth 1 https://github.com/libtom/tomsfastmath
+	cd tomsfastmath && git fetch --depth 1 origin $(TOMSFASTMATH_HASH) && git checkout $(TOMSFASTMATH_HASH)
+
 clean:		
-	rm -rf tpm_server_$(BUILD_MODE) $(BUILD_MODE) libtomcrypt/$(BUILD_MODE) libtommath/$(BUILD_MODE) *~ *.gcda *.gcno test.tracefile test.lcov coverage
+	rm -rf tpm_server_$(BUILD_MODE) $(BUILD_MODE) libtomcrypt/$(BUILD_MODE) $(TOMMATH_LIB_DIR)/$(BUILD_MODE) *~ *.gcda *.gcno test.tracefile test.lcov coverage
 
 clobber:
-	rm -rf tpm_server_* Debug Release Coverage Flamegraph libtomcrypt libtommath
+	rm -rf tpm_server_* Debug Release Coverage Flamegraph libtomcrypt $(TOMMATH_LIB_DIR)
 
 
 COV_FILES_TPM=$(patsubst Coverage/%, %, $(patsubst %.o,%.c,$(OBJFILES)))
 COV_FILES_LIBTOMCRYPT=$(shell find libtomcrypt -name "*.c")
-COV_FILES_LIBTOMMATH=$(shell find libtommath -name "*.c")
+COV_FILES_LIBTOMMATH=$(shell find $(TOMMATH_LIB_DIR) -name "*.c")
 COV_FILES=$(COV_FILES_TPM) $(COV_FILES_LIBTOMCRYPT) $(COV_FILES_LIBTOMMATH)
 
 coverage:
 	$(info "COV files: $(COV_FILES)")
 	lcov --directory Coverage \
-	    --directory libtommath/Coverage/CMakeFiles/libtommath.dir \
+	    --directory $(TOMMATH_LIB_DIR)/Coverage/CMakeFiles/libtommath.dir \
 		--directory libtomcrypt/Coverage/CMakeFiles/libtomcrypt.dir/src \
 		--capture --rc branch_coverage=1 -o test.tracefile
 	lcov --ignore-errors unused -o test.lcov --rc branch_coverage=1 \
@@ -208,6 +235,6 @@ flamegraph:
 
 	
 
-$(BUILD_MODE)/%.o:		%.c libtomcrypt libtommath
+$(BUILD_MODE)/%.o:		%.c libtomcrypt $(TOMMATH_LIB_DIR)
 	mkdir -p $(BUILD_MODE)
 	$(CC) $(CCFLAGS) $< -o $@

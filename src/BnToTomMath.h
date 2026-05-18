@@ -10,7 +10,6 @@
 
 #define MATH_LIB_TOM
 
-#include <tommath.h>
 #include <tomcrypt.h>
 
 #include "BnValues.h"

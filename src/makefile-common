@@ -345,7 +345,6 @@ OBJFILES = \
 	$(BUILD_MODE)/BnMath.o			\
 	$(BUILD_MODE)/BnMemory.o			\
 	$(BUILD_MODE)/BnUtil.o			\
-	$(BUILD_MODE)/BnToTomMath.o			\
 	$(BUILD_MODE)/Cancel.o			\
 	$(BUILD_MODE)/CapabilityCommands.o		\
 	$(BUILD_MODE)/Clock.o				\
@@ -454,6 +453,12 @@ OBJFILES = \
 	$(BUILD_MODE)/ntc2lib.o			\
 	$(BUILD_MODE)/ntc2.o			\
 	$(BUILD_MODE)/malloc_debug.o
+
+ifeq ($(USE_TOMS_FASTMATH), True)
+	OBJFILES += $(BUILD_MODE)/BnToTomsFastMath.o
+else
+	OBJFILES += $(BUILD_MODE)/BnToTomMath.o
+endif
 
 $(BUILD_MODE)/ACTCommands.o			: $(HEADERS)
 $(BUILD_MODE)/ACT_spt.o			: $(HEADERS)
