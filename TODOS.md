@@ -15,20 +15,22 @@
 |ibmswtpm2LibTom|In Makefile, checkout fixed versions of LibTomMath, LibTomCrypt|DONE|
 |ibmswtpm2LibTom|Create build for flame graphs|DONE|
 |ibmswtpm2LibTom|Find better BigNum converstion routines, Optimize revertUWordArray(), fix function name.|DONE|
-|ibmswtpm2LibTom|Validate usage of TomFastMath instead of LibTomMath|OPEN|
 |ibmswtpm2LibTom|Check: Is BnEccAdd() actually invoked somewhere? (No, not invoked even by "reg.sh -a")|DONE|
-|ibmswtpm2LibTom|Optimize CurveInitialize: Return a curve if it is already statically initialized, only create a curve if it is not present yet.|OPEN|
 |ibmswtpm2LibTom|Remove unused, but linked LibTom functions via tomcrypt_custom.h, tommath_class.h, tommath_superclass.h|DONE|
-|ibmswtpm2LibTom|Replace LibTomMath with TomsFastMath do avoid heap fragmentation|DONE|
+|ibmswtpm2LibTom|Add support for TomsFastMath as an alternative to LibTomMath|DONE|
+|ibmswtpm2LibTom|Find segfault in "Release" ibmswtpm when compiled in WSL2 or Kali|OPEN|
+|ibmswtpm2LibTom|Optimize CurveInitialize: Return a curve if it is already statically initialized, only create a curve if it is not present yet.|OPEN|
+|ibmswtpm2LibTom|Verify compile flags for LibTom*, ensure memory leaks are detected by ASAN|OPEN|
 |crossCompileARM|Compile tpm server on ARM32 Platform, for getting code size estimations|DONE|
 |portToSTM32|Compile ibmswtpm on STM32|DONE|
 |portToSTM32|Replace TCP communication by communication via UART in TPM32|DONE|
 |portToSTM32|Adapt ibmtss test suite to use UART instead of TCP|DONE|
-|portToSTM32|In UARTServer.c, refactor/cleanup TpmServer() function|ONGOING|
-|portToSTM32|Simplify Rx function in UARTServer.c, no ringbuffer needed, but a linear buffer and a timer when a byte was received on UART|ONGOING|
+|portToSTM32|In UARTServer.c, refactor/cleanup TpmServer() function|OPEN|
+|portToSTM32|Simplify Rx function in UARTServer.c, no ringbuffer needed, but a linear buffer and a timer when a byte was received on UART|OPEN|
 |portToSTM32|Redirect printf statements to TeraTerm console.|DONE|
 |portToSTM32|In App\tpm\PlatformData.h, set `FILE_BACKED_NV` back to `YES`, after file-based state is implemented|DONE|
 |portToSTM32|In NVMem.c, check the functions needed for saving the TPM state. Can we use an Sd card on the STM32 board instead?, Static state is stored in variable s_NV|DONE|
+|portToSTM32|Integrate usage of TomsFastMath on STM32 project, experiment with compile flags, e.g unrolled multiplications|OPEN|
 |portToSTM32|In Clock.c, go through the functions and adapt them to use the HW timers of the STM32 board|OPEN|
 |portToSTM32|Find out which function requires that we have to provide _gettimeofday|OPEN|
 |portToSTM32|Compare the STM32 linker output with the function symbols in the Linux Tpm server binary: Are we missing parts of the STM functions?|OPEN|
