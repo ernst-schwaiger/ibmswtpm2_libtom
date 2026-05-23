@@ -137,6 +137,7 @@ fp_int* BigInitialized(fp_int* toInit, bigConst initializer)
         memcpy(pDest, pSrc, writtenOctets);
         memset(&pDest[writtenOctets], 0x00, (FP_SIZE * sizeof(fp_digit)) - writtenOctets); // FIXME: test that this conversion works
         toInit->used = (writtenOctets + (sizeof(fp_digit) - 1)) / sizeof(fp_digit);
+        toInit->sign = 0;
         pRet = toInit;
         PRINT_BIGNUMS(toInit, initializer);
     }

@@ -80,7 +80,11 @@ LNFLAGS_LIBS = 	\
 	-lrt
 
 ifeq ($(USE_TOMS_FASTMATH), True)
-	CCFLAGS_SYMBOLS += -DTOMS_FASTMATH
+# according to TomsFastMathDoc: 
+# if you plan on doing modular exponentiation with k–bit numbers 
+# than the precision must be fixed to 2k–bits plus four digits.
+# For k (==3072) bit precision, you need to (2*3072) + (4*64) == 6528
+	CCFLAGS_SYMBOLS += -DTOMS_FASTMATH -DFP_MAX_SIZE=6528 -DTFM_X86_64
 	CCFLAGS_INCLUDE += -Itomsfastmath/src/headers
 	LNFLAGS_LIBS += -ltfm
 	TOMMATH_LIB_DIR=tomsfastmath
