@@ -451,8 +451,7 @@ OBJFILES = \
 	$(BUILD_MODE)/X509_RSA.o			\
 	$(BUILD_MODE)/X509_spt.o			\
 	$(BUILD_MODE)/ntc2lib.o			\
-	$(BUILD_MODE)/ntc2.o			\
-	$(BUILD_MODE)/malloc_debug.o
+	$(BUILD_MODE)/ntc2.o
 
 ifeq ($(USE_TOMS_FASTMATH), True)
 	OBJFILES += $(BUILD_MODE)/BnToTomsFastMath.o

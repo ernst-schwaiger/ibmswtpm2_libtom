@@ -18,7 +18,7 @@
 |ibmswtpm2LibTom|Check: Is BnEccAdd() actually invoked somewhere? (No, not invoked even by "reg.sh -a")|DONE|
 |ibmswtpm2LibTom|Remove unused, but linked LibTom functions via tomcrypt_custom.h, tommath_class.h, tommath_superclass.h|DONE|
 |ibmswtpm2LibTom|Add support for TomsFastMath as an alternative to LibTomMath|DONE|
-|ibmswtpm2LibTom|Find segfault in "Release" ibmswtpm when compiled in WSL2 or Kali|OPEN|
+|ibmswtpm2LibTom|Find segfault in "Release" ibmswtpm when compiled in WSL2 or Kali: It was the printMallocInfo()|DONE|
 |ibmswtpm2LibTom|Optimize CurveInitialize: Return a curve if it is already statically initialized, only create a curve if it is not present yet.|OPEN|
 |ibmswtpm2LibTom|Verify compile flags for LibTom*, ensure memory leaks are detected by ASAN|OPEN|
 |crossCompileARM|Compile tpm server on ARM32 Platform, for getting code size estimations|DONE|
