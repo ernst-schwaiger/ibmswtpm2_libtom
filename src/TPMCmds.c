@@ -87,9 +87,7 @@
 #include "TpmProfile.h"		/* kgold */
 #endif
 
-#ifdef COVERAGE
 #include <signal.h>
-#endif
 
 #include "simulatorPrivate.h"
 
@@ -99,12 +97,10 @@
 
 int verbose = 0;
 
-#ifdef COVERAGE
 static void sigterm_handler(int signum)
 {
 	exit(0);
 }
-#endif
 
 /* D.5.3. Functions */
 /* D.5.3.1. Usage() */
@@ -217,9 +213,9 @@ main(
 
     portNumPlat = portNum + 1;
 
-#ifdef COVERAGE
+	// sending SIGTERM to the server will terminate the process, which
+	// can be used for coverage calculation and ASAN memory leak analysis
 	signal(SIGTERM, sigterm_handler);
-#endif
 
     irc = StartTcpServer(&portNum, &portNumPlat);
     if (irc == 0) {

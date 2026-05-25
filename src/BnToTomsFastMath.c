@@ -173,6 +173,7 @@ LIB_EXPORT BOOL BnModMult(bigNum result, bigConst op1, bigConst op2, bigConst mo
     fp_int* fp_op1 = BigInitialized(&num1, op1);
     fp_int* fp_op2 = BigInitialized(&num2, op2);
     fp_int* fp_modulus = BigInitialized(&num3, modulus);
+    fp_init(&num4);
 
     if ((fp_op1 == NULL) || (fp_op2 == NULL) || (fp_modulus == NULL)) { return FALSE; }
     if (fp_mulmod(fp_op1, fp_op2, fp_modulus, &num4) != FP_OKAY) { return FALSE; }
@@ -194,6 +195,7 @@ LIB_EXPORT BOOL BnMult(bigNum result, bigConst multiplicand, bigConst multiplier
 
     fp_int* fp_op1 = BigInitialized(&num1, multiplicand);
     fp_int* fp_op2 = BigInitialized(&num2, multiplier);
+    fp_init(&num3);
 
     if ((fp_op1 == NULL) || (fp_op2 == NULL)) { return FALSE; }
     fp_mul(fp_op1, fp_op2, &num3); // fp_mul returns void
@@ -218,6 +220,8 @@ LIB_EXPORT BOOL BnDiv(
 
     fp_int* fp_op1 = BigInitialized(&num1, dividend);
     fp_int* fp_op2 = BigInitialized(&num2, divisor);
+    fp_init(&quot);
+    fp_init(&rem);
 
     if ((fp_op1 == NULL) || (fp_op2 == NULL)) { return FALSE; }
 
@@ -255,6 +259,7 @@ LIB_EXPORT BOOL BnGcd(bigNum   gcd,      // OUT: the common divisor
 
     fp_int* fp_op1 = BigInitialized(&num1, number1);
     fp_int* fp_op2 = BigInitialized(&num2, number2);
+    fp_init(&num3);
 
     if ((fp_op1 == NULL) || (fp_op2 == NULL)) { return FALSE; } 
     
@@ -281,6 +286,7 @@ LIB_EXPORT BOOL BnModExp(bigNum   result,    // OUT: the result
     fp_int* fp_base = BigInitialized(&num1, number);
     fp_int* fp_exp = BigInitialized(&num2, exponent);    
     fp_int* fp_mod = BigInitialized(&num3, modulus); 
+    fp_init(&num4);
 
     if (fp_exptmod(fp_base, fp_exp, fp_mod, &num4) != FP_OKAY) { return FALSE; }
 
@@ -301,6 +307,7 @@ LIB_EXPORT BOOL BnModInverse(bigNum result, bigConst number, bigConst modulus)
 
     fp_int* fp_number = BigInitialized(&num1, number);
     fp_int* fp_modulus = BigInitialized(&num2, modulus);
+    fp_init(&num3);
 
     if ((fp_number == NULL) || (fp_modulus == NULL)) { return FALSE; }
 
@@ -440,24 +447,10 @@ static BOOL convertTomCryptPointToBigPoint(bigPoint R, const ecc_point *pTomCryp
 
 static BOOL getGeneratorPoint(ecc_point *pR, const bigCurveData* C)
 {
-    pR->x = malloc(sizeof(fp_int));
-    pR->y = malloc(sizeof(fp_int));
-    pR->z = malloc(sizeof(fp_int));
-
-    if ((pR->x == NULL) || (pR->y == NULL) || (pR->z == NULL))
-    {
-        free(pR->x);
-        free(pR->y);
-        free(pR->z);
-        return FALSE;
-    }
 
     if ((fp_read_radix (pR->x, C->G->Gx, 16) != FP_OKAY) ||
         (fp_read_radix (pR->y, C->G->Gy, 16) != FP_OKAY)) 
     {
-        free(pR->x);
-        free(pR->y);
-        free(pR->z);
         return FALSE;        
     }
     fp_init(pR->z);
@@ -543,10 +536,13 @@ LIB_EXPORT BOOL BnEccModMult2(bigPoint            R,  // OUT: computed point
     if ((convertBigPointToTomCryptPoint(pA, S) == FALSE) || 
         (convertBigPointToTomCryptPoint(pB, Q) == FALSE)) { goto Exit; }
 
+    // fp_read_radix initializes first param, no need for fp_init()
     if ((fp_read_radix (&prime, E->G->prime, 16) != FP_OKAY) ||
         (fp_read_radix (&a, E->G->A, 16) != FP_OKAY)) { goto Exit; }
 
     // Bring curve parameter a into Montgomery form
+    fp_init(&mu);
+    fp_init(&ma);
     if ((ltc_mp_montgomery_normalization(&mu, &prime) != FP_OKAY) ||
         (ltc_mp_mulmod(&a, &mu, &prime, &ma) != FP_OKAY)) { goto Exit; }
 

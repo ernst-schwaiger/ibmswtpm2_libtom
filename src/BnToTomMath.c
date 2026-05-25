@@ -228,7 +228,7 @@ LIB_EXPORT BOOL BnModMult(bigNum result, bigConst op1, bigConst op2, bigConst mo
     ret = TomToTpmBn(result, &num4);
 
 Exit:
-    mp_clear_multi(&num1, &num2, &num3, NULL);
+    mp_clear_multi(&num1, &num2, &num3, &num4, NULL);
     return ret;
 }
 
@@ -530,16 +530,10 @@ static BOOL convertTomCryptPointToBigPoint(bigPoint R, const ecc_point *pTomCryp
 
 static BOOL getGeneratorPoint(ecc_point *pR, const bigCurveData* C)
 {
-    if (mp_init_multi(pR->x, pR->y, pR->z, LTC_NULL) != MP_OKAY)
-    {
-        return FALSE;
-    }
-
     if ((mp_read_radix (pR->x, C->G->Gx, 16) != MP_OKAY) ||
         (mp_read_radix (pR->y, C->G->Gy, 16) != MP_OKAY) ||
-        (mp_init_ul(pR->z, 1) != MP_OKAY)) // 1 used for affine coordinates
+        (mp_read_radix (pR->z, "1", 16) != MP_OKAY)) // z == 1 used for affine coordinates
     {
-        mp_clear_multi(pR->x, pR->y, pR->z, LTC_NULL);
         return FALSE;        
     }
     

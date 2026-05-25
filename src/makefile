@@ -118,7 +118,6 @@ else ifeq ($(BUILD_MODE), Release)
 else ifeq ($(BUILD_MODE), Coverage)
 # Coverage build
 	CCFLAGS_OPT = -ggdb3 -O0 --coverage
-	CCFLAGS_SYMBOLS += 	-DCOVERAGE
 	LNFLAGS_OPTS = --coverage
 
 	LNFLAGS_INCLUDE = 	\
