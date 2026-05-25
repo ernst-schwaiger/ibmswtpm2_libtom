@@ -156,7 +156,7 @@ LBL_ERR:
 //                      exist
 BOOL TomToTpmBn(bigNum bn, mp_int* tomBn)
 {
-    size_t writtenOctets;
+    size_t writtenOctets = 0;
     unsigned char *pBuf = (unsigned char *)BnGetArray(bn);
     size_t bufsize = BnGetAllocated(bn) * RADIX_BYTES;
     memset(pBuf, 0x00, bufsize); // zero out the rest

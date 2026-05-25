@@ -61,6 +61,18 @@
 
 /* C.4 Entropy.c */
 /* C.4.1. Includes and Local values*/
+
+#ifdef HW_RNG
+#include "Platform.h"
+#include "rng_functions.h"
+
+LIB_EXPORT int32_t _plat__GetEntropy(unsigned char *entropy, uint32_t amount)
+{
+	rng_getEntropy(entropy, amount);
+	return amount;
+}
+
+#else
 #define _CRT_RAND_S
 #include <stdlib.h>
 #include <memory.h>
@@ -174,3 +186,4 @@ _plat__GetEntropy(
     return ret;
 }
 
+#endif /* HW_RNG */

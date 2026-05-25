@@ -72,7 +72,12 @@
 #include "Platform.h"
 #if FILE_BACKED_NV
 #  include <stdio.h>
+#ifdef SD_BACKED_NV
+#include <sd_functions.h>
+static BOOL NVRAM_ENABLED		= FALSE;
+#else
 static FILE* s_NvFile           = NULL;
+#endif
 static int   s_NeedsManufacture = FALSE;
 #endif
 
@@ -88,6 +93,17 @@ const char* s_NvFilePath = "NVChip";
 //  -1          error
 static int NvFileOpen(const char* mode)
 {
+#ifdef SD_BACKED_NV
+	if (sd_mount() == FR_OK)
+	{
+		NVRAM_ENABLED = TRUE;
+		return 0;
+	}
+	else
+	{
+		return -1;
+	}
+#else
     // Try to open an exist NVChip file for read/write
 #  if defined _MSC_VER && 1
     if(fopen_s(&s_NvFile, s_NvFilePath, mode) != 0)
@@ -98,6 +114,7 @@ static int NvFileOpen(const char* mode)
     s_NvFile = fopen(s_NvFilePath, mode);
 #  endif
     return (s_NvFile == NULL) ? -1 : 0;
+#endif // SD_BACKED_NV
 }
 
 //*** NvFileCommit()
@@ -108,6 +125,15 @@ static int NvFileOpen(const char* mode)
 static int NvFileCommit(void)
 {
     int OK;
+#ifdef SD_BACKED_NV
+	if (NVRAM_ENABLED == FALSE)
+	{
+		return 1;
+	}
+	UINT numBytes = NV_MEMORY_SIZE;
+	int write_status = sd_write_file(s_NvFilePath, s_NV, &numBytes);
+	OK = ((write_status == FR_OK) && (numBytes == NV_MEMORY_SIZE));
+#else
     // If NV file is not available, return failure
     if(s_NvFile == NULL)
 	return 1;
@@ -115,6 +141,7 @@ static int NvFileCommit(void)
     fseek(s_NvFile, 0, SEEK_SET);
     OK = (NV_MEMORY_SIZE == fwrite(s_NV, 1, NV_MEMORY_SIZE, s_NvFile));
     OK = OK && (0 == fflush(s_NvFile));
+#endif
     assert(OK);
     return OK;
 }
@@ -126,6 +153,18 @@ static int NvFileCommit(void)
 static long NvFileSize(int leaveAt)
 {
     long fileSize;
+#ifdef SD_BACKED_NV
+	assert(leaveAt == SEEK_SET); 
+	UINT fs;
+	if (sd_get_file_size(s_NvFilePath, &fs) == FR_OK)
+	{
+		fileSize = (long)fs;
+	}
+	else
+	{
+		fileSize = 0;
+	}
+#else
     long filePos = ftell(s_NvFile);
     //
     assert(NULL != s_NvFile);
@@ -148,6 +187,7 @@ static long NvFileSize(int leaveAt)
 	    assert(FALSE);
 	    break;
 	}
+#endif
     return fileSize;
 }
 #endif
@@ -192,6 +232,26 @@ LIB_EXPORT int _plat__NVEnable(
     s_NV_unrecoverable = FALSE;
     s_NV_recoverable   = FALSE;
 #if FILE_BACKED_NV
+#ifdef SD_BACKED_NV
+	if (NVRAM_ENABLED)
+	{
+		return NV_ENABLE_SUCCESS;
+	}
+	NvFileOpen("foo"); // Just eanbled the NVRAM in this setting
+    // Initialize all the bytes in the ram copy of the NV
+    _plat__NvMemoryClear(0, NV_MEMORY_SIZE);
+	if(NvFileSize(SEEK_SET) == NV_MEMORY_SIZE)
+	{
+		UINT numBytes = NV_MEMORY_SIZE;
+		int status = sd_read_file(s_NvFilePath, s_NV, &numBytes);
+		s_NeedsManufacture = ((status == FR_OK) && (numBytes == NV_MEMORY_SIZE));
+	}
+	else
+	{
+		NvFileCommit();  // for any other size, initialize it
+		s_NeedsManufacture = TRUE;
+	}
+#else
     if(s_NvFile != NULL)
 	return NV_ENABLE_SUCCESS;
     // Initialize all the bytes in the ram copy of the NV
@@ -222,7 +282,8 @@ LIB_EXPORT int _plat__NVEnable(
 	    s_NeedsManufacture = TRUE;
 	}
     assert(NULL != s_NvFile);  // Just in case we are broken for some reason.
-#endif
+#endif // SD_BACKED_NV
+#endif // FILE_BACKED_NV
     // NV contents have been initialized and the error checks have been performed. For
     // simulation purposes, use the signaling interface to indicate if an error is
     // to be simulated and the type of the error.
@@ -247,6 +308,22 @@ LIB_EXPORT void _plat__NVDisable(
 		 : FALSE;  // IN: If TRUE (!=0), delete the NV contents.
 
 #if FILE_BACKED_NV
+#ifdef SD_BACKED_NV
+	if (NVRAM_ENABLED == TRUE)
+	{
+		if (delete)
+		{
+			uint8_t dummy = 42; // we dont write any byte anyways
+			UINT numBytes = 0;
+			if (sd_write_file(s_NvFilePath, &dummy, &numBytes) != FR_OK)
+			{
+				assert(0);
+			}
+		}
+	}
+	NVRAM_ENABLED = FALSE;
+	sd_unmount();
+#else
     if(NULL != s_NvFile)
 	{
 	    fclose(s_NvFile);  // Close NV file
@@ -263,7 +340,8 @@ LIB_EXPORT void _plat__NVDisable(
 		}
 	}
     s_NvFile = NULL;  // Set file handle to NULL
-#endif
+#endif // SD_BACKED_NV
+#endif // FILE_BACKED_NV
     s_NvIsAvailable = FALSE;
     return;
 }
@@ -280,8 +358,13 @@ LIB_EXPORT int _plat__GetNvReadyState(void)
     if(!s_NvIsAvailable)
 	retVal = NV_WRITEFAILURE;
 #if FILE_BACKED_NV
+#ifdef SD_BACKED_NV
+    else
+	retVal = (NVRAM_ENABLED == FALSE);
+#else
     else
 	retVal = (s_NvFile == NULL);
+#endif
 #endif
     return retVal;
 }
