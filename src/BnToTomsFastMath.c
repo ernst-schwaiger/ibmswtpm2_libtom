@@ -455,6 +455,7 @@ static BOOL getGeneratorPoint(ecc_point *pR, const bigCurveData* C)
     }
     fp_init(pR->z);
     ((fp_int *)(pR->z))->dp[0] = 0x01; // 1 used for affine coordinates
+    ((fp_int *)(pR->z))->used = 0x01; // provide length
     
     return TRUE;
 }
