@@ -30,6 +30,7 @@
 |portToSTM32|Redirect printf statements to TeraTerm console.|DONE|
 |portToSTM32|In App\tpm\PlatformData.h, set `FILE_BACKED_NV` back to `YES`, after file-based state is implemented|DONE|
 |portToSTM32|In NVMem.c, check the functions needed for saving the TPM state. Can we use an Sd card on the STM32 board instead?, Static state is stored in variable s_NV|DONE|
+|portToSTM32|When using TomsFastMath and TFM_ARM, the assembler macro INNERMUL in tomsfastmath\src\mont\fp_montgomery_reduce.c, line 279 ff cant be assembled, find a solution |OPEN|
 |portToSTM32|Integrate usage of TomsFastMath on STM32 project, experiment with compile flags, e.g unrolled multiplications|OPEN|
 |portToSTM32|In Clock.c, go through the functions and adapt them to use the HW timers of the STM32 board|OPEN|
 |portToSTM32|Find out which function requires that we have to provide _gettimeofday|OPEN|
