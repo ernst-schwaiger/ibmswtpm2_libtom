@@ -40,7 +40,11 @@
 |portToSTM32|Integrate HW timers to tpm code|OPEN|
 |portToSTM32|Integrate RNG to tpm code (they are using different RNGs than libtomcrypt)|DONE|
 |portToSTM32|Optimize SD card access like outlined in https://www.youtube.com/watch?v=KNuMM7NdgYw (HW flow control is turned on here (we have set it to off))|DONE|
-|portToSTM32|Use PLL clock for system clock, increase clock rate to 240MHz|OPEN|
+|portToSTM32|Use PLL clock for system clock, increase clock rate to 224MHz|DONE|
+|portToSTM32|Document that the TPM 2.0 cancel() operation cannot be implemented, as our impl is bare-metal, only one thread. That function is specified in the TCG PC Client Platform TPM Profile (PTP), other platforms may not include the cancel() operation|OPEN|
+|portToSTM32|Fix timer configuration to support 224MHz system clock. Use 64bit counter, since 32bit counter can only provide 71 minutes, verify if timer-related regression tests pass after adaptation.|OPEN|
+
+
 
 
 
@@ -184,4 +188,225 @@ int _write(int fd, unsigned char *buf, int len)
   }
 }
 
+## Debugging commands in the ibmtss which are invoked by reg.sh
 
+Find the script invoked by `reg.sh` which is failing, e.g. `testprimary.sh`. Find the output on the console in the script (culprit is previous command). In the previous command, add the option `--lt-debug`, which will (when re-run) provide the information on which compiled command is executed and which parameters were passed.
+
+Run the command on the console, which will report that a shared object could not be loaded. Find that `.so` file in the project, and add the `LD_LIBRARY_PATH` (should be `.../ibmswtpm/ibmtss/utils/.libs`).
+
+In the workspace, add a `.vscode/launch.json` with the command and the parameters.
+Ensure the commands were compiled with debug info (see above `--enable-debug`), then run the binary in the debugger (do not forget to set `LD_LIBRARY_PATH` in the vscode console as well).
+
+## Failing testcase with STM32 via RS232:
+
+1-20 successful
+
+
+21 failed, got a different output when running the test in Linux/Tcp Server, probably an issue with the
+implemented timer.
+```
+Policy counter timer, zero operandB, op EQ satisfy policy - should fail
+ ERROR:
+TSS_Command_PreProcessor: Input parameters
+        TPM2_PolicyCounterTimer
+        policySession TPM_HANDLE 03000000
+        operandB length 8
+        00 00 00 00 00 00 00 00
+        offset 0
+        operation TPM_EO_EQ
+TSS_Execute20: Command 0000016d marshal
+TSS_Execute_valist: Step 1: initialization
+TSS_Execute_valist: Step 5: command encrypt
+TSS_Sessions_GetDecryptSession: Found 0 decrypt sessions at 0
+TSS_Execute_valist: Step 6 calculate HMACs
+TSS_Execute_valist: Step 7 set command authorizations
+TSS_Execute_valist: Step 8: process the command
+TSS_AuthExecute: Executing TPM2_PolicyCounterTimer
+TSS_Dev_Open: Opening /dev/ttyAMA0
+TSS_Dev_SendCommand: TPM2_PolicyCounterTimer
+ TSS_Dev_SendCommand length 28
+ 80 01 00 00 00 1c 00 00 01 6d 03 00 00 00 00 08
+ 00 00 00 00 00 00 00 00 00 00 00 00
+TSS_Dev_ReceiveResponse:
+ TSS_Dev_ReceiveResponse length 10
+ 80 01 00 00 00 0a 00 00 00 00
+TSS_Dev_ReceiveResponse: rc 00000000
+TSS_Execute_valist: Step 9 get response authorizations
+TSS_Execute_valist: Step 13: response decryption
+TSS_Sessions_GetEncryptSession: Found 0 encrypt sessions at 0
+TSS_Execute20: Command 0000016d unmarshal
+TSS_Execute20: Command 0000016d post processor
+TSS_Dev_Close: Closing /dev/ttyAMA0
+policycountertimer: success
+```
+
+22-23 successful
+
+24 failed: 
+```
+Start an HMAC auth session
+ INFO:
+Read Clock
+ INFO:
+Clock set, current time  - should fail
+ ERROR:
+```
+
+25-32 successful
+
+33 Fails, consistently
+```
+dictionaryattacklockreset 2
+ INFO:
+clear
+ INFO:
+clearcontrol
+ INFO:
+clearcontrol
+ INFO:
+clearcontrol
+ INFO:
+clockrateadjust
+ INFO:
+clockrateadjust
+ INFO:
+clockrateadjust
+ INFO:
+clockset
+ INFO:
+clockset
+ INFO:
+clockset
+ ERROR:
+```
+
+34 fails consistently
+```
+Nuvoton Commands
+
+Preconfig Help
+ INFO:
+Preconfig
+ INFO:
+Get Config Help
+ INFO:
+Get Config
+ INFO:
+Pre Config
+ INFO:
+ntc2preconfig override -i2cLoc1_2
+ INFO:
+ntc2preconfig override -i2cLoc3_4
+ INFO:
+ntc2preconfig override -AltCfg
+ INFO:
+ntc2preconfig override -Direction
+ INFO:
+ntc2preconfig override -PullUp
+ INFO:
+ntc2preconfig override -PushPull
+ INFO:
+ntc2preconfig override -CFG_A
+ INFO:
+ntc2preconfig override -CFG_B
+ INFO:
+ntc2preconfig override -CFG_C
+ INFO:
+ntc2preconfig override -CFG_D
+ INFO:
+ntc2preconfig override -CFG_E
+ INFO:
+ntc2preconfig override -CFG_F
+ INFO:
+ntc2preconfig override -CFG_G
+ INFO:
+ntc2preconfig override -CFG_H
+ INFO:
+ntc2preconfig override -CFG_I
+ INFO:
+ntc2preconfig override -CFG_J
+ INFO:
+ntc2preconfig override -IsValid
+ INFO:
+Preconfig P8
+ ERROR:
+ntc2preconfig: failed, rc 00000143
+TPM_RC_COMMAND_CODE - command code not supported
+```
+
+
+35-36, 50 passed
+
+51 failed:
+
+```
+algorithmId TPM_ALG_SHA1
+ PCR 00: 5c 6e 61 1a 38 49 72 f5 a7 b8 99 4a 88 75 d3 ec e0 fc 29 39
+ PCR 01: d3 89 cb b3 4d e5 1d 4c 3e f1 03 e8 b1 4f b0 c9 dd ff 97 91
+ PCR 02: b2 a8 3b 0e bf 2f 83 74 29 9a 5b 2b df c3 1e a9 55 ad 72 36
+ PCR 03: b2 a8 3b 0e bf 2f 83 74 29 9a 5b 2b df c3 1e a9 55 ad 72 36
+ PCR 04: 10 e1 21 cb 95 04 48 0c d8 d0 c0 f7 bd 2f b1 af 23 5a e9 35
+ PCR 05: ab 36 01 b9 54 c4 38 a8 bf 30 40 a6 59 88 4f 4a 62 fb a3 fb
+ PCR 06: d6 01 de 56 83 43 fe aa f2 1f 9a 0f a5 81 9c d1 a1 d1 19 ad
+ PCR 07: 87 3c 8c 72 fc eb 96 d2 5c de 9b fa 8c 3e 32 08 eb 8b c2 57
+ PCR 08: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+ PCR 09: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+ PCR 10: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+ PCR 11: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+ PCR 12: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+ PCR 13: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+ PCR 14: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+ PCR 15: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+ PCR 16: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+ PCR 17: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ PCR 18: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ PCR 19: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ PCR 20: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ PCR 21: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ PCR 22: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ PCR 23: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+TSS_Command_PreProcessor: Input parameters
+        TPM2_PCR_Read
+        TPML_PCR_SELECTION count 1
+          hash TPM_ALG_SHA1
+          TPMS_PCR_SELECTION length 3
+          01 00 00
+TSS_Execute20: Command 0000017e marshal
+TSS_Execute_valist: Step 1: initialization
+TSS_Execute_valist: Step 5: command encrypt
+TSS_Sessions_GetDecryptSession: Found 0 decrypt sessions at 0
+TSS_Execute_valist: Step 6 calculate HMACs
+TSS_Execute_valist: Step 7 set command authorizations
+TSS_Execute_valist: Step 8: process the command
+TSS_AuthExecute: Executing TPM2_PCR_Read
+TSS_Dev_SendCommand: TPM2_PCR_Read
+ TSS_Dev_SendCommand length 20
+ 80 01 00 00 00 14 00 00 01 7e 00 00 00 01 00 04
+ 03 01 00 00
+TSS_Dev_ReceiveResponse:
+TSS_Dev_ReceiveResponse: total bytes to receive: 50l
+TSS_Dev_ReceiveResponse: read additional: 16l bytes
+TSS_Dev_ReceiveResponse: read additional: 16l bytes
+TSS_Dev_ReceiveResponse: read additional: 2l bytes
+ TSS_Dev_ReceiveResponse length 50
+ 80 01 00 00 00 32 00 00 00 00 00 00 00 69 00 00
+ 00 01 00 04 03 01 00 00 00 00 00 01 00 14 10 52
+ 73 70 c8 0b ec 19 c4 5c 67 51 ff 96 4b 2b e1 86
+ 5b 6d
+TSS_Dev_ReceiveResponse: rc 00000000
+TSS_Execute_valist: Step 9 get response authorizations
+TSS_Execute_valist: Step 13: response decryption
+TSS_Sessions_GetEncryptSession: Found 0 encrypt sessions at 0
+TSS_Execute20: Command 0000017e unmarshal
+TSS_Execute20: Command 0000017e post processor
+eventextend: PCR 0
+ PCR TPM digest length 20
+ 10 52 73 70 c8 0b ec 19 c4 5c 67 51 ff 96 4b 2b
+ e1 86 5b 6d
+ PCR simulated digest length 20
+ 5c 6e 61 1a 38 49 72 f5 a7 b8 99 4a 88 75 d3 ec
+ e0 fc 29 39
+TSS_Dev_Close: Closing /dev/ttyAMA0
+eventextend: failed, rc 000b000d
+TSS_RC_BAD_READ_VALUE - Actual read value different from expected
+```
