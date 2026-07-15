@@ -20,33 +20,33 @@
 |ibmswtpm2LibTom|Add support for TomsFastMath as an alternative to LibTomMath|DONE|
 |ibmswtpm2LibTom|Find segfault in "Release" ibmswtpm when compiled in WSL2 or Kali: It was the printMallocInfo()|DONE|
 |ibmswtpm2LibTom|Optimize CurveInitialize: Return a curve if it is already statically initialized, only create a curve if it is not present yet.|OPEN|
-|ibmswtpm2LibTom|Verify compile flags for LibTom*, ensure memory leaks are detected by ASAN|OPEN|
+|ibmswtpm2LibTom|Verify compile flags for LibTom*, ensure memory leaks are detected by ASAN|DONE|
 |crossCompileARM|Compile tpm server on ARM32 Platform, for getting code size estimations|DONE|
 |portToSTM32|Compile ibmswtpm on STM32|DONE|
 |portToSTM32|Replace TCP communication by communication via UART in TPM32|DONE|
 |portToSTM32|Adapt ibmtss test suite to use UART instead of TCP|DONE|
-|portToSTM32|In UARTServer.c, refactor/cleanup TpmServer() function|OPEN|
-|portToSTM32|Simplify Rx function in UARTServer.c, no ringbuffer needed, but a linear buffer and a timer when a byte was received on UART|OPEN|
+|portToSTM32|In UARTServer.c, refactor/cleanup TpmServer() function|DONE|
+|portToSTM32|Extract RxTx functions from UARTServer.c|DONE|
 |portToSTM32|Redirect printf statements to TeraTerm console.|DONE|
 |portToSTM32|In App\tpm\PlatformData.h, set `FILE_BACKED_NV` back to `YES`, after file-based state is implemented|DONE|
 |portToSTM32|In NVMem.c, check the functions needed for saving the TPM state. Can we use an Sd card on the STM32 board instead?, Static state is stored in variable s_NV|DONE|
 |portToSTM32|When using TomsFastMath and TFM_ARM, the assembler macro INNERMUL in tomsfastmath\src\mont\fp_montgomery_reduce.c, line 279 ff cant be assembled, find a solution |OPEN|
 |portToSTM32|Integrate usage of TomsFastMath on STM32 project, experiment with compile flags, e.g unrolled multiplications|OPEN|
-|portToSTM32|In Clock.c, go through the functions and adapt them to use the HW timers of the STM32 board|OPEN|
-|portToSTM32|Find out which function requires that we have to provide _gettimeofday|OPEN|
+|portToSTM32|In Clock.c, go through the functions and adapt them to use the HW timers of the STM32 board|DONE|
+|portToSTM32|Find out which function requires that we have to provide _gettimeofday|DONE|
 |portToSTM32|Compare the STM32 linker output with the function symbols in the Linux Tpm server binary: Are we missing parts of the STM functions?|OPEN|
 |portToSTM32|Check all the FIXMEs in the STM32 Tpm Code|OPEN|
-|portToSTM32|Find source code that writes tpm state to file system, check if redirection to sd card is possible|OPEN|
-|portToSTM32|Integrate HW timers to tpm code|OPEN|
+|portToSTM32|Find source code that writes tpm state to file system, check if redirection to sd card is possible. fopen, fprintf do not crash, but files are not written to sd card. Can fprintf be redirected to SD card API?|OPEN|
 |portToSTM32|Integrate RNG to tpm code (they are using different RNGs than libtomcrypt)|DONE|
 |portToSTM32|Optimize SD card access like outlined in https://www.youtube.com/watch?v=KNuMM7NdgYw (HW flow control is turned on here (we have set it to off))|DONE|
 |portToSTM32|Use PLL clock for system clock, increase clock rate to 224MHz|DONE|
 |portToSTM32|Document that the TPM 2.0 cancel() operation cannot be implemented, as our impl is bare-metal, only one thread. That function is specified in the TCG PC Client Platform TPM Profile (PTP), other platforms may not include the cancel() operation|OPEN|
-|portToSTM32|Fix timer configuration to support 224MHz system clock. Use 64bit counter, since 32bit counter can only provide 71 minutes, verify if timer-related regression tests pass after adaptation.|OPEN|
-
-
-
-
+|portToSTM32|Fix timer configuration to support 224MHz system clock. Use 64bit counter, since 32bit counter can only provide 71 minutes, verify if timer-related regression tests pass after adaptation.|DONE|
+|portToSTM32|Check if there are functions that provide the maximum length of input and output buffers of the TPM. If so, adapt the functions so they return the real value.|OPEN|
+|portToSTM32|Find documentation on locking/unlocking shared variables with ISRs, apply to functions RS232/Timer APIs|DONE|
+|portToSTM32|Add functions to receive and send bytes via SPI|OPEN|
+|portToSTM32|Find cause of last failing test case 51|OPEN|
+|ibmtss|Compile ibmtss assuming a HW TPM, check if SPI data arrives at the STM32 node|OPEN|
 
 ## HOWTOs
 
@@ -200,10 +200,8 @@ Ensure the commands were compiled with debug info (see above `--enable-debug`), 
 ## Failing testcase with STM32 via RS232:
 
 1-20 successful
+21 passed after STM32 timer code is called in Clock.c
 
-
-21 failed, got a different output when running the test in Linux/Tcp Server, probably an issue with the
-implemented timer.
 ```
 Policy counter timer, zero operandB, op EQ satisfy policy - should fail
  ERROR:
@@ -241,8 +239,8 @@ policycountertimer: success
 ```
 
 22-23 successful
+24 passed after STM32 timer code is called in Clock.c
 
-24 failed: 
 ```
 Start an HMAC auth session
  INFO:
@@ -250,11 +248,28 @@ Read Clock
  INFO:
 Clock set, current time  - should fail
  ERROR:
+----
+Read Clock
+readclock:readclock:93: libtool wrapper (GNU libtool) 2.4.7 Debian-2.4.7-7~deb12u1
+readclock:readclock:114: newargv[0]: /home/ernst/projects/ibmswtpm/ibmtss/utils/.libs/readclock
+readclock:readclock:104: newargv[1]: -oclock
+readclock:readclock:104: newargv[2]: tmpclk.bin
+readclock:readclock:104: newargv[3]: -otime
+readclock:readclock:104: newargv[4]: tmptime.bin
+readclock:readclock:104: newargv[5]: -v
+ INFO:
+Clock set, current time  - should fail
+clockset:clockset:93: libtool wrapper (GNU libtool) 2.4.7 Debian-2.4.7-7~deb12u1
+clockset:clockset:114: newargv[0]: /home/ernst/projects/ibmswtpm/ibmtss/utils/.libs/clockset
+clockset:clockset:104: newargv[1]: -iclock
+clockset:clockset:104: newargv[2]: tmpclk.bin
+ ERROR:
+
 ```
 
-25-32 successful
 
-33 Fails, consistently
+25-32 successful
+33 passed after STM32 timer code is called in Clock.c
 ```
 dictionaryattacklockreset 2
  INFO:
@@ -280,7 +295,7 @@ clockset
  ERROR:
 ```
 
-34 fails consistently
+34 passes after adding TPM_NUVOTON to list of compiler defines
 ```
 Nuvoton Commands
 
@@ -334,10 +349,11 @@ ntc2preconfig: failed, rc 00000143
 TPM_RC_COMMAND_CODE - command code not supported
 ```
 
-
 35-36, 50 passed
 
 51 failed:
+and still fails after timer value is used in Clock.c, and with TPM_NUVOTON turned on 
+it fails at the UEFI dell1
 
 ```
 algorithmId TPM_ALG_SHA1
