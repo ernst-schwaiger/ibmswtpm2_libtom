@@ -77,6 +77,7 @@
 // the output of a pre-scaler. The pre-scaler would divide the ticks from the clock by some value
 // that would compensate for the difference between clock time and real time. The code in Clock does
 // the emulation of this function.
+#ifndef UART_TPM
 #define     CLOCK_NOMINAL           30000
 // A 1% change in rate is 300 counts
 #define     CLOCK_ADJUST_COARSE     300
@@ -86,4 +87,17 @@
 #define     CLOCK_ADJUST_FINE       1
 // The clock tolerance is +/-15% (4500 counts) Allow some guard band (16.7%)
 #define     CLOCK_ADJUST_LIMIT      5000
+#else
+// The underlying TPM timer ticks every microsec/1MHz
+#define CLOCK_NOMINAL 1000
+// A 1% change in rate is 10 counts
+#define CLOCK_ADJUST_COARSE 10
+// A 0.1% change in rate is 1 counts
+#define CLOCK_ADJUST_MEDIUM 1
+// A minimum change in rate is 1 count
+#define CLOCK_ADJUST_FINE 1
+// The clock tolerance is +/-15% (4500 counts)
+// Allow some guard band (16.7%)
+#define CLOCK_ADJUST_LIMIT 167
+#endif
 #endif // _PLATFORM_CLOCK_H_

@@ -67,6 +67,12 @@
 #include    <stdio.h>
 #include    <assert.h>
 
+#ifdef UART_TPM
+#define TPM_NEWLINE "\r\n"
+#else
+#define TPM_NEWLINE "\n"
+#endif
+
 #if RUNTIME_SIZE_CHECKS
 
 #if TABLE_DRIVEN_MARSHAL
@@ -127,20 +133,20 @@ TpmSizeChecks(
             if((max_rsa_key_bytes / 2) != (sizeof(p->sensitive.rsa.t.buffer) / 5))
 		{
 		    printf("Sensitive part of TPMT_SENSITIVE is undersized. May be caused"
-			   " by use of wrong version of Part 2.\n");
+			   " by use of wrong version of Part 2." TPM_NEWLINE);
 		    PASS = FALSE;
 		}
         }
 #if TABLE_DRIVEN_MARSHAL
-        printf("sizeof(MarshalData) = %zu\n", sizeof(MarshalData_st));
+        printf("sizeof(MarshalData) = %d" TPM_NEWLINE, sizeof(MarshalData_st));
 #endif
 
-        printf("Size of OBJECT = %zu\n", sizeof(OBJECT));
-        printf("Size of components in TPMT_SENSITIVE = %zu\n", sizeof(TPMT_SENSITIVE));
-        printf("    TPMI_ALG_PUBLIC                 %zu\n", sizeof(TPMI_ALG_PUBLIC));
-        printf("    TPM2B_AUTH                      %zu\n", sizeof(TPM2B_AUTH));
-        printf("    TPM2B_DIGEST                    %zu\n", sizeof(TPM2B_DIGEST));
-        printf("    TPMU_SENSITIVE_COMPOSITE        %zu\n",
+        printf("Size of OBJECT = %d" TPM_NEWLINE, sizeof(OBJECT));
+        printf("Size of components in TPMT_SENSITIVE = %d" TPM_NEWLINE, sizeof(TPMT_SENSITIVE));
+        printf("    TPMI_ALG_PUBLIC                 %d" TPM_NEWLINE, sizeof(TPMI_ALG_PUBLIC));
+        printf("    TPM2B_AUTH                      %d" TPM_NEWLINE, sizeof(TPM2B_AUTH));
+        printf("    TPM2B_DIGEST                    %d" TPM_NEWLINE, sizeof(TPM2B_DIGEST));
+        printf("    TPMU_SENSITIVE_COMPOSITE        %d" TPM_NEWLINE,
                sizeof(TPMU_SENSITIVE_COMPOSITE));
     }
     // Make sure that the size of the context blob is large enough for the largest
@@ -171,13 +177,13 @@ TpmSizeChecks(
 
         if(MAX_CONTEXT_SIZE < biggestContext)
 	    {
-		printf("MAX_CONTEXT_SIZE needs to be increased to at least to %" PRId32 " (%d)\n",
+		printf("MAX_CONTEXT_SIZE needs to be increased to at least to %" PRId32 " (%d)" TPM_NEWLINE,
 		       biggestContext, MAX_CONTEXT_SIZE);
 		PASS = FALSE;
 	    }
 	else if (MAX_CONTEXT_SIZE > biggestContext)
 	    {
-		printf("MAX_CONTEXT_SIZE can be reduced to %" PRId32 " (%d)\n",
+		printf("MAX_CONTEXT_SIZE can be reduced to %" PRId32 " (%d)" TPM_NEWLINE,
 		       biggestContext, MAX_CONTEXT_SIZE);
 	    }
     }
@@ -214,7 +220,7 @@ TpmSizeChecks(
 			FOR_EACH_ACT(CASE_ACT_NUMBER)
 			    if(!_plat__ACT_GetImplemented(act))
 				{
-				    printf("TPM_RH_ACT_%1" PRIx32 " is not implemented by platform\n",
+				    printf("TPM_RH_ACT_%1" PRIx32 " is not implemented by platform" TPM_NEWLINE,
 					   act);
 				    PASS = FALSE;
 				}
