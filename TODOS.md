@@ -46,6 +46,9 @@
 |portToSTM32|Find documentation on locking/unlocking shared variables with ISRs, apply to functions RS232/Timer APIs|DONE|
 |portToSTM32|Add functions to receive and send bytes via SPI|OPEN|
 |portToSTM32|Find cause of last failing test case 51|OPEN|
+|portToSTM32|In Clock.c, find out if we really have to use the clock sync mechanism implemented there. If not, remove|OPEN|
+|portToSTM32|Analyze SPI clock cycle and traffic, check whether shorter wires resole issue with missing bits |OPEN|
+|wolftpm|Create an app which implements key generation, encryption/decryption on the TPM|OPEN|
 |ibmtss|Compile ibmtss assuming a HW TPM, check if SPI data arrives at the STM32 node|OPEN|
 
 ## HOWTOs
@@ -196,6 +199,125 @@ Run the command on the console, which will report that a shared object could not
 
 In the workspace, add a `.vscode/launch.json` with the command and the parameters.
 Ensure the commands were compiled with debug info (see above `--enable-debug`), then run the binary in the debugger (do not forget to set `LD_LIBRARY_PATH` in the vscode console as well).
+
+## Receiving dynamic length frames via SPI and DMA
+
+- NSS Pin must connect RASPI and STM32 board (IRQs for falling and rising edge are needed)
+- SPI5 must be configured as "full-duplex slave", with the HW NSS signal disabled (we use it for our IRQ)
+- Add an SPI5_RX DMA request, set Mode to "Circular"
+- Configure the NSS Pin (PK1 for SPI5) as GPIO_EXTI1 (means: the pin will trigger the external interrupt 1)
+- In GPIO, configure the NSS Pin in "Pin Context Assignment" as "ARM Cortex-M4"
+- In NVIC2 (Interrupt controller for M4), activate the EXTI Line 1 interrupt
+
+-> Generate code. Re-Implement the __weak function as follows. `DMA1_Stream0->NDTR` gives the information,
+how far the write pointer is away from the end of the circular DMA buffer:
+
+In the `main()` function, invoke `HAL_SPI_Receive_DMA(&hspi5, dma_rx_buffer, sizeof(dma_rx_buffer));` exactly once (i.e. not in the while loop).
+
+
+```c
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  static uint32_t startPos = 0;
+  static uint32_t endPos = 0;
+
+  if (NSS_SPI5_Pin == GPIO_Pin)
+  {
+    // Rising edge, NSS just was deselected
+    if (HAL_GPIO_ReadPin(NSS_SPI5_GPIO_Port, NSS_SPI5_Pin) == GPIO_PIN_RESET)
+    {
+      // Falling edge: Reception of frame begins
+      startPos = sizeof(dma_rx_buffer) - DMA1_Stream0->NDTR;
+    }
+    else
+    {
+      // Rising edge: Reception of SPI frame ended
+      endPos = sizeof(dma_rx_buffer) - DMA1_Stream0->NDTR;
+
+      if (endPos >= startPos)
+      {
+        memcpy(myLinearBuf, &dma_rx_buffer[startPos], (endPos - startPos) + 1);
+      }
+      else
+      {
+        size_t numBytesTotal = sizeof(dma_rx_buffer) - (startPos - endPos) + 1;
+        size_t numBytesFirst = sizeof(dma_rx_buffer) - startPos;
+        memcpy(myLinearBuf, &dma_rx_buffer[startPos], numBytesFirst);
+        memcpy(&myLinearBuf[numBytesFirst], dma_rx_buffer, numBytesTotal - numBytesFirst);
+      }
+    }
+  }
+}
+```
+
+## Building the TIS (TPM Interface Specification) Modules
+
+### Build and Install a Kernel for Raspbian
+
+According to the Raspberry Pi OS, https://www.raspberrypi.com/documentation/computers/linux_kernel.html#kernel, the kernel headers are installed using `sudo apt install linux-headers-rpi-v8`
+
+for getting the kernel sources, determine the kernel version, pick the branch, e.g. for bookworm
+`git clone --depth=1 --branch=rpi-6.12.y https://github.com/raspberrypi/linux.git`
+
+install required tools for compilation `sudo apt install bc bison flex libssl-dev make`
+
+Configure the compiled kernel/the modules for Raspberry PI4:
+
+```bash
+cd linux
+KERNEL=kernel8
+make bcm2711_defconfig
+```
+
+This generates a `.config` file in the `linux` folder. In order to provide a specific kernel/module version, open `.config` and change `CONFIG_LOCALVERSION` to `CONFIG_LOCALVERSION="-v8-tpm"`.
+
+Compile the kernel boot image, the kernel modules, and the overlays: `make -j6 zImage modules dtbs`. It is not sufficient to build the modules alone since the module version must exactly match the kernel version (you have to boot from the built kernel afterwards).
+Building on the Raspi 4 takes 2-3hrs. Once everything is built, use `make M=drivers/char/tpm -j6 modules` to only build the tpm driver modules.
+
+Thereafter install the kernel from the checked out `linux` folder, and make backups from the existing kernel images:
+
+```
+sudo make -j6 modules_install
+sudo cp /boot/firmware/kernel_2712.img /boot/firmware/kernel_2712_backup.img
+sudo cp /boot/firmware/kernel8.img /boot/firmware/kernel8_backup.img
+
+sudo cp arch/arm64/boot/dts/broadcom/*.dtb /boot/firmware/
+sudo cp arch/arm64/boot/dts/overlays/*.dtb* /boot/firmware/overlays/
+sudo cp arch/arm64/boot/dts/overlays/README /boot/firmware/overlays/
+```
+
+Copy the built kernel image as `kernel_tpm.img` into `boot/firmware`: `sudo cp arch/arm64/boot/Image.gz /boot/firmware/kernel_tpm.img`.
+In the last step, add or change the `kernel` entry in `/boot/firmware/config.txt`:
+
+```bash
+#ernst: try to boot my own compiled kernel
+kernel=kernel_tpm.img
+```
+
+Reboot the Raspi via `sudo reboot`, hope for the best :). `uname -r` should then yield the new kernel version.
+
+### Probe the TPM Device
+
+By unloading and loading the tpm kernel modules, probe SPI messages should be sent to the STM32. Unload the tpm kernel modules by
+
+```bash
+sudo modprobe -r tpm_tis_spi
+sudo modprobe -r tpm_tis_core
+sudo modprobe -r tpm
+```
+
+Load them again using `insmod`. When running the STM32 debugger, the `HAL_GPIO_EXTI_Callback()` GPIO IRQ callback on the slave select
+should hit a breakpoint and the bytes `0x83, 0xd4, 0xf0, 0x00` should be received.
+```bash
+sudo insmod ./tpm.ko
+sudo insmod ./tpm_tis_core.ko
+sudo insmod ./tpm_tis_spi.ko
+```
+
+### Adding Logs to the TPM Kernel Modules
+
+Use `pr_info()`, like `printf()`, e.g `pr_info("flow_control() i = %d, rx_msg_sum=%d\n", i, rx_msg_sum);`
+
 
 ## Failing testcase with STM32 via RS232:
 
