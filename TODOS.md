@@ -36,7 +36,7 @@
 |portToSTM32|Find out which function requires that we have to provide _gettimeofday|DONE|
 |portToSTM32|Compare the STM32 linker output with the function symbols in the Linux Tpm server binary: Are we missing parts of the STM functions?|OPEN|
 |portToSTM32|Check all the FIXMEs in the STM32 Tpm Code|OPEN|
-|portToSTM32|Find source code that writes tpm state to file system, check if redirection to sd card is possible. fopen, fprintf do not crash, but files are not written to sd card. Can fprintf be redirected to SD card API?|OPEN|
+|portToSTM32|Find source code that writes tpm state to file system, check if redirection to sd card is possible. fopen, fprintf do not crash, but files are not written to sd card. Can fprintf be redirected to SD card API?|DONE|
 |portToSTM32|Integrate RNG to tpm code (they are using different RNGs than libtomcrypt)|DONE|
 |portToSTM32|Optimize SD card access like outlined in https://www.youtube.com/watch?v=KNuMM7NdgYw (HW flow control is turned on here (we have set it to off))|DONE|
 |portToSTM32|Use PLL clock for system clock, increase clock rate to 224MHz|DONE|
@@ -44,12 +44,15 @@
 |portToSTM32|Fix timer configuration to support 224MHz system clock. Use 64bit counter, since 32bit counter can only provide 71 minutes, verify if timer-related regression tests pass after adaptation.|DONE|
 |portToSTM32|Check if there are functions that provide the maximum length of input and output buffers of the TPM. If so, adapt the functions so they return the real value.|OPEN|
 |portToSTM32|Find documentation on locking/unlocking shared variables with ISRs, apply to functions RS232/Timer APIs|DONE|
-|portToSTM32|Add functions to receive and send bytes via SPI|OPEN|
+|portToSTM32|Add functions to receive and send bytes via SPI|DONE|
+|portToSTM32|Extend SPI server to process incoming commands from SPI transport layer, and to pass replies back to transport layer|OPEN|
 |portToSTM32|Find cause of last failing test case 51|OPEN|
 |portToSTM32|In Clock.c, find out if we really have to use the clock sync mechanism implemented there. If not, remove|OPEN|
-|portToSTM32|Analyze SPI clock cycle and traffic, check whether shorter wires resole issue with missing bits |OPEN|
+|portToSTM32|Analyze SPI clock cycle and traffic, check whether shorter wires resole issue with missing bits. Done, the issue was the missing wait-state bit |DONE|
+|portToSTM32|Cleanly separate TPM logic from specific hardware function, make STM32TPM portable to other platforms|OPEN|
 |wolftpm|Create an app which implements key generation, encryption/decryption on the TPM|OPEN|
 |ibmtss|Compile ibmtss assuming a HW TPM, check if SPI data arrives at the STM32 node|OPEN|
+|general|Ensure all my added source files have LF endings, introduce code formatter, standard function names, i.e. snake case|OPEN|
 
 ## HOWTOs
 
@@ -250,6 +253,37 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 }
 ```
 
+## Sending and Receiving via SPI
+
+- Warning: TPM SPI driver uses different chip select than my application does! In theory, the CS cable on the RASPI must be switched when switching between test app and kernel driver
+- Using interrupt driven mode causes transmission of the STM32 data bytes while the RASPI is not clocking! Sending sometimes works, sometimes it does not
+- Receiving via circular DMA works, however sending while receicing in that mode is not working. After reception, it is required to run 
+
+```c
+/* suggested by GH copilot, not tested */
+HAL_SPI_DMAStop(&hspi);
+HAL_SPI_Transmit_DMA(&hspi, txbuf, txsize);
+HAL_SPI_Receive_DMA(&hspi, rxbuf, bufsize); // restart circular RX
+```
+
+- HAL_SPI_DMAStop(&hspi) always returns an error (it is not implemented :-(). Pausing/Resuming DMA is also not supported. The only way to go is probably to run Receive DMA after it finished with Rx indication
+- It seems that sending also does not work while a DMA rx is ongoing. I dont get a Tx Confirmation
+ 
+Running
+
+```c
+        HAL_DMA_Abort(hspi5.hdmarx);
+        hspi5.State = HAL_SPI_STATE_READY;
+```
+As suggested by copilot also does not work. I also do no reach the tx confirmation :-( Fuck!
+
+
+- Last option: Use Rx and Tx both in circular mode, never stop them. Ensure the ring buffers are always correctly fed.
+
+
+- Receiving via linear DMA works, however clocking "dummy" bytes must be filtered out (2nd option): Poll the state of the DMA write position, find the start of a frame in the already received byes, determine if the frame was received completely, then stop receiving, and send the reply.
+
+
 ## Building the TIS (TPM Interface Specification) Modules
 
 ### Build and Install a Kernel for Raspbian
@@ -313,6 +347,22 @@ sudo insmod ./tpm.ko
 sudo insmod ./tpm_tis_core.ko
 sudo insmod ./tpm_tis_spi.ko
 ```
+
+!!!The chip select pin used by the raspi **is not Pin24/SPI0_CE0**, but it is PIN26/SPI0_CE1.
+
+
+### Configure the TPM SPI Clock Frequency
+
+The spi clock frequency used by the tpm is configured in the device tree overlay file `/boot/firmware/overlays/tpm-slb9670.dtbo`, which is initially set to
+32MHz, which (at least with the current cabling used) does not work with the STM32 board. In order to change that, the file msúst be copied
+to a local folder, then "uncompiled" to its source format file `tpmspi.dts` via `dtc -@ -I dtb -O dts -o tpmspi.dts tpmspi.dtbo`. Go to the
+line `spi-max-frequency` and adapt the hexadecimal value in angle brackets. Then compile the configuration back into its binary form 
+`dtc -@ -I dts -O dtb -o tpm-slb9670.dtbo tpm-slb9670.dtbs`, copy the adapted file back to `/boot/firmware/overlays/tpm-slb9670.dtbo` using sudo cp, then
+reboot. After the boot, observe the SPI clock rate.
+
+AI: Verify if it is also possible to adapt `/boot/firmware/config.txt` by adding/adapting the entry `dtoverlay=tpm-slb9670` to 
+`dtoverlay=tpm-slb9670,spi-max-frequency=1000000`.
+
 
 ### Adding Logs to the TPM Kernel Modules
 
