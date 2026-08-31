@@ -45,7 +45,7 @@
 |portToSTM32|Check if there are functions that provide the maximum length of input and output buffers of the TPM. If so, adapt the functions so they return the real value.|OPEN|
 |portToSTM32|Find documentation on locking/unlocking shared variables with ISRs, apply to functions RS232/Timer APIs|DONE|
 |portToSTM32|Add functions to receive and send bytes via SPI|DONE|
-|portToSTM32|Extend SPI server to process incoming commands from SPI transport layer, and to pass replies back to transport layer|OPEN|
+|portToSTM32|Extend SPI server to process incoming commands from SPI transport layer, and to pass replies back to transport layer|DONE|
 |portToSTM32|Find cause of last failing test case 51|OPEN|
 |portToSTM32|In Clock.c, find out if we really have to use the clock sync mechanism implemented there. If not, remove|OPEN|
 |portToSTM32|Analyze SPI clock cycle and traffic, check whether shorter wires resole issue with missing bits. Done, the issue was the missing wait-state bit |DONE|
@@ -53,6 +53,21 @@
 |wolftpm|Create an app which implements key generation, encryption/decryption on the TPM|OPEN|
 |ibmtss|Compile ibmtss assuming a HW TPM, check if SPI data arrives at the STM32 node|OPEN|
 |general|Ensure all my added source files have LF endings, introduce code formatter, standard function names, i.e. snake case|OPEN|
+
+
+## TODOs TPM SPI State machine
+
+See PC Client Platform Spec, Page 85, 
+- top, items 1..6 (Receiving a command)
+
+State Machine: commandReady bit nicht automatisch auf 1 setzen, sondern warten, bis der Raspi das Bit schreibt. Wenn das passiert -> expect bit setzen.
+
+- middle, items 1..3 (Sending back the response)
+
+Regarding command aborts, see PC Client Platform Spec, Page 86, verify that TIMEOUT_A and TIMEOUT_B can
+be kept by our software TPM.
+
+Page 86, bottom: The Bit TPM_ACCESS_x.tpmEstablishment has *inverted* logic (BW compatibility wrt TPM 1.2).
 
 ## HOWTOs
 
@@ -217,6 +232,65 @@ how far the write pointer is away from the end of the circular DMA buffer:
 
 In the `main()` function, invoke `HAL_SPI_Receive_DMA(&hspi5, dma_rx_buffer, sizeof(dma_rx_buffer));` exactly once (i.e. not in the while loop).
 
+## Building wolfssl and wolfTPM to interact with STM32TPM
+
+### Checkout, build, install wolfssl
+
+Install to a local folder. Do *not* configure `--enable-all`! This will invoke a
+callback function to register a RNG which we dont need on the RASPI side!
+```bash
+git clone --depth=1 https://github.com/wolfSSL/wolfssl.git
+cd wolfssl
+./autogen.sh
+./configure --prefix=/home/ernst/wolfssl_local --enable-debug
+make install
+```
+
+### Checkout, build wolfTPM our TPM client
+
+Configure to use locally installed wolfssl. Add `--enable-devtpm` to ensure the client app accesses our TPM through the tpm char devices `/dev/tpmrm0`, and `/dev/tpm0`.
+
+```bash
+git clone --depth=1 https://github.com/wolfSSL/wolfTPM.git
+cd wolfTPM/
+./autogen.sh
+./configure --with-wolfcrypt=/home/ernst/wolfssl_local --enable-debug --enable-infineon --enable-devtpm
+make
+```
+
+### For debugging, make `/dev/tpmrm0`, and `/dev/tpm0` accessible to non root user
+
+- add user to group "tss" `sudo usermod -a -G tss ernst` 
+- as root, add file `/etc/udev/rules.d/tpm-udev.rules` with the following content
+
+taken from https://github.com/tpm2-software/tpm2-tss/blob/master/dist/tpm-udev.rules
+
+```
+# tpm devices can only be accessed by the tss user but the tss
+# group members can access tpmrm devices
+KERNEL=="tpm[0-9]*", TAG+="systemd", MODE="0660", OWNER="tss"
+KERNEL=="tpmrm[0-9]*", TAG+="systemd", MODE="0660", GROUP="tss"
+KERNEL=="tcm[0-9]*", TAG+="systemd", MODE="0660", OWNER="tss"
+KERNEL=="tcmrm[0-9]*", TAG+="systemd", MODE="0660", GROUP="tss"
+```
+
+reboot. Debugging, opening char devices should work now...
+
+
+
+# tpm devices can only be accessed by the tss user but the tss
+# group members can access tpmrm devices
+
+
+
+./autogen.sh
+./configure --prefix=/home/ernst/wolfssl_local --enable-all --enable-debug
+
+KERNEL=="tpm[0-9]*", TAG+="systemd", MODE="0660", OWNER="tss"
+KERNEL=="tpmrm[0-9]*", TAG+="systemd", MODE="0660", GROUP="tss"
+KERNEL=="tcm[0-9]*", TAG+="systemd", MODE="0660", OWNER="tss"
+KERNEL=="tcmrm[0-9]*", TAG+="systemd", MODE="0660", GROUP="tss"
+
 
 ```c
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
@@ -368,6 +442,16 @@ AI: Verify if it is also possible to adapt `/boot/firmware/config.txt` by adding
 
 Use `pr_info()`, like `printf()`, e.g `pr_info("flow_control() i = %d, rx_msg_sum=%d\n", i, rx_msg_sum);`
 
+
+### Extending the timeout for TPM2 commands if the timeout expires
+
+The tpm selftest on the STM32 (with 224 MHz clock) takes ~5350 milliseconds in Release Mode. In Debug Node, the selftest function runs for
+~17.4 seconds. The Linux Kernel driver triggers the execution of that command in `static ssize_t tpm_try_transmit(struct tpm_chip *chip, void *buf, size_t bufsiz)` in the file 
+`/linux/drivers/char/tpm/tpm-interface.c`. The statement `stop = jiffies + tpm_calc_ordinal_duration(chip, ordinal);` returns the timeout for the
+kernel to wait for the selftest result in units of jiffies. 
+
+The tpm2 command timeout values in milliseconds are configured in `linux/include/linux/tpm.h`, in the enum `tpm2_timeouts`.  The timeout assigned to the selftest and all other commands can be found in `linux/drivers/char/tpm/tpm2-cmd.c`, in `tpm2_ordinal_duration_index()`. Change the corresponding literal of `tpm2_timeouts`. For `TPM2_CC_SELF_TEST`, the literal is `TPM2_DURATION_LONG`, configured as `2000`(ms). Change it to `8000`, which will be sufficient for the
+STM32 in Release Mode.
 
 ## Failing testcase with STM32 via RS232:
 
