@@ -179,6 +179,15 @@ TPM2_ContextSave(ContextSave_In*  in,  // IN: input parameter list
 			  (object->attributes.stClear == TPM_SET) ? 0x80000002 : 0x80000000;
 		  // Get object hierarchy
 		  out->context.hierarchy = object->hierarchy;
+		  
+		  // FIXME Ernst: If the object is a sequence object, its hierarchy is
+		  // not stored in its hierarchy field. But we have to return the hierarchy
+		  // so the client can pass it for a subsequent load.
+		  //if (object->attributes.temporary == TPM_SET)
+		  if(ObjectIsSequence(object))
+		  {
+			out->context.hierarchy = TPM_RH_NULL;
+		  }
 
 		  break;
 	      }
