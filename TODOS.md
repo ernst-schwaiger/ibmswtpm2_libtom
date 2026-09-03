@@ -50,6 +50,8 @@
 |portToSTM32|In Clock.c, find out if we really have to use the clock sync mechanism implemented there. If not, remove|OPEN|
 |portToSTM32|Analyze SPI clock cycle and traffic, check whether shorter wires resole issue with missing bits. Done, the issue was the missing wait-state bit |DONE|
 |portToSTM32|Cleanly separate TPM logic from specific hardware function, make STM32TPM portable to other platforms|OPEN|
+|portToSTM32|According to wolfTPM native test, the clock count is not stored before reset and reloaded afterwards, reading it reveals a low clock count|OPEN|
+|parse.py|Extend csv logfile parser to use the tpmstream library https://github.com/joholl/tpmstream for extraction of command/response data|OPEN|
 |wolftpm|Create an app which implements key generation, encryption/decryption on the TPM|OPEN|
 |ibmtss|Compile ibmtss assuming a HW TPM, check if SPI data arrives at the STM32 node|OPEN|
 |general|Ensure all my added source files have LF endings, introduce code formatter, standard function names, i.e. snake case|OPEN|
@@ -257,6 +259,13 @@ cd wolfTPM/
 ./configure --with-wolfcrypt=/home/ernst/wolfssl_local --enable-debug --enable-infineon --enable-devtpm
 make
 ```
+
+### Required adaptations for interaction with STM32TPM
+
+In native_test.c all occurrences of `MAX_RSA_KEY_BITS` (4096) had to be replaced by `MAX_STM32TPM_RSA_KEY_BITS` (3072).
+The reason for that is that the ibmswtpm sw tpm only supports RSA keys up to 3072 bits and replies to RSA Key Creation commands
+with 4096 bit size with an error.
+
 
 ### For debugging, make `/dev/tpmrm0`, and `/dev/tpm0` accessible to non root user
 

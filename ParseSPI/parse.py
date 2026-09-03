@@ -138,7 +138,7 @@ class TPMFrame:
                 print(f"Go command on {self.frames[go_idx].start}")
 
         payload=self.collect_payload()
-        TPMFrame._print_payload(payload)
+        TPMFrame._print_payload2(payload)
 
     @staticmethod
     def _get_frame_length(payload: list[int]) -> int:
@@ -157,6 +157,13 @@ class TPMFrame:
             if idx % 16 == 15:
                 print()
         print()
+
+    @staticmethod
+    def _print_payload2(payload: list[int]):
+        for pl_byte in payload:
+            print(f"{pl_byte:02x}", end="")
+        print()
+
 
 def _get_next_command(start_index: int,
                       spi_bytes: list[SPIByte]) -> tuple[int | None, Command | None]:
@@ -300,7 +307,7 @@ def main():
 
     entries = _read_entries(sys.argv[1])
     frames = _read_frames(entries)
-    
+
     # for frame in frames:
     #     frame.print()
 

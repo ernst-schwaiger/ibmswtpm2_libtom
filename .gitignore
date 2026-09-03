@@ -19,3 +19,4 @@ tpmvstudio/tpm_server/DebugFile.txt
 tpmvstudio/tpm_server/NVChip
 tpmvstudio/tpm_server/.vs
 tpmvstudio/tpm_server/x64
+ParseSPI/venv
