@@ -7,6 +7,7 @@
 |-|-|-|
 |githubPRs|libtomcrypt: report some bracing errors in ltm_desc.c (see git history)|OPEN|
 |githubPRs|ibmswtpm: report typo in TableDrivenMarshal.c, Line 724: #endof -> #endif|OPEN|
+|githubPRs|ibmswtpm: report issue in ContextCommands.c/TPM2_ContextSave() see my path commit|OPEN|
 |ibmswtpm2LibTom|Use macros for printing debugging info, turn them on/off with precompile time switch|DONE|
 |ibmswtpm2LibTom|Use consistently either mp_init_multi/mp_clear_multi or ltc_mp_init_multi/ltc_mp_deinit_multi (whichever abstracts from the concrete big integer math lib)|DONE|
 |ibmswtpm2LibTom|Cleanup conversion functions: Use goto and labels to avoid repeated cleanup code|DONE|
@@ -46,16 +47,15 @@
 |portToSTM32|Find documentation on locking/unlocking shared variables with ISRs, apply to functions RS232/Timer APIs|DONE|
 |portToSTM32|Add functions to receive and send bytes via SPI|DONE|
 |portToSTM32|Extend SPI server to process incoming commands from SPI transport layer, and to pass replies back to transport layer|DONE|
-|portToSTM32|Find cause of last failing test case 51|OPEN|
+|portToSTM32|Find cause of last failing test case 51 (most likely caused by only using locality zero in UARTServer)|OPEN|
 |portToSTM32|In Clock.c, find out if we really have to use the clock sync mechanism implemented there. If not, remove|OPEN|
 |portToSTM32|Analyze SPI clock cycle and traffic, check whether shorter wires resole issue with missing bits. Done, the issue was the missing wait-state bit |DONE|
 |portToSTM32|Cleanly separate TPM logic from specific hardware function, make STM32TPM portable to other platforms|OPEN|
 |portToSTM32|According to wolfTPM native test, the clock count is not stored before reset and reloaded afterwards, reading it reveals a low clock count|OPEN|
-|parse.py|Extend csv logfile parser to use the tpmstream library https://github.com/joholl/tpmstream for extraction of command/response data|OPEN|
+|parse.py|Extend csv logfile parser to use the tpmstream library https://github.com/joholl/tpmstream for extraction of command/response data|DONE|
 |wolftpm|Create an app which implements key generation, encryption/decryption on the TPM|OPEN|
-|ibmtss|Compile ibmtss assuming a HW TPM, check if SPI data arrives at the STM32 node|OPEN|
+|ibmtss|Compile ibmtss assuming a HW TPM, check if SPI data arrives at the STM32 node. This does not work, reg.sh does not accept /dev/tpm* interfaces |DONE|
 |general|Ensure all my added source files have LF endings, introduce code formatter, standard function names, i.e. snake case|OPEN|
-
 
 ## TODOs TPM SPI State machine
 
@@ -72,6 +72,36 @@ be kept by our software TPM.
 Page 86, bottom: The Bit TPM_ACCESS_x.tpmEstablishment has *inverted* logic (BW compatibility wrt TPM 1.2).
 
 ## HOWTOs
+
+### Use ParseSPI to decode traffic logged by saleae logic analyzer
+
+- In saleae "Logic 2", configure the SPI analyzer
+- When analyzing data, trigger measurements by the rising edge of the clock signal
+- configure length of measurement in seconds
+- after the measurement, export the data as CSV file, containing miso/mosi bytes and timestamps
+
+```
+name,type,start_time,duration,"mosi","miso"
+"SPI","result",0,0.0000076,0x80,0x00
+"SPI","result",0.000009,0.0000076,0xD4,0x00
+"SPI","result",0.000018,0.0000076,0x00,0x00
+...
+```
+
+- create a virtual environment to run the parser in `python3 -m venv ./venv`
+- activate the environment `. ./venv/bin/activate`
+- checkout and install the `tpmstream` project in that environment
+
+```bash
+cd venv
+git clone https://github.com/joholl/tpmstream.git
+cd tpmstream
+pip install -e .
+```
+- for running the unit tests, remove `test/test_pytss.py`, as this requires additional libraries
+- run `ParseSPI/parse.py` in the virtual environment, passing the exported .csv file as argument
+- for debugging the python code in VSCode using the venv, use Ctrl-P "Python: Select interpreter" and select `venv/bin/python3`
+
 
 ### Compile ibmswtpm on Raspberry PI w 32 bit binary
 - To obtain code size estimations, install additional compiler packages (done on Raspbian Bookworm)

@@ -4,6 +4,12 @@
 import sys
 import csv
 
+from tpmstream.io.binary import Binary
+from tpmstream.io.pretty import Pretty
+from tpmstream.spec.commands import Command as TPMStreamCommand
+from tpmstream.spec.commands import Response as TPMStreamResponse
+from tpmstream.common.error import ValueConstraintViolatedError
+
 class SPIByte:
     """Corresponds to a MOSI/MISO Byte pair sent at a specific start time"""
     def __init__(self, start: float, mosi: int, miso: int):
@@ -90,6 +96,14 @@ class TPMFrame:
             idx = self._get_next_frame_index(idx, Command)
         return ret
 
+    def get_collected_payload_as_binary(self):
+        """Returns the collected payload as a binary string"""
+        pl_string = ""
+        payload = self.collect_payload()
+        for pl_byte in payload:
+            pl_string += f"{pl_byte:02x}"
+        return bytes.fromhex(pl_string)
+
     def _get_go_command_index(self) -> int | None:
 
         idx = self._get_next_frame_index(0, Command)
@@ -143,11 +157,22 @@ class TPMFrame:
     @staticmethod
     def _get_frame_length(payload: list[int]) -> int:
         ret = 0
-        if len(payload >= 6):
+        if len(payload) >= 6:
             ret = ((payload[2] << 24) +
                    (payload[3] << 16) +
                    (payload[4] << 8) +
                    payload[5])
+        return ret
+
+    @staticmethod
+    def get_command_code(payload: list[int]) -> int:
+        """Returns the command code from the payload of a command TPM frame"""
+        ret = 0
+        if len(payload) >= 10:
+            ret = ((payload[6] << 24) +
+                   (payload[7] << 16) +
+                   (payload[8] << 8) +
+                   payload[9])
         return ret
 
     @staticmethod
@@ -305,17 +330,43 @@ def main():
         print(f"Usage: {sys.argv[0]} <filename>")
         sys.exit(1)
 
+    # One line in the csv file corresponds to one byte pair of the SPI stream
     entries = _read_entries(sys.argv[1])
+    # Extract transport layer commands: read/writes to virtual registers (FIFO interface)
     frames = _read_frames(entries)
 
     # for frame in frames:
     #     frame.print()
 
+    # Extract TPM command/response byte streams
     tpm_frames = _read_tpm_frames(frames)
 
-    for tpm_frame in tpm_frames:
-        tpm_frame.print()
+    # Print byte streams with timestamps, raw payload, and, using the tpmstream library
+    # https://github.com/joholl/tpmstream, parsed meta-data contained in the streams
 
+    # for parsing a command response, the corresponding command code must be passed
+    previous_command_code = 0
+    for idx, tpm_frame in enumerate(tpm_frames):
+        # Print timestamps and raw payload
+        tpm_frame.print()
+        # use tpm-stream for extracting the command/response meta-data
+        pl_bin = tpm_frame.get_collected_payload_as_binary()
+        events = None
+        try:
+            if tpm_frame.is_read:
+                events = Binary.marshal(
+                    tpm_type=TPMStreamResponse,
+                    buffer=pl_bin,
+                    command_code=previous_command_code)
+            else:
+                previous_command_code = TPMFrame.get_command_code(pl_bin)
+                events = Binary.marshal(tpm_type=TPMStreamCommand, buffer=pl_bin)
+
+            pretty = Pretty.unmarshal(events=events)
+            for line in pretty:
+                print(line)
+        except ValueConstraintViolatedError as ex:
+            print(f"During parsing, a value constraint was violated in frame {idx}: {ex}!")
 
 if __name__ == "__main__":
     main()
