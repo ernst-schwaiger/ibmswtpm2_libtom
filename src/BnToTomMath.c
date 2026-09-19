@@ -152,17 +152,15 @@ LBL_ERR:
 // This function converts an LibTomMath mp_int to a TPM bigNum.
 //  Return Type: BOOL
 //      TRUE(1)         success
-//      FALSE(0)        failure because value will not fit or OpenSSL variable doesn't
-//                      exist
+//      FALSE(0)        failure because value will not fit
 BOOL TomToTpmBn(bigNum bn, mp_int* tomBn)
 {
     size_t writtenOctets = 0;
     unsigned char *pBuf = (unsigned char *)BnGetArray(bn);
     size_t bufsize = BnGetAllocated(bn) * RADIX_BYTES;
-    memset(pBuf, 0x00, bufsize); // zero out the rest
+    memset(pBuf, 0x00, bufsize); // initialize
     if (mp_to_ubin_le(tomBn, pBuf, bufsize, &writtenOctets) == MP_OKAY)
     {
-        //memset(&pBuf[writtenOctets], 0x00, bufsize - writtenOctets); // zero out the rest
         bn->size = (writtenOctets + RADIX_BYTES - 1) / RADIX_BYTES;
         PRINT_BIGNUMS(tomBn, bn);
         return TRUE;
@@ -172,12 +170,9 @@ BOOL TomToTpmBn(bigNum bn, mp_int* tomBn)
 }
 
 //*** BigInitialized()
-// This function initializes an LibTomMath mp_int from a TPM bigConst. Do not use this for
-// values that are passed to OpenSLL when they are not declared as const in the
-// function prototype. Instead, use BnNewVariable().
+// This function initializes an LibTomMath mp_int from a TPM bigConst.
 mp_int* BigInitialized(mp_int* toInit, bigConst initializer)
 {
-    // Only works for LittleEndian archs, as it assumes the first byte of a RADIX is its least significant one
     if (mp_from_ubin_le(toInit, (const unsigned char *)BnGetArray(initializer), BnGetSize(initializer) * RADIX_BYTES) != MP_OKAY)
     {
         return NULL;
@@ -200,8 +195,7 @@ BOOL BnMathLibraryCompatibilityCheck(void)
 #  endif
 
 //*** BnModMult()
-// This function does a modular multiply. It first does a multiply and then a divide
-// and returns the remainder of the divide.
+// This function does a modular multiply.
 //  Return Type: BOOL
 //      TRUE(1)         success
 //      FALSE(0)        failure in operation
@@ -219,7 +213,7 @@ LIB_EXPORT BOOL BnModMult(bigNum result, bigConst op1, bigConst op2, bigConst mo
     mp_int* mp_op2 = BigInitialized(&num2, op2);
     mp_int* mp_modulus = BigInitialized(&num3, modulus);
 
-    if ((mp_op1 == NULL) || (mp_op2 == NULL) || (modulus == NULL)) { goto Exit; }
+    if ((mp_op1 == NULL) || (mp_op2 == NULL) || (mp_modulus == NULL)) { goto Exit; }
 
     /* num4 = mp_op1 * mp_op2 (mod mp_modulus) */
     if (mp_mulmod(mp_op1, mp_op2, mp_modulus, &num4) != MP_OKAY) { goto Exit; }

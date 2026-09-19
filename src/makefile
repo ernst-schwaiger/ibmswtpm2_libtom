@@ -65,7 +65,7 @@ CCFLAGS_SYMBOLS = 	\
 	-DTPM_POSIX		\
 	-D_POSIX_		\
 	-DTPM_NUVOTON	\
-	-DLTM_TPM		\
+	-DLTC_TPM		\
 	-DMP_MALLOC_DEBUG
 
 # add this line for big endian platforms
@@ -84,13 +84,14 @@ ifeq ($(USE_TOMS_FASTMATH), True)
 # if you plan on doing modular exponentiation with k–bit numbers 
 # than the precision must be fixed to 2k–bits plus four digits.
 # For k (==3072) bit precision, you need to (2*3072) + (4*64) == 6528
-	CCFLAGS_SYMBOLS += -DTOMS_FASTMATH -DFP_MAX_SIZE=6528 -DTFM_X86_64
+	CCFLAGS_SYMBOLS += -DTOMS_FASTMATH -DFP_MAX_SIZE=6528 -DTFM_X86_64 -DTFM_TPM
 	CCFLAGS_INCLUDE += -Itomsfastmath/src/headers
 	LNFLAGS_LIBS += -ltfm
 	TOMMATH_LIB_DIR=tomsfastmath
 	TOMMATH_LIB_FILE=libtfm.a
 	TOMCRYPT_MATHFLAGS=-DWITH_LTM=FALSE -DWITH_TFM=TRUE -DMPI_PROVIDER=WITH_TFM
 else
+	CCFLAGS_SYMBOLS += -DLTM_TPM
 	CCFLAGS_INCLUDE += -Ilibtommath
 	LNFLAGS_LIBS += -ltommath
 	TOMMATH_LIB_DIR=libtommath
@@ -167,34 +168,42 @@ tpm_server_$(BUILD_MODE): $(OBJFILES) libtomcrypt/$(BUILD_MODE)/libtomcrypt.a $(
 
 libtomcrypt/$(BUILD_MODE)/libtomcrypt.a: libtomcrypt $(TOMMATH_LIB_DIR)/$(BUILD_MODE)/$(TOMMATH_LIB_FILE)
 	cmake -S libtomcrypt -B libtomcrypt/$(BUILD_MODE) $(TOMCRYPT_MATHFLAGS) $(CMAKE_TOOLCHAIN_FILE) \
-		"-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_TPM -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
+		"-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
 	cmake --build libtomcrypt/$(BUILD_MODE) -j
 
 # checkout libtomcrypt, patch descriptor table (remove unused functions)
 libtomcrypt:
 	git clone --depth 1 https://github.com/libtom/libtomcrypt.git 
 	cd libtomcrypt && git fetch --depth 1 origin $(LIBTOMCRYPT_HASH) && git checkout $(LIBTOMCRYPT_HASH)
+	mv libtomcrypt/src/headers/tomcrypt_custom.h libtomcrypt/src/headers/tomcrypt_custom.h.orig 
 	cp patch/libtomcrypt/tomcrypt_custom.h libtomcrypt/src/headers
+	mv libtomcrypt/src/math/ltm_desc.c libtomcrypt/src/math/ltm_desc.c.orig 
 	cp patch/libtomcrypt/ltm_desc.c libtomcrypt/src/math/
+	mv libtomcrypt/src/math/tfm_desc.c libtomcrypt/src/math/tfm_desc.c.orig 
+	cp patch/libtomcrypt/tfm_desc.c libtomcrypt/src/math/
+	mv libtomcrypt/src/pk/ec25519/tweetnacl.c libtomcrypt/src/pk/ec25519/tweetnacl.c.orig
 	cp patch/libtomcrypt/tweetnacl.c libtomcrypt/src/pk/ec25519
 
 libtommath/$(BUILD_MODE)/libtommath.a: libtommath
 	cmake -S libtommath -B libtommath/$(BUILD_MODE) $(CMAKE_TOOLCHAIN_FILE) \
-		"-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_TPM -DLTM_DESC -DMP_MALLOC_DEBUG -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
+		"-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_DESC -DMP_MALLOC_DEBUG -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
 	cmake --build libtommath/$(BUILD_MODE) -j
 
 # checkout libtommath, patch class config files (remove unused functions)
 libtommath:
 	git clone --depth 1 https://github.com/libtom/libtommath.git
 	cd libtommath && git fetch --depth 1 origin $(LIBTOMMATH_HASH) && git checkout $(LIBTOMMATH_HASH)
+	mv libtommath/tommath_class.h libtommath/tommath_class.h.orig
 	cp patch/libtommath/tommath_class.h libtommath
+	mv libtommath/tommath_superclass.h libtommath/tommath_superclass.h.orig 
 	cp patch/libtommath/tommath_superclass.h libtommath
+	mv libtommath/tommath_private.h libtommath/tommath_private.h.orig 
 	cp patch/libtommath/tommath_private.h libtommath
 
 
 tomsfastmath/$(BUILD_MODE)/libtfm.a: tomsfastmath
 	cmake -S tomsfastmath -B tomsfastmath/$(BUILD_MODE) $(CMAKE_TOOLCHAIN_FILE) \
-		"-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DLTM_TPM -DTFM_DESC -DMP_MALLOC_DEBUG -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
+		"-DCMAKE_C_FLAGS=$(CCFLAGS_WARNINGS) $(CCFLAGS_SYMBOLS) $(CFLAGS) $(CCFLAGS_OPT) -DTFM_DESC -DMP_MALLOC_DEBUG -DCMAKE_LINKER_FLAGS=$(LNFLAGS_OPTS)"
 	cmake --build tomsfastmath/$(BUILD_MODE) -j
 
 # checkout tomsfastmath, patch class config files (remove unused functions)
@@ -235,8 +244,6 @@ flamegraph:
 	sudo chmod 666 out.perf
 	$(STACK_COLLAPSE) out.perf > out.folded
 	$(FLAMEGRAPH) out.folded > flamegraph.svg
-
-	
 
 $(BUILD_MODE)/%.o:		%.c libtomcrypt $(TOMMATH_LIB_DIR)
 	mkdir -p $(BUILD_MODE)

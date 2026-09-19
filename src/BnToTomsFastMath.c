@@ -93,11 +93,10 @@ static void printCounter(char const *counterName, int *counterVal)
 #endif
 
 //*** TomToTpmBn()
-// This function converts an LibTomMath fp_int to a TPM bigNum.
+// This function converts an TomsFastMath fp_int to a TPM bigNum.
 //  Return Type: BOOL
 //      TRUE(1)         success
-//      FALSE(0)        failure because value will not fit or OpenSSL variable doesn't
-//                      exist
+//      FALSE(0)        failure because value will not fit
 BOOL TomToTpmBn(bigNum bn, fp_int* tomBn)
 {
     BOOL ret = FALSE;
@@ -112,7 +111,7 @@ BOOL TomToTpmBn(bigNum bn, fp_int* tomBn)
         uint8_t const *pSrc = (uint8_t const *)&tomBn->dp[0];
         uint8_t *pDest = (uint8_t *)BnGetArray(bn);
         memcpy(pDest, pSrc, writtenOctets);
-        memset(&pDest[writtenOctets], 0x00, bufsize - writtenOctets); // FIXME: test that this conversion works
+        memset(&pDest[writtenOctets], 0x00, bufsize - writtenOctets);
         bn->size = (writtenOctets + (RADIX_BYTES - 1)) / RADIX_BYTES;
         PRINT_BIGNUMS(tomBn, bn);
         ret = TRUE;
@@ -122,9 +121,7 @@ BOOL TomToTpmBn(bigNum bn, fp_int* tomBn)
 }
 
 //*** BigInitialized()
-// This function initializes an LibTomMath fp_int from a TPM bigConst. Do not use this for
-// values that are passed to OpenSLL when they are not declared as const in the
-// function prototype. Instead, use BnNewVariable().
+// This function initializes an TomsFastMath fp_int from a TPM bigConst.
 fp_int* BigInitialized(fp_int* toInit, bigConst initializer)
 {
     fp_int* pRet = NULL;
@@ -135,7 +132,7 @@ fp_int* BigInitialized(fp_int* toInit, bigConst initializer)
         uint8_t const *pSrc = (uint8_t const *)BnGetArray(initializer);
         uint8_t *pDest = (uint8_t *)&toInit->dp[0];
         memcpy(pDest, pSrc, writtenOctets);
-        memset(&pDest[writtenOctets], 0x00, (FP_SIZE * sizeof(fp_digit)) - writtenOctets); // FIXME: test that this conversion works
+        memset(&pDest[writtenOctets], 0x00, (FP_SIZE * sizeof(fp_digit)) - writtenOctets);
         toInit->used = (writtenOctets + (sizeof(fp_digit) - 1)) / sizeof(fp_digit);
         toInit->sign = 0;
         pRet = toInit;

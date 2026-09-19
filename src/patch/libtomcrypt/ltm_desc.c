@@ -75,7 +75,7 @@ static void deinit(void *a)
    XFREE(a);
 }
 
-#ifndef LTM_TPM
+#ifndef LTC_TPM
 static int neg(const void *a, void *b)
 {
    LTC_ARGCHK(a != NULL);
@@ -112,7 +112,7 @@ static int set_int(void *a, ltc_mp_digit b)
 #endif
 }
 
-#ifndef LTM_TPM
+#ifndef LTC_TPM
 static unsigned long get_int(const void *a)
 {
    LTC_ARGCHK(a != NULL);
@@ -296,7 +296,7 @@ static int sqr(const void *a, void *b)
 }
 
 /* sqrtmod_prime */
-#ifndef LTM_TPM
+#ifndef LTC_TPM
 static int sqrtmod_prime(const void *a, const void *b, void *c)
 {
    LTC_ARGCHK(a != NULL);
@@ -321,7 +321,7 @@ static int div_2(const void *a, void *b)
    return mpi_to_ltc_error(mp_div_2(a, b));
 }
 
-#ifndef LTM_TPM
+#ifndef LTC_TPM
 /* modi */
 static int modi(const void *a, ltc_mp_digit b, ltc_mp_digit *c)
 {
@@ -349,7 +349,7 @@ static int gcd(const void *a, const void *b, void *c)
 }
 
 /* lcm */
-#ifndef LTM_TPM
+#ifndef LTC_TPM
 static int lcm(const void *a, const void *b, void *c)
 {
    LTC_ARGCHK(a != NULL);
@@ -357,9 +357,7 @@ static int lcm(const void *a, const void *b, void *c)
    LTC_ARGCHK(c != NULL);
    return mpi_to_ltc_error(mp_lcm(a, b, c));
 }
-#endif
 
-#ifndef LTM_TPM
 static int addmod(const void *a, const void *b, const void *c, void *d)
 {
    LTC_ARGCHK(a != NULL);
@@ -388,7 +386,7 @@ static int mulmod(const void *a, const void *b, const void *c, void *d)
    return mpi_to_ltc_error(mp_mulmod(a,b,c,d));
 }
 
-#ifndef LTM_TPM
+#ifndef LTC_TPM
 static int sqrmod(const void *a, const void *b, void *c)
 {
    LTC_ARGCHK(a != NULL);
@@ -455,7 +453,7 @@ static int exptmod(const void *a, const void *b, const void *c, void *d)
    return mpi_to_ltc_error(mp_exptmod(a,b,c,d));
 }
 
-#ifndef LTM_TPM
+#ifndef LTC_TPM
 static int isprime(const void *a, int b, int *c)
 {
    int err;
@@ -491,7 +489,7 @@ const ltc_math_descriptor ltm_desc = {
    &init,
    &init_copy,
    &deinit,
-#ifndef LTM_TPM
+#ifndef LTC_TPM
    &neg,
 #else
    NULL,
@@ -499,7 +497,7 @@ const ltc_math_descriptor ltm_desc = {
    &copy,
 
    &set_int,
-#ifndef LTM_TPM
+#ifndef LTC_TPM
    &get_int,
 #else
    NULL,
@@ -525,27 +523,27 @@ const ltc_math_descriptor ltm_desc = {
    &mul,
    &muli,
    &sqr,
-#ifndef LTM_TPM
+#ifndef LTC_TPM
    &sqrtmod_prime,
 #else
    NULL,
 #endif
    &divide,
    &div_2,
-#ifndef LTM_TPM
+#ifndef LTC_TPM
    &modi,
 #else
    NULL,
 #endif
    &gcd,
-#ifndef LTM_TPM
+#ifndef LTC_TPM
    &lcm,
 #else
    NULL,
 #endif
 
    &mulmod,
-#ifndef LTM_TPM
+#ifndef LTC_TPM
    &sqrmod,
 #else
    NULL,
@@ -558,7 +556,7 @@ const ltc_math_descriptor ltm_desc = {
    &montgomery_deinit,
 
    &exptmod,
-#ifndef LTM_TPM
+#ifndef LTC_TPM
    &isprime,
 #else
    NULL,
@@ -593,7 +591,7 @@ const ltc_math_descriptor ltm_desc = {
    NULL, NULL,
 #endif
 
-#ifndef LTM_TPM
+#ifndef LTC_TPM
    &addmod,
    &submod,
    &set_rand,

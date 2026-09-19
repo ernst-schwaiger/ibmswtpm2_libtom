@@ -2,7 +2,7 @@
 /* SPDX-License-Identifier: Unlicense */
 #include "tomcrypt_private.h"
 
-#if 0
+#ifndef LTC_TPM
 
 /* automatically generated file, do not edit */
 
@@ -501,4 +501,4 @@ int tweetnacl_crypto_ph(u8 *out,const u8 *msg,u64 msglen)
 #undef FOR
 #undef sv
 
-#endif
+#endif /* LTC_TPM */
