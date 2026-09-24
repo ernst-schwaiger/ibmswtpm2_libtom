@@ -22,6 +22,7 @@
 |ibmswtpm2LibTom|Find segfault in "Release" ibmswtpm when compiled in WSL2 or Kali: It was the printMallocInfo()|DONE|
 |ibmswtpm2LibTom|Optimize CurveInitialize: Return a curve if it is already statically initialized, only create a curve if it is not present yet.|OPEN|
 |ibmswtpm2LibTom|Verify compile flags for LibTom*, ensure memory leaks are detected by ASAN|DONE|
+|ibmswtpm2LibTom|Verify if we turned off all block cipher modes, except ECB (since the other modes are implemented in ibmswtpm2)|OPEN|
 |crossCompileARM|Compile tpm server on ARM32 Platform, for getting code size estimations|DONE|
 |portToSTM32|Compile ibmswtpm on STM32|DONE|
 |portToSTM32|Replace TCP communication by communication via UART in TPM32|DONE|
@@ -31,7 +32,7 @@
 |portToSTM32|Redirect printf statements to TeraTerm console.|DONE|
 |portToSTM32|In App\tpm\PlatformData.h, set `FILE_BACKED_NV` back to `YES`, after file-based state is implemented|DONE|
 |portToSTM32|In NVMem.c, check the functions needed for saving the TPM state. Can we use an Sd card on the STM32 board instead?, Static state is stored in variable s_NV|DONE|
-|portToSTM32|When using TomsFastMath and TFM_ARM, the assembler macro INNERMUL in tomsfastmath\src\mont\fp_montgomery_reduce.c, line 279 ff cant be assembled, find a solution |OPEN|
+|portToSTM32|When using TomsFastMath and TFM_ARM, the assembler macro INNERMUL in tomsfastmath\src\mont\fp_montgomery_reduce.c, line 279 ff cant be assembled, find a solution |DONE|
 |portToSTM32|Integrate usage of TomsFastMath on STM32 project, experiment with compile flags, e.g unrolled multiplications|OPEN|
 |portToSTM32|In Clock.c, go through the functions and adapt them to use the HW timers of the STM32 board|DONE|
 |portToSTM32|Find out which function requires that we have to provide _gettimeofday|DONE|
@@ -52,10 +53,70 @@
 |portToSTM32|Analyze SPI clock cycle and traffic, check whether shorter wires resole issue with missing bits. Done, the issue was the missing wait-state bit |DONE|
 |portToSTM32|Cleanly separate TPM logic from specific hardware function, make STM32TPM portable to other platforms|OPEN|
 |portToSTM32|According to wolfTPM native test, the clock count is not stored before reset and reloaded afterwards, reading it reveals a low clock count|OPEN|
+|portToSTM32|Lock interrupts when accessing global time variables|OPEN|
+|portToSTM32|Check input Philipp Grassl: SPI IRQ after 1 byte Rx|OPEN|
+|portToSTM32|Check input Philipp Grassl: Provide a trace to show that bit flips happen at a given SPI clock rate, e.g. 20MHz |OPEN|
+|portToSTM32|Check input Philipp Grassl: Evaluate implementation efforts for supporting all localities, not just locality zero|OPEN|
+|portToSTM32|Check input Philipp Grassl: Add I/O Pin for simulating power loss, call dedicated shutdown functions for that|OPEN|
+|portToSTM32|Check input Philipp Grassl: Implement handler of Cancel() operation. If a cancel command arrives, set a flag so that the ongoing operation is marked as cancelled|OPEN|
 |parse.py|Extend csv logfile parser to use the tpmstream library https://github.com/joholl/tpmstream for extraction of command/response data|DONE|
 |wolftpm|Create an app which implements key generation, encryption/decryption on the TPM|OPEN|
 |ibmtss|Compile ibmtss assuming a HW TPM, check if SPI data arrives at the STM32 node. This does not work, reg.sh does not accept /dev/tpm* interfaces |DONE|
 |general|Ensure all my added source files have LF endings, introduce code formatter, standard function names, i.e. snake case|OPEN|
+|thesis|Verify that the list of abbreviations re-appears|DONE|
+|thesis|Move Limitations and Conclusions as subchapters into Discussions chapter|DONE|
+|thesis|Add chapter "Future Work" after Discussions chapter|DONE|
+|thesis|Change online links to @online, see below|OPEN|
+
+@online{ucrt,
+  author  = {{Microsoft}},
+  title   = {Universal C Runtime},
+  url     = {https://learn.microsoft.com/en-us/cpp/c-runtime-library/universal-crt?view=msvc-170},
+  urldate = {2026-09-19}
+}
+
+## Topics for Clarification
+
+Ernst Schwaiger invited you to a Microsoft Teams Meeting:
+
+Diplomarbeit TPM auf STM32
+Friday, September 18, 2026
+1:00 PM - 2:00 PM (WET)
+
+Meeting link: https://teams.live.com/meet/931746709609?p=3s9OGI6DXvJLj2R0ne
+
+- There *is* already a Firmware TPM for embedded platforms, a sub project in https://github.com/wolfSSL/wolfTPM
+  - Also supports post-quantum cryptography
+  - Integration of WolfTPMs Software TPM for embedded systems in the Diploma Thesis?
+
+- SPI Wait States induced by DMA access acceptable (See Logic Analyzer Trace)?
+  -> SPI Byte IRQ Handler (8 bit empfangen). IRQ nach 8 bit empfangen...
+
+- Changes on Raspberry PI OK?
+  - Adapting clock rate on SPI device from 33MHz down to 1MHz (10..15MHz would probably still work with my cabling)
+  -> Provide a trace with to show that bit flips happen at a given SPI clock rate, e.g. 20MHz
+  - Adapting Response Timeout "TPM2_DURATION_LONG" in include/linux/tpm.h 2[s] -> 30[s] Self-Test duration, 5[s] in Release, 17[s] in Debug Mode
+  -> OK
+- TPM Functions that are not needed for TPM Performance Measurement. Can they be skipped?
+  - Support of all localities, currently only locality zero is supported. For secure booting/Root of Trust, all localities must be suppported 
+  -> AI Ernst: Research efforts for that
+  - Handling of Power-Down events; discrete TPMs execute TPM Reset (== TPM2_Shutdown(CLEAR) + TPM2_Reset()) to save their internal state before power goes down, and restore the state when power is up again)
+  - Cancel() command: Currently the Software TPM cannot cancel an ongoing operation, as it is bare metal, only one thread + ISRs
+
+- Lateny/throughput measurements: Could be done with RASPI clock on the client side, or be done by measuring the timestamps of the "GO" and "DataAvailable" frames on the SPI bus?
+  - "spin" "wait" -> measure timer accuracy: Can be done with upfront HAL_Delay(), then measure after that. Timer ticks are one ms plus the deleay of the second call.
+
+- Should the source code be made available, e.g. for integration to other embedded platforms? (Add proper file headers, cleanup code, apply code formatter, ...)?
+  - Endzustand des Codes auf Archivierungsdienst hochladen, von dort referenzieren.
+
+- Diploma Thesis:
+  - Is it allowed to extend the LaTeX template, e.g. to reduce the font size in the source code fragments?
+    -> changing the source code font size is OK
+  - Go through chapters, planned content OK?
+  -> Check list of Abbreviations: Should appear in the template!
+  -> Limitations chapter -> Subchapter of discussions.
+  -> Conclusion as well into discussions chapter.
+  -> Add chapter "future steps" after discussion (check other thesises about the name)
 
 ## TODOs TPM SPI State machine
 
@@ -467,7 +528,7 @@ sudo insmod ./tpm_tis_spi.ko
 ### Configure the TPM SPI Clock Frequency
 
 The spi clock frequency used by the tpm is configured in the device tree overlay file `/boot/firmware/overlays/tpm-slb9670.dtbo`, which is initially set to
-32MHz, which (at least with the current cabling used) does not work with the STM32 board. In order to change that, the file msúst be copied
+32MHz, which (at least with the current cabling used) does not work with the STM32 board. In order to change that, the file must be copied
 to a local folder, then "uncompiled" to its source format file `tpmspi.dts` via `dtc -@ -I dtb -O dts -o tpmspi.dts tpmspi.dtbo`. Go to the
 line `spi-max-frequency` and adapt the hexadecimal value in angle brackets. Then compile the configuration back into its binary form 
 `dtc -@ -I dts -O dtb -o tpm-slb9670.dtbo tpm-slb9670.dtbs`, copy the adapted file back to `/boot/firmware/overlays/tpm-slb9670.dtbo` using sudo cp, then

@@ -210,6 +210,8 @@ tomsfastmath/$(BUILD_MODE)/libtfm.a: tomsfastmath
 tomsfastmath:
 	git clone --depth 1 https://github.com/libtom/tomsfastmath
 	cd tomsfastmath && git fetch --depth 1 origin $(TOMSFASTMATH_HASH) && git checkout $(TOMSFASTMATH_HASH)
+	mv tomsfastmath/src/mont/fp_montgomery_reduce.c tomsfastmath/src/mont/fp_montgomery_reduce.c.orig
+	cp patch/tomsfastmath/fp_montgomery_reduce.c  tomsfastmath/src/mont
 
 clean:		
 	rm -rf tpm_server_$(BUILD_MODE) $(BUILD_MODE) libtomcrypt/$(BUILD_MODE) $(TOMMATH_LIB_DIR)/$(BUILD_MODE) *~ *.gcda *.gcno test.tracefile test.lcov coverage
