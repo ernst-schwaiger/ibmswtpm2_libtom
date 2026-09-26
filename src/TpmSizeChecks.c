@@ -60,14 +60,14 @@
 /********************************************************************************/
 
 //** Includes, Defines, and Types
-#include <inttypes.h> // ernst: portable formatstrings
+#include <inttypes.h> // portable formatstrings
 #include    "Tpm.h"
 #include    "PlatformACT_fp.h"		/* kgold */
 #include    "TpmSizeChecks_fp.h"
 #include    <stdio.h>
 #include    <assert.h>
 
-#ifdef UART_TPM
+#ifdef EMBEDDED_TPM
 #define TPM_NEWLINE "\r\n"
 #else
 #define TPM_NEWLINE "\n"

@@ -60,7 +60,7 @@
 
 extern int verbose;
 
-#include <inttypes.h> // ernst: portable formatstrings
+#include <inttypes.h> // portable formatstrings
 #include "Tpm.h"
 #include "Object_spt_fp.h"
 #include "Create_fp.h"

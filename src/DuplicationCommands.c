@@ -59,7 +59,7 @@
 /*										*/
 /********************************************************************************/
 
-#include <inttypes.h> // ernst: portable formatstrings
+#include <inttypes.h> // portable formatstrings
 #include "Tpm.h"
 #include "Duplicate_fp.h"
 #if CC_Duplicate  // Conditional expansion of this file

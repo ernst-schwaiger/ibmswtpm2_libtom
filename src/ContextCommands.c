@@ -59,7 +59,7 @@
 /********************************************************************************/
 
 extern int verbose;
-#include <inttypes.h> // ernst: portable formatstrings
+#include <inttypes.h> // portable formatstrings
 #include "Tpm.h"
 
 #if CC_ContextSave  // Conditional expansion of this file

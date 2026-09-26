@@ -60,7 +60,7 @@
 /*										*/
 /********************************************************************************/
 
-#include <inttypes.h> // ernst: portable formatstrings
+#include <inttypes.h> // portable formatstrings
 #include "Tpm.h"
 #include "Attest_spt_fp.h"
 #include "Certify_fp.h"

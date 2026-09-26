@@ -22,7 +22,7 @@
 |ibmswtpm2LibTom|Find segfault in "Release" ibmswtpm when compiled in WSL2 or Kali: It was the printMallocInfo()|DONE|
 |ibmswtpm2LibTom|Optimize CurveInitialize: Return a curve if it is already statically initialized, only create a curve if it is not present yet.|OPEN|
 |ibmswtpm2LibTom|Verify compile flags for LibTom*, ensure memory leaks are detected by ASAN|DONE|
-|ibmswtpm2LibTom|Verify if we turned off all block cipher modes, except ECB (since the other modes are implemented in ibmswtpm2)|OPEN|
+|ibmswtpm2LibTom|Verify if we turned off all block cipher modes, except ECB (since the other modes are implemented in ibmswtpm2). That is already done in tomcrypt_custom.h|DONE|
 |crossCompileARM|Compile tpm server on ARM32 Platform, for getting code size estimations|DONE|
 |portToSTM32|Compile ibmswtpm on STM32|DONE|
 |portToSTM32|Replace TCP communication by communication via UART in TPM32|DONE|

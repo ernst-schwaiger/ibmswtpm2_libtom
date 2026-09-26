@@ -60,7 +60,7 @@
 
 extern int verbose;
 
-#include <inttypes.h> // ernst: portable formatstrings
+#include <inttypes.h> // portable formatstrings
 #include "Tpm.h"
 #include "Commit_fp.h"
 #include "TpmMath_Util_fp.h"

@@ -74,7 +74,7 @@
 
 //*** PlatformServer()
 // This function processes incoming platform requests.
-#ifndef UART_TPM
+#ifndef EMBEDDED_TPM
 bool PlatformServer(SOCKET s);
 #endif
 
@@ -110,7 +110,7 @@ int StartTcpServer(int *PortNumber, int *PortNumberPlatform);
 //*** ReadBytes()
 // This function reads the indicated number of bytes ('NumBytes') into buffer
 // from the indicated socket.
-#ifndef UART_TPM
+#ifndef EMBEDDED_TPM
 bool ReadBytes(SOCKET s, char* buffer, int NumBytes);
 
 //*** WriteBytes()

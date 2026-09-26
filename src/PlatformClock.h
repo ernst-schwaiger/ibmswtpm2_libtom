@@ -77,7 +77,7 @@
 // the output of a pre-scaler. The pre-scaler would divide the ticks from the clock by some value
 // that would compensate for the difference between clock time and real time. The code in Clock does
 // the emulation of this function.
-#ifndef UART_TPM
+#ifndef EMBEDDED_TPM
 #define     CLOCK_NOMINAL           30000
 // A 1% change in rate is 300 counts
 #define     CLOCK_ADJUST_COARSE     300

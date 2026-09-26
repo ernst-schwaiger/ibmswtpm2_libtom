@@ -59,7 +59,7 @@
 /*										*/
 /********************************************************************************/
 
-#include <inttypes.h> // ernst: portable formatstrings
+#include <inttypes.h> // portable formatstrings
 #include "Tpm.h"
 #include "DictionaryAttackLockReset_fp.h"
 

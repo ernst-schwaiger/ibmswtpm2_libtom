@@ -58,7 +58,7 @@
 /*										*/
 /********************************************************************************/
 
-#include <inttypes.h> // ernst: portable formatstrings
+#include <inttypes.h> // portable formatstrings
 #include "Tpm.h"
 #include "Policy_spt_fp.h"
 #include "PolicySigned_fp.h"

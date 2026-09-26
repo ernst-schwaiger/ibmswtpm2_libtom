@@ -61,7 +61,7 @@
 /* 6.2 ExecCommand.c */
 /* This file contains the entry function ExecuteCommand() which provides the main control flow for
    TPM command execution. */
-#include <inttypes.h> // ernst: portable formatstrings
+#include <inttypes.h> // portable formatstrings
 #include "Tpm.h"
 #include "ExecCommand_fp.h"
 
