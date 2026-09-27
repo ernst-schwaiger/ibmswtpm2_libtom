@@ -138,10 +138,14 @@ TpmSizeChecks(
 		}
         }
 #if TABLE_DRIVEN_MARSHAL
+#ifdef EMBEDDED_TPM
         printf("sizeof(MarshalData) = %d" TPM_NEWLINE, sizeof(MarshalData_st));
+#else
+        printf("sizeof(MarshalData) = %zu" TPM_NEWLINE, sizeof(MarshalData_st));
+#endif
 #endif
 
-#ifdef UART_TPM
+#ifdef EMBEDDED_TPM
         printf("Size of OBJECT = %d" TPM_NEWLINE, sizeof(OBJECT));
         printf("Size of components in TPMT_SENSITIVE = %d" TPM_NEWLINE, sizeof(TPMT_SENSITIVE));
         printf("    TPMI_ALG_PUBLIC                 %d" TPM_NEWLINE, sizeof(TPMI_ALG_PUBLIC));
@@ -150,12 +154,12 @@ TpmSizeChecks(
         printf("    TPMU_SENSITIVE_COMPOSITE        %d" TPM_NEWLINE,
                sizeof(TPMU_SENSITIVE_COMPOSITE));
 #else
-        printf("Size of OBJECT = %ld" TPM_NEWLINE, sizeof(OBJECT));
-        printf("Size of components in TPMT_SENSITIVE = %ld" TPM_NEWLINE, sizeof(TPMT_SENSITIVE));
-        printf("    TPMI_ALG_PUBLIC                 %ld" TPM_NEWLINE, sizeof(TPMI_ALG_PUBLIC));
-        printf("    TPM2B_AUTH                      %ld" TPM_NEWLINE, sizeof(TPM2B_AUTH));
-        printf("    TPM2B_DIGEST                    %ld" TPM_NEWLINE, sizeof(TPM2B_DIGEST));
-        printf("    TPMU_SENSITIVE_COMPOSITE        %ld" TPM_NEWLINE,
+        printf("Size of OBJECT = %zu" TPM_NEWLINE, sizeof(OBJECT));
+        printf("Size of components in TPMT_SENSITIVE = %zu" TPM_NEWLINE, sizeof(TPMT_SENSITIVE));
+        printf("    TPMI_ALG_PUBLIC                 %zu" TPM_NEWLINE, sizeof(TPMI_ALG_PUBLIC));
+        printf("    TPM2B_AUTH                      %zu" TPM_NEWLINE, sizeof(TPM2B_AUTH));
+        printf("    TPM2B_DIGEST                    %zu" TPM_NEWLINE, sizeof(TPM2B_DIGEST));
+        printf("    TPMU_SENSITIVE_COMPOSITE        %zu" TPM_NEWLINE,
                sizeof(TPMU_SENSITIVE_COMPOSITE));
 #endif
     }

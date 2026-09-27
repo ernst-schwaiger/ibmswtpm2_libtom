@@ -80,8 +80,8 @@ TPM2_ACT_SetTimeout(
     // is signaling.
     if (verbose) {
 	FILE *f = fopen("trace.txt", "a");
-	//fprintf(f, "TPM2_ACT_SetTimeout: actHandle %08" PRIx32 "\n", in->actHandle);
-    fprintf(f, "TPM2_ACT_SetTimeout: actHandle %08lx\n", in->actHandle);
+	fprintf(f, "TPM2_ACT_SetTimeout: actHandle %08" PRIx32 "\n", in->actHandle);
+    //fprintf(f, "TPM2_ACT_SetTimeout: actHandle %08lx\n", in->actHandle);
 	fclose(f);
     }
     if((in->startTimeout == UINT32_MAX) && !ActGetSignaled(in->actHandle))
