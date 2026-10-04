@@ -53,7 +53,8 @@
 |portToSTM32|Analyze SPI clock cycle and traffic, check whether shorter wires resole issue with missing bits. Done, the issue was the missing wait-state bit |DONE|
 |portToSTM32|Cleanly separate TPM logic from specific hardware function, make STM32TPM portable to other platforms|OPEN|
 |portToSTM32|According to wolfTPM native test, the clock count is not stored before reset and reloaded afterwards, reading it reveals a low clock count|OPEN|
-|portToSTM32|Lock interrupts when accessing global time variables|OPEN|
+|portToSTM32|Create dedicated timer function for ACT service, give the ISR a lower prio than the 40us task to avoid assertions|DONE|
+|portToSTM32|Lock interrupts when accessing global time variables, done without locking, just reading a seond time|DONE|
 |portToSTM32|Check input Philipp Grassl: SPI IRQ after 1 byte Rx|OPEN|
 |portToSTM32|Check input Philipp Grassl: Provide a trace to show that bit flips happen at a given SPI clock rate, e.g. 20MHz |OPEN|
 |portToSTM32|Check input Philipp Grassl: Evaluate implementation efforts for supporting all localities, not just locality zero|OPEN|
@@ -66,14 +67,8 @@
 |thesis|Verify that the list of abbreviations re-appears|DONE|
 |thesis|Move Limitations and Conclusions as subchapters into Discussions chapter|DONE|
 |thesis|Add chapter "Future Work" after Discussions chapter|DONE|
-|thesis|Change online links to @online, see below|OPEN|
-
-@online{ucrt,
-  author  = {{Microsoft}},
-  title   = {Universal C Runtime},
-  url     = {https://learn.microsoft.com/en-us/cpp/c-runtime-library/universal-crt?view=msvc-170},
-  urldate = {2026-09-19}
-}
+|thesis|Change online links to @online, see below|DONE|
+|thesis|Mention ACT Service in porting chapter|OPEN|
 
 ## Topics for Clarification
 

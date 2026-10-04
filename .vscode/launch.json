@@ -25,6 +25,18 @@
                     "ignoreFailures": true
                 }
             ]
+        },
+        {
+            "name": "Python: Firmware Report Reader",
+            "type": "debugpy",
+            "request": "launch",
+            //"python": "${workspaceFolder}/ParseSPI/venv/bin/python",
+            "python": "${workspaceFolder}/../../OpenMapFileViewerVenv/bin/python",
+            "program": "${workspaceFolder}/ParseMapfile/parse_mapfile.py",
+            "args": ["/home/ernst/projects/DiplomaThesis/STM32TPM/Doc/Thesis/footprint/STM32TPM_CM4_O0_Debug_LTM.json"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true
         }
     ]
 }
