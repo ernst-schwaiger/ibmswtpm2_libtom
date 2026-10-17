@@ -36,13 +36,13 @@
 |portToSTM32|Integrate usage of TomsFastMath on STM32 project, experiment with compile flags, e.g unrolled multiplications|OPEN|
 |portToSTM32|In Clock.c, go through the functions and adapt them to use the HW timers of the STM32 board|DONE|
 |portToSTM32|Find out which function requires that we have to provide _gettimeofday|DONE|
-|portToSTM32|Compare the STM32 linker output with the function symbols in the Linux Tpm server binary: Are we missing parts of the STM functions?|OPEN|
+|portToSTM32|Compare the STM32 linker output with the function symbols in the Linux Tpm server binary: Are we missing parts of the STM functions?|DONE|
 |portToSTM32|Check all the FIXMEs in the STM32 Tpm Code|OPEN|
 |portToSTM32|Find source code that writes tpm state to file system, check if redirection to sd card is possible. fopen, fprintf do not crash, but files are not written to sd card. Can fprintf be redirected to SD card API?|DONE|
 |portToSTM32|Integrate RNG to tpm code (they are using different RNGs than libtomcrypt)|DONE|
 |portToSTM32|Optimize SD card access like outlined in https://www.youtube.com/watch?v=KNuMM7NdgYw (HW flow control is turned on here (we have set it to off))|DONE|
 |portToSTM32|Use PLL clock for system clock, increase clock rate to 224MHz|DONE|
-|portToSTM32|Document that the TPM 2.0 cancel() operation cannot be implemented, as our impl is bare-metal, only one thread. That function is specified in the TCG PC Client Platform TPM Profile (PTP), other platforms may not include the cancel() operation|OPEN|
+|portToSTM32|Document that the TPM 2.0 cancel() operation cannot be implemented, as our impl is bare-metal, only one thread. That function is specified in the TCG PC Client Platform TPM Profile (PTP), other platforms may not include the cancel() operation|DONE|
 |portToSTM32|Fix timer configuration to support 224MHz system clock. Use 64bit counter, since 32bit counter can only provide 71 minutes, verify if timer-related regression tests pass after adaptation.|DONE|
 |portToSTM32|Check if there are functions that provide the maximum length of input and output buffers of the TPM. If so, adapt the functions so they return the real value.|OPEN|
 |portToSTM32|Find documentation on locking/unlocking shared variables with ISRs, apply to functions RS232/Timer APIs|DONE|
@@ -55,11 +55,12 @@
 |portToSTM32|According to wolfTPM native test, the clock count is not stored before reset and reloaded afterwards, reading it reveals a low clock count|OPEN|
 |portToSTM32|Create dedicated timer function for ACT service, give the ISR a lower prio than the 40us task to avoid assertions|DONE|
 |portToSTM32|Lock interrupts when accessing global time variables, done without locking, just reading a seond time|DONE|
+|portToSTM32|Deactivate debugging allocation routines, regenerate map files|DONE|
 |portToSTM32|Check input Philipp Grassl: SPI IRQ after 1 byte Rx|OPEN|
-|portToSTM32|Check input Philipp Grassl: Provide a trace to show that bit flips happen at a given SPI clock rate, e.g. 20MHz |OPEN|
+|portToSTM32|Check input Philipp Grassl: Provide a trace to show that bit flips happen at a given SPI clock rate, e.g. 20MHz |DONE|
 |portToSTM32|Check input Philipp Grassl: Evaluate implementation efforts for supporting all localities, not just locality zero|OPEN|
 |portToSTM32|Check input Philipp Grassl: Add I/O Pin for simulating power loss, call dedicated shutdown functions for that|OPEN|
-|portToSTM32|Check input Philipp Grassl: Implement handler of Cancel() operation. If a cancel command arrives, set a flag so that the ongoing operation is marked as cancelled|OPEN|
+|portToSTM32|Check input Philipp Grassl: Implement handler of Cancel() operation. Execute the _rpc__Signal_CancelOn() function if a cancel operation was detected via SPI. After receiving any response buffer from the software TPM, set _rpc__Signal_CancelOff().|DONE|
 |parse.py|Extend csv logfile parser to use the tpmstream library https://github.com/joholl/tpmstream for extraction of command/response data|DONE|
 |wolftpm|Create an app which implements key generation, encryption/decryption on the TPM|OPEN|
 |ibmtss|Compile ibmtss assuming a HW TPM, check if SPI data arrives at the STM32 node. This does not work, reg.sh does not accept /dev/tpm* interfaces |DONE|
@@ -68,7 +69,20 @@
 |thesis|Move Limitations and Conclusions as subchapters into Discussions chapter|DONE|
 |thesis|Add chapter "Future Work" after Discussions chapter|DONE|
 |thesis|Change online links to @online, see below|DONE|
-|thesis|Mention ACT Service in porting chapter|OPEN|
+|thesis|Mention ACT Service in porting chapter|DONE|
+|thesis|Reformat numbers in the thesis according to copilot, esp space between number and unit see below|OPEN|
+|thesis|The length of several symbols is incorrect, they may be changed by the linker (size before relaxing), resolved by only looking at tpm and library binaries.|DONE|
+
+## Number formatting rules
+
+There is no single universal rule; follow your university or journal’s style guide. A good default for scientific writing is:
+
+Use numerals for measurements, results, and quantities: “5 samples,” “2.4 ms,” “12%.” Whether to spell out small numbers in ordinary prose varies by style guide.
+Put a space between a number and its unit: 32 kB, 5 ms (with a few conventional exceptions, such as 5%).
+Group long numbers consistently, using the convention required by your style guide. In English, 79,918 is common; a thin space, as in 79 918, is also used internationally. Avoid 79.918 when you mean seventy-nine thousand nine hundred eighteen—it can be read as a decimal.
+Match precision to the evidence, and report uncertainty where relevant; don’t imply more precision than your measurements support.
+Use SI units where appropriate, and distinguish decimal units (kB) from binary units (KiB) if that distinction matters.
+In the attached chapter, if the intended RAM figure is seventy-nine thousand nine hundred eighteen bytes, write 79 918 bytes (or 79,918 bytes, consistently with your style guide), not 79.918 bytes. The chapter already uses siunitx, which can format numbers consistently—for example, \num{79918}.
 
 ## Topics for Clarification
 
@@ -337,12 +351,13 @@ make install
 ### Checkout, build wolfTPM our TPM client
 
 Configure to use locally installed wolfssl. Add `--enable-devtpm` to ensure the client app accesses our TPM through the tpm char devices `/dev/tpmrm0`, and `/dev/tpm0`.
+Add --enable-static to get static libraries to link the benchmark app against
 
 ```bash
 git clone --depth=1 https://github.com/wolfSSL/wolfTPM.git
 cd wolfTPM/
 ./autogen.sh
-./configure --with-wolfcrypt=/home/ernst/wolfssl_local --enable-debug --enable-infineon --enable-devtpm
+./configure --with-wolfcrypt=/home/ernst/wolfssl_local --enable-debug --enable-infineon --enable-devtpm --enable-static
 make
 ```
 

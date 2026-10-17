@@ -33,11 +33,23 @@
             //"python": "${workspaceFolder}/ParseSPI/venv/bin/python",
             "python": "${workspaceFolder}/../../OpenMapFileViewerVenv/bin/python",
             "program": "${workspaceFolder}/ParseMapfile/parse_mapfile.py",
-            "args": ["/home/ernst/projects/DiplomaThesis/STM32TPM/Doc/Thesis/footprint/STM32TPM_CM4_O0_Debug_LTM.json"],
+            "args": ["/home/ernst/projects/DiplomaThesis/STM32TPM/Doc/Thesis/footprint/STM32TPM_CM4_O2_TFM_unrolled.json"],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "justMyCode": true
-        }
+        },
+        {
+            "name": "Python: ParseSPI",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/ParseSPI/venv/bin/python",
+            //"python": "${workspaceFolder}/../../OpenMapFileViewerVenv/bin/python",
+            "program": "${workspaceFolder}/ParseSPI/parse.py",
+            "args": ["/home/ernst/projects/PortSwTpm2LibTom/ibmswtpm2_libtom/ParseSPI/example/native_test.csv"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true
+        },
     ]
 }
 

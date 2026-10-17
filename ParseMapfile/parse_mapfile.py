@@ -66,7 +66,7 @@ class Contribution:
     @classmethod
     def _get_component(cls, source : str) -> ContributionComponent:
 
-        if "/App/" in source:
+        if "/STM32TPM/App/" in source:
             return ContributionComponent.IBMSWTPM
         if "liblibtomcrypt.a" in source:
             return ContributionComponent.LIBTOMCRYPT
@@ -233,6 +233,33 @@ def _sum_by_type_and_component(report: FirmwareReport, ct: ContributionType, cc:
 
     return mem_sum
 
+def _list_by_type_and_component(report: FirmwareReport, ct: ContributionType, cc: ContributionComponent) -> None:
+    for contr in report.contributions:
+        if contr.kind == ct and contr.component == cc:
+            print(f"{contr.kind.value}, {contr.component.value}: {contr.symbol}, {contr.size}, {contr.source}")
+
+def _get_contribution_type_total(report: FirmwareReport, section: str) -> int:
+    ret = -1
+    for contr in report.contributions:
+        if contr.section == section and contr.source == "<section total>":
+            ret = contr.size
+            break
+    return ret
+
+def _get_modulesize_by_component(report: FirmwareReport, cc: ContributionComponent) -> dict[str, int]:
+    ret = {}
+
+    for contr in report.contributions:
+        if contr.kind == ContributionType.CODE and contr.component == cc:
+            module_code_size = 0
+            if contr.source in ret:
+                module_code_size = ret[contr.source]
+            module_code_size += contr.size
+            ret[contr.source] = module_code_size
+
+    return ret
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Read a firmware linker report in JSON format.",
@@ -252,10 +279,10 @@ def main() -> None:
     report = load_report(args.path)
     print(f"Firmware report: {report.path}")
     print(f"Generated at: {report.generated_at}")
-    print(f"Memory usage: {report.total_memory_used()}/{report.total_memory_capacity()} bytes")
-    print(f"Contribution count: {len(report.contributions)}")
-    print("Memory regions:")
-    print(_format_memory_regions(report))
+    # print(f"Memory usage: {report.total_memory_used()}/{report.total_memory_capacity()} bytes")
+    # print(f"Contribution count: {len(report.contributions)}")
+    # print("Memory regions:")
+    # print(_format_memory_regions(report))
 
     if args.section:
         matches = report.contributions_for_section(args.section)
@@ -267,7 +294,7 @@ def main() -> None:
             )
 
     print(r"""
-\begin{table}[h]
+\begin{table}[htbp]
 \small
 \centering
 \sisetup{group-separator={\,}, group-minimum-digits=4}
@@ -292,8 +319,9 @@ def main() -> None:
                       ContributionComponent.LIBTOMCRYPT,
                       ContributionComponent.LIBTOMMATH,
                       ContributionComponent.TOMSFASTMATH,
-                      ContributionComponent.STM32,
-                      ContributionComponent.LIBC ]:
+                      # ContributionComponent.STM32,
+                      # ContributionComponent.LIBC
+                      ]:
         code_sum = _sum_by_type_and_component(report, ContributionType.CODE, component)
         rom_sum = _sum_by_type_and_component(report, ContributionType.RODATA, component)
         ram_sum = _sum_by_type_and_component(report, ContributionType.BSS, component)
@@ -305,8 +333,16 @@ def main() -> None:
             rom_total += rom_sum
             ram_total += ram_sum
 
+    # We use the actual section totals according to the mapfile, not the summed up values
+    section_text_total = _get_contribution_type_total(report, ".text")
+    section_rodata_total = _get_contribution_type_total(report, ".rodata")
+    section_bss_total = _get_contribution_type_total(report, ".bss")
+
+    # Provide an "other" row: Difference to the total of the section
+    print(f"Other & {section_text_total - code_total} & {section_rodata_total - rom_total} & {section_bss_total - ram_total} \\\\")
+
     print("\\hline")
-    print(f"Sum & {code_total} & {rom_total} & {ram_total} \\\\")
+    print(f"Sum & {section_text_total} & {section_rodata_total} & {section_bss_total} \\\\")
     print("\\hline")
     print(r"""\end{tabularx}
 \caption{Demo Memory Usage Template}
@@ -314,6 +350,14 @@ def main() -> None:
 \end{table}
 """)
 
+    # Generate a report for a certain type and component
+    #_list_by_type_and_component(report, ContributionType.CODE, ContributionComponent.IBMSWTPM)
+
+    module_to_size_dict = _get_modulesize_by_component(report, ContributionComponent.TOMSFASTMATH)
+    sorted_items_by_size = dict(sorted(module_to_size_dict.items(), key=lambda item: item[1]))
+
+    # for module in sorted_items_by_size.items():
+    #     print(f"{module[1]}: {module[0]}")
 
 if __name__ == "__main__":
     main()
