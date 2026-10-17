@@ -50,6 +50,19 @@
             "cwd": "${workspaceFolder}",
             "justMyCode": true
         },
+        {
+            "name": "Python: Parse Benchmarkfile",
+            "type": "debugpy",
+            "request": "launch",
+            //"python": "${workspaceFolder}/ParseSPI/venv/bin/python",
+            //"python": "${workspaceFolder}/../../OpenMapFileViewerVenv/bin/python",
+            "program": "${workspaceFolder}/ParseBenchmarkfile/parse_benchmarkfile.py",
+            "args": ["${workspaceFolder}/ParseBenchmarkfile/measure_events.bin"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true
+        },
+
     ]
 }
 
