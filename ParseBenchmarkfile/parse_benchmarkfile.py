@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import struct
+import csv
+
 from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import BinaryIO, TypeAlias
@@ -19,6 +21,8 @@ TPM_CC_HASHSEQUENCESTART = 0x00000186
 TPM_CC_SEQUENCEUPDATE = 0x0000015C
 TPM_CC_SEQUENCECOMPLETE = 0x0000013E
 TPM_CC_CREATE = 0x00000153
+TPM_CC_STARTUP = 0x00000144
+TPM_CC_SHUTDOWN = 0x00000145
 
 
 CMD_CODE_TO_NAME_MAP = {
@@ -187,6 +191,9 @@ class TpmCommandExec:
         self.finish = finish
         self.command_code = command_code
 
+    def print_self(self):
+        print(f"Command: {_lookup_command(self.command_code)}, start: {self.start}, duration: {self.finish - self.start}")
+
 def _lookup_command(cmd_code: int) -> str:
     return CMD_CODE_TO_NAME_MAP[cmd_code]
 
@@ -195,6 +202,19 @@ def _extract_duration_samples(cmd_code: int, tpm_commands: list[TpmCommandExec])
     for cmd in tpm_commands:
         if cmd.command_code == cmd_code:
             ret.append(cmd.finish - cmd.start)
+    return ret
+
+def _split_benchmark_list(cmds: list[TpmCommandExec]) -> list[list[TpmCommandExec]]:
+    ret = []
+    curr_benchmark = []
+    for cmd in cmds:
+        if cmd.command_code in (TPM_CC_STARTUP, TPM_CC_SHUTDOWN):
+            if len(curr_benchmark) > 0:
+                ret.append(curr_benchmark)
+                curr_benchmark = []
+        else:
+            curr_benchmark.append(cmd)
+
     return ret
 
 def _std_deviation_by_mean_str(stddev: float, mean: float) -> str:
@@ -233,37 +253,33 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     tpm_commands = []
-
     try:
-        with args.input_file.open("rb") as input_file:
-            input_file.seek(0, 2)
-            file_size = input_file.tell()
-            if file_size % RECORD_SIZE:
-                parser.error(
-                    f"{args.input_file}: file size {file_size} is not a multiple "
-                    f"of {RECORD_SIZE} bytes"
-                )
-
-            input_file.seek(0)
-            for record in iter_records(input_file):
-                tpm_commands.append(TpmCommandExec(record[0], record[2], record[1]))
-
+        with args.input_file.open("r") as input_file:
+            csv_reader = csv.reader(input_file, delimiter=',')
+            for row in csv_reader:
+                start_time = int(row[0])
+                command_code = int(row[1])
+                finish_time = int(row[2])
+                tpm_commands.append(TpmCommandExec(start_time, finish_time, command_code))
     except OSError as error:
         parser.error(f"cannot read {args.input_file}: {error}")
     except ValueError as error:
         parser.error(f"{args.input_file}: {error}")
 
+    for cmd in tpm_commands:
+        cmd.print_self()
+
+    benchmarks = _split_benchmark_list(tpm_commands)
 
     print(TABLE_HEADER)
-    _print_table_row(TPM_CC_HASHSEQUENCESTART, tpm_commands)
-    _print_table_row(TPM_CC_SEQUENCEUPDATE, tpm_commands)
-    _print_table_row(TPM_CC_SEQUENCECOMPLETE, tpm_commands)
-    _print_table_row(TPM_CC_CREATE, tpm_commands)
-
+    _print_table_row(TPM_CC_HASHSEQUENCESTART, benchmarks[0])
+    _print_table_row(TPM_CC_SEQUENCEUPDATE, benchmarks[0])
+    _print_table_row(TPM_CC_SEQUENCECOMPLETE, benchmarks[0])
+    _print_table_row(TPM_CC_CREATE, benchmarks[1])
+    _print_table_row(TPM_CC_CREATE, benchmarks[2])
     print(TABLE_FOOTER)
 
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

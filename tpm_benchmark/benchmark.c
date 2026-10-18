@@ -12,7 +12,7 @@
 
 #define MAX_STM32TPM_RSA_KEY_BITS               (3072U)
 #define MAX_STM32TPM_BENCHMARK_RSA_KEY_BITS     (1024U)
-#define BENCHMARK_NUM_LOOPS                     (10U)
+#define BENCHMARK_NUM_LOOPS                     (5U)
 
 typedef struct tpmKey {
     TPM_HANDLE          handle;
@@ -79,15 +79,14 @@ static int create_primary_null_rsa_2048(TpmRsaKey *null_primary_key)
     return TPM_RC_SUCCESS;
 }
 
-int create_enc_key_rsa_2048(TpmRsaKey const *parent_key)
+static int create_enc_key_rsa_2048(TpmRsaKey const *parent_key)
 {
     int rc;
-
     Create_In createIn;
     Create_Out createOut;
     const char keyCreationNonce[] = "RandomServerPickedCreationNonce";
 
-    /* Create an RSA key for encrypt/decrypt */
+    /* Create an RSA key for encrypt/decrypt, below the primary key of the NULL hierarchy */
     XMEMSET(&createIn, 0, sizeof(createIn));
     createIn.parentHandle = parent_key->handle;
     
@@ -112,6 +111,45 @@ int create_enc_key_rsa_2048(TpmRsaKey const *parent_key)
     // We dont to anthing with the key here; we just measure the time it takes to create it
     rc = TPM2_Create(&createIn, &createOut);
     return rc;
+}
+
+static int create_key_ecc_nistp_256(TpmRsaKey const *parent_key)
+{
+    int rc;
+    Create_In createIn;
+    Create_Out createOut;
+    const char keyCreationNonce[] = "RandomServerPickedCreationNonce";
+
+    /* Create an ECC key for ECDH */
+    /* Create an ECC key for encrypt/decrypt, below the primary key of the NULL hierarchy */
+    XMEMSET(&createIn, 0, sizeof(createIn));
+    createIn.parentHandle = parent_key->handle;
+    
+    // We use a zero-size password for accessing the NULL hierarchy
+    createIn.inSensitive.sensitive.userAuth.size = 0;
+    // XMEMCPY(createIn.inSensitive.sensitive.userAuth.buffer, usageAuth,
+    //     usageAuthSz);
+    createIn.inPublic.publicArea.type = TPM_ALG_ECC;
+    createIn.inPublic.publicArea.nameAlg = TPM_ALG_SHA256;
+    createIn.inPublic.publicArea.objectAttributes = (
+        TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
+        TPMA_OBJECT_decrypt | TPMA_OBJECT_noDA);
+    createIn.inPublic.publicArea.parameters.eccDetail.symmetric.algorithm = TPM_ALG_NULL;
+    createIn.inPublic.publicArea.parameters.eccDetail.scheme.scheme = TPM_ALG_ECDH;
+    createIn.inPublic.publicArea.parameters.eccDetail.scheme.details.ecdsa.hashAlg = TPM_ALG_SHA256;
+    createIn.inPublic.publicArea.parameters.eccDetail.curveID = TPM_ECC_NIST_P256;
+    createIn.inPublic.publicArea.parameters.eccDetail.kdf.scheme = TPM_ALG_NULL;
+    
+    rc = TPM2_Create(&createIn, &createOut);
+    return rc;
+    // if (is_curve_or_cmd_unsupported(rc, mayBeUnsupported)) {
+    //     printf("TPM2_Create ECDH curve 0x%04x not supported, skipping\n",
+    //         TPM_ECC_NIST_P256);
+    //     rc = 0;
+    //     goto done;
+    // }
+
+
 }
 
 static int hashing(char const *hashData, size_t hashDataSize)
@@ -167,6 +205,21 @@ static int hashing(char const *hashData, size_t hashDataSize)
     return TPM_RC_SUCCESS;
 }
 
+static int startup_tpm()
+{
+    Startup_In startup;
+    XMEMSET(&startup, 0, sizeof(startup));
+    startup.startupType = TPM_SU_CLEAR;
+    int rc = TPM2_Startup(&startup);
+    
+    /* TPM_RC_INITIALIZE = Already started */
+    if (rc != TPM_RC_SUCCESS && rc != TPM_RC_INITIALIZE) 
+    {
+        return rc;
+    }
+
+    return TPM_RC_SUCCESS;
+}
 
 int main(int argc, char *argv[])
 {
@@ -192,14 +245,12 @@ int main(int argc, char *argv[])
     session[0].sessionHandle = TPM_RS_PW;
     TPM2_SetSessionAuth(session);
 
-    Startup_In startup;
-    XMEMSET(&startup, 0, sizeof(startup));
-    startup.startupType = TPM_SU_CLEAR;
-    rc = TPM2_Startup(&startup);
-    if (rc != TPM_RC_SUCCESS &&
-        rc != TPM_RC_INITIALIZE /* TPM_RC_INITIALIZE = Already started */ ) {
+    
+    rc = startup_tpm();
+    if (rc != TPM_RC_SUCCESS)
+    {
         printf("TPM2_Startup failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
-        goto exit;
+        goto exit;        
     }
     printf("TPM2_Startup pass\n");
 
@@ -217,6 +268,13 @@ int main(int argc, char *argv[])
     }
     printf("\n");
 
+    rc = startup_tpm();
+    if (rc != TPM_RC_SUCCESS)
+    {
+        printf("TPM2_Startup failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+        goto exit;        
+    }    
+
     TpmRsaKey null_primary_key;
     rc = create_primary_null_rsa_2048(&null_primary_key);
 
@@ -232,7 +290,7 @@ int main(int argc, char *argv[])
         rc = create_enc_key_rsa_2048(&null_primary_key);
         if (rc != TPM_RC_SUCCESS)
         {
-            printf("Create Primary Key failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+            printf("Create Key failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
             break;
         }
         printf(".");
@@ -240,10 +298,31 @@ int main(int argc, char *argv[])
     }
     printf("\n");
 
+    rc = startup_tpm();
+    if (rc != TPM_RC_SUCCESS)
+    {
+        printf("TPM2_Startup failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+        goto exit;        
+    }
+
+    printf("Benchmarking ECC NIST P-256 Key generation\n");
+    for (size_t loop = 0; loop < BENCHMARK_NUM_LOOPS; ++loop)
+    {
+        rc = create_key_ecc_nistp_256(&null_primary_key);
+        if (rc != TPM_RC_SUCCESS)
+        {
+            printf("Create Key failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+            break;
+        }
+        printf(".");
+        fflush(stdout);
+    }
+    printf("\n");
+
+
     printf("TPM2 Benchmark finished successfully.\n");
 
 exit:
-
     /* Shutdown */
     Shutdown_In shutdown;
     shutdown.shutdownType = TPM_SU_CLEAR;
