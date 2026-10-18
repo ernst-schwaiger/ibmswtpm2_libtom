@@ -18,6 +18,7 @@ Record: TypeAlias = tuple[int, str, int, int]
 TPM_CC_HASHSEQUENCESTART = 0x00000186
 TPM_CC_SEQUENCEUPDATE = 0x0000015C
 TPM_CC_SEQUENCECOMPLETE = 0x0000013E
+TPM_CC_CREATE = 0x00000153
 
 
 CMD_CODE_TO_NAME_MAP = {
@@ -213,13 +214,16 @@ def iter_records(file: BinaryIO) -> Iterator[Record]:
 
 def _print_table_row(command_code: int, tpm_commands:list[TpmCommandExec]):
     values = _extract_duration_samples(command_code, tpm_commands)
-    command_str = _lookup_command(command_code).upper().replace("_", "\\_")
-    minimum = min(values)
-    maximum = max(values)
-    mean = round(stats.mean(values), 2)
-    median = stats.median(values)
-    std_dev = round(stats.pstdev(values), 2)
-    print(fr"{command_str} & {minimum} & {maximum} & {mean} & {int(median)} & {std_dev} \\ \hline")
+
+    # Only create a table entry if the command was actually found
+    if len(values) > 0:
+        command_str = _lookup_command(command_code).upper().replace("_", "\\_")
+        minimum = min(values)
+        maximum = max(values)
+        mean = round(stats.mean(values), 2)
+        median = stats.median(values)
+        std_dev = round(stats.pstdev(values), 2)
+        print(fr"{command_str} & {minimum} & {maximum} & {mean} & {int(median)} & {std_dev} \\ \hline")
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
@@ -254,6 +258,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     _print_table_row(TPM_CC_HASHSEQUENCESTART, tpm_commands)
     _print_table_row(TPM_CC_SEQUENCEUPDATE, tpm_commands)
     _print_table_row(TPM_CC_SEQUENCECOMPLETE, tpm_commands)
+    _print_table_row(TPM_CC_CREATE, tpm_commands)
+
     print(TABLE_FOOTER)
 
     return 0
