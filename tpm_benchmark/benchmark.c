@@ -115,6 +115,64 @@ static int create_enc_key_rsa_1024(TpmRsaKey const *parent_key)
     return rc;
 }
 
+static int create_key_ecc_nistp_256(TpmRsaKey const *parent_key)
+{
+    int rc;
+    Create_In createIn;
+    Create_Out createOut;
+    const char keyCreationNonce[] = "RandomServerPickedCreationNonce";
+
+    /* Create an ECC key for ECDH */
+    /* Create an ECC key for encrypt/decrypt, below the primary key of the NULL hierarchy */
+    XMEMSET(&createIn, 0, sizeof(createIn));
+    createIn.parentHandle = parent_key->handle;
+    
+    // We use a zero-size password for accessing the NULL hierarchy
+    createIn.inSensitive.sensitive.userAuth.size = 0;
+    // XMEMCPY(createIn.inSensitive.sensitive.userAuth.buffer, usageAuth,
+    //     usageAuthSz);
+    createIn.inPublic.publicArea.type = TPM_ALG_ECC;
+    createIn.inPublic.publicArea.nameAlg = TPM_ALG_SHA256;
+    createIn.inPublic.publicArea.objectAttributes = (
+        TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
+        TPMA_OBJECT_decrypt | TPMA_OBJECT_noDA);
+    createIn.inPublic.publicArea.parameters.eccDetail.symmetric.algorithm = TPM_ALG_NULL;
+    createIn.inPublic.publicArea.parameters.eccDetail.scheme.scheme = TPM_ALG_ECDH;
+    createIn.inPublic.publicArea.parameters.eccDetail.scheme.details.ecdsa.hashAlg = TPM_ALG_SHA256;
+    createIn.inPublic.publicArea.parameters.eccDetail.curveID = TPM_ECC_NIST_P256;
+    createIn.inPublic.publicArea.parameters.eccDetail.kdf.scheme = TPM_ALG_NULL;
+
+    // We just measure the time to create the ECC key here
+    rc = TPM2_Create(&createIn, &createOut);
+    return rc;
+}
+
+static int create_enc_key_aes_256(TpmRsaKey const *parent_key)
+{
+    int rc;
+    Create_In createIn;
+    Create_Out createOut;
+    const char keyCreationNonce[] = "RandomServerPickedCreationNonce";
+
+    /* Create a symmetric key */
+    XMEMSET(&createIn, 0, sizeof(createIn));
+    createIn.parentHandle = parent_key->handle;
+    createIn.inSensitive.sensitive.userAuth.size = 0;
+
+    createIn.inPublic.publicArea.type = TPM_ALG_SYMCIPHER;
+    createIn.inPublic.publicArea.nameAlg = TPM_ALG_SHA256;
+    createIn.inPublic.publicArea.objectAttributes = (
+        TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
+        TPMA_OBJECT_noDA | TPMA_OBJECT_decrypt | TPMA_OBJECT_sign);
+    createIn.inPublic.publicArea.parameters.symDetail.sym.algorithm = TPM_ALG_AES;
+    createIn.inPublic.publicArea.parameters.symDetail.sym.keyBits.aes = MAX_AES_KEY_BITS;
+    createIn.inPublic.publicArea.parameters.symDetail.sym.mode.aes = TPM_ALG_CTR;
+
+    // We dont do anything with the key, we just measure its creation time
+    rc = TPM2_Create(&createIn, &createOut);
+    return rc;
+}
+
 static int rsa_encrypt_decrypt(TpmRsaKey const *parent_key, size_t num_loops)
 {
     int rc;
@@ -228,37 +286,111 @@ static int rsa_encrypt_decrypt(TpmRsaKey const *parent_key, size_t num_loops)
     return TPM_RC_SUCCESS;
 }
 
-static int create_key_ecc_nistp_256(TpmRsaKey const *parent_key)
+static int aes_encrypt_decrypt(TpmRsaKey const *parent_key, size_t num_loops)
 {
     int rc;
     Create_In createIn;
     Create_Out createOut;
-    const char keyCreationNonce[] = "RandomServerPickedCreationNonce";
 
-    /* Create an ECC key for ECDH */
-    /* Create an ECC key for encrypt/decrypt, below the primary key of the NULL hierarchy */
+    Load_In loadIn;
+    Load_Out loadOut;
+
+    printf("Creating an AES-256 key...\n");
+    /* Create an AES-256 key for encrypt/decrypt, below the primary key of the NULL hierarchy */
     XMEMSET(&createIn, 0, sizeof(createIn));
     createIn.parentHandle = parent_key->handle;
     
     // We use a zero-size password for accessing the NULL hierarchy
     createIn.inSensitive.sensitive.userAuth.size = 0;
-    // XMEMCPY(createIn.inSensitive.sensitive.userAuth.buffer, usageAuth,
-    //     usageAuthSz);
-    createIn.inPublic.publicArea.type = TPM_ALG_ECC;
+    
+    createIn.inPublic.publicArea.type = TPM_ALG_SYMCIPHER;
     createIn.inPublic.publicArea.nameAlg = TPM_ALG_SHA256;
     createIn.inPublic.publicArea.objectAttributes = (
         TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
-        TPMA_OBJECT_decrypt | TPMA_OBJECT_noDA);
-    createIn.inPublic.publicArea.parameters.eccDetail.symmetric.algorithm = TPM_ALG_NULL;
-    createIn.inPublic.publicArea.parameters.eccDetail.scheme.scheme = TPM_ALG_ECDH;
-    createIn.inPublic.publicArea.parameters.eccDetail.scheme.details.ecdsa.hashAlg = TPM_ALG_SHA256;
-    createIn.inPublic.publicArea.parameters.eccDetail.curveID = TPM_ECC_NIST_P256;
-    createIn.inPublic.publicArea.parameters.eccDetail.kdf.scheme = TPM_ALG_NULL;
+        TPMA_OBJECT_noDA | TPMA_OBJECT_decrypt | TPMA_OBJECT_sign);
+    createIn.inPublic.publicArea.parameters.symDetail.sym.algorithm = TPM_ALG_AES;
+    createIn.inPublic.publicArea.parameters.symDetail.sym.keyBits.aes = MAX_AES_KEY_BITS;
+    createIn.inPublic.publicArea.parameters.symDetail.sym.mode.aes = TPM_ALG_CTR;
 
-    // We just measure the time to create the ECC key here
+    // We are now using the key to decrypt and encrypt data
     rc = TPM2_Create(&createIn, &createOut);
-    return rc;
+
+    if (rc != TPM_RC_SUCCESS)
+    {
+        return rc;
+    }
+
+    /* Load the newly created key */
+    XMEMSET(&loadIn, 0, sizeof(loadIn));
+    loadIn.parentHandle = parent_key->handle;
+    loadIn.inPrivate = createOut.outPrivate;
+    loadIn.inPublic = createOut.outPublic;
+    rc = TPM2_Load(&loadIn, &loadOut);
+    if (rc != TPM_RC_SUCCESS)
+    {
+        return rc;
+    }
+
+    // Configure Label and Cleartext properly
+    const char label[] = "ThisIsMyLabel";
+
+    printf("Running encryption/decryption loops...\n");
+    for (size_t idx = 0; idx < num_loops; idx++)
+    {
+        EncryptDecrypt2_In encDecIn;
+        EncryptDecrypt2_Out encDecOut;
+
+        // Cleartext message: (keylen[bit] / 8) bytes all holding the current loop index
+        TPM2B_PUBLIC_KEY_RSA message;
+        // FIXME: Larger Payload for encrypt/decrypt
+        XMEMSET(message.buffer, idx % 256, TPM_SHA256_DIGEST_SIZE);
+        message.size = TPM_SHA256_DIGEST_SIZE;
+
+        /* AES Encrypt */
+        XMEMSET(&encDecIn, 0, sizeof(encDecIn));
+        encDecIn.keyHandle = loadOut.objectHandle;
+        encDecIn.ivIn.size = MAX_AES_BLOCK_SIZE_BYTES; /* zeros */
+        encDecIn.inData.size = message.size;
+        XMEMCPY(encDecIn.inData.buffer, message.buffer, encDecIn.inData.size);
+        encDecIn.decrypt = NO;
+        encDecIn.mode = TPM_ALG_CTR;
+
+        rc = TPM2_EncryptDecrypt2(&encDecIn, &encDecOut);
+        if (rc != TPM_RC_SUCCESS)
+        {
+            return rc;
+        }
+
+        /* AES Decrypt */
+        XMEMSET(&encDecIn, 0, sizeof(encDecIn));
+        encDecIn.keyHandle = loadOut.objectHandle;
+        encDecIn.ivIn.size = MAX_AES_BLOCK_SIZE_BYTES; /* zeros */
+        encDecIn.inData.size = message.size;
+        XMEMCPY(encDecIn.inData.buffer, encDecOut.outData.buffer, encDecOut.outData.size);
+        encDecIn.decrypt = YES;
+        encDecIn.mode = TPM_ALG_CTR;
+
+        rc = TPM2_EncryptDecrypt2(&encDecIn, &encDecOut);
+        if (rc != TPM_RC_SUCCESS)
+        {
+            return rc;
+        }
+
+        if (encDecOut.outData.size != TPM_SHA256_DIGEST_SIZE || 
+            XMEMCMP(encDecOut.outData.buffer, message.buffer, encDecOut.outData.size))
+        {
+            // We got something different out than we put in...
+            return 1;
+        }
+
+        printf(".");
+    }
+
+    printf("\n");
+
+    return TPM_RC_SUCCESS;
 }
+
 
 static int hashing(char const *hashData, size_t hashDataSize)
 {
@@ -368,6 +500,9 @@ int main(int argc, char *argv[])
         goto exit;        
     }
     printf("TPM2_Startup pass\n");
+
+    // --- SHA-256 ------------------------------------------------------------
+
     printf("Benchmarking SHA256\n");
     for (size_t loop = 0; loop < BENCHMARK_NUM_LOOPS; ++loop)
     {
@@ -390,12 +525,15 @@ int main(int argc, char *argv[])
 
     TpmRsaKey null_primary_key;
     rc = create_primary_null_rsa_2048(&null_primary_key);
+#if 0
+    // --- RSA 1024 key generation --------------------------------------------
 
     if (rc != TPM_RC_SUCCESS)
     {
         printf("Create Primary Key on NULL storage hierarchy failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
         goto exit;
     }
+
 
     printf("Benchmarking RSA 1024 Key generation\n");
     for (size_t loop = 0; loop < BENCHMARK_NUM_LOOPS; ++loop)
@@ -409,6 +547,8 @@ int main(int argc, char *argv[])
         printf(".");
     }
     printf("\n");
+
+    // --- ECC P-256 key generation -------------------------------------------
 
     rc = startup_tpm();
     if (rc != TPM_RC_SUCCESS)
@@ -430,6 +570,30 @@ int main(int argc, char *argv[])
     }
     printf("\n");
 
+    // AES-256 key generation -------------------------------------------------
+
+    rc = startup_tpm();
+    if (rc != TPM_RC_SUCCESS)
+    {
+        printf("TPM2_Startup failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+        goto exit;        
+    }
+
+    printf("Benchmarking AES-256 Key generation\n");
+    for (size_t loop = 0; loop < BENCHMARK_NUM_LOOPS; ++loop)
+    {
+        rc = create_enc_key_aes_256(&null_primary_key);
+        if (rc != TPM_RC_SUCCESS)
+        {
+            printf("Create Key failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+            break;
+        }
+        printf(".");
+    }
+    printf("\n");
+
+    // RSA-2048 encryption/decryption -----------------------------------------
+
     rc = startup_tpm();
     if (rc != TPM_RC_SUCCESS)
     {
@@ -442,6 +606,23 @@ int main(int argc, char *argv[])
     if (rc != TPM_RC_SUCCESS)
     {
         printf("RSA 2048 encryption and decryption failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+    }
+#endif
+
+    // AES-256 encryption/decryption -----------------------------------------
+
+    rc = startup_tpm();
+    if (rc != TPM_RC_SUCCESS)
+    {
+        printf("TPM2_Startup failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+        goto exit;        
+    }
+    printf("Benchmarking AES-256 encryption/decryption\n");
+
+    rc = aes_encrypt_decrypt(&null_primary_key, BENCHMARK_NUM_LOOPS);
+    if (rc != TPM_RC_SUCCESS)
+    {
+        printf("AES-256 encryption and decryption failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
     }
 
     printf("TPM2 Benchmark finished successfully.\n");
