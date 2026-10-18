@@ -11,8 +11,10 @@
 #include <examples/tpm_test.h>
 
 #define MAX_STM32TPM_RSA_KEY_BITS               (3072U)
-#define MAX_STM32TPM_BENCHMARK_RSA_KEY_BITS     (1024U)
-#define BENCHMARK_NUM_LOOPS                     (5U)
+#define STM32TPM_BENCHMARK_RSA_1024_KEY_BITS    (1024U)
+#define STM32TPM_BENCHMARK_RSA_2048_KEY_BITS    (2048U)
+
+#define BENCHMARK_NUM_LOOPS                     (40U)
 
 typedef struct tpmKey {
     TPM_HANDLE          handle;
@@ -53,13 +55,13 @@ static int create_primary_null_rsa_2048(TpmRsaKey *null_primary_key)
     createPriIn.inPublic.publicArea.type = TPM_ALG_RSA;
 
     // For the key creation benchmark, we use only 1024 bit keys to speed up the process
-    createPriIn.inPublic.publicArea.unique.rsa.size = MAX_STM32TPM_BENCHMARK_RSA_KEY_BITS / 8;
+    createPriIn.inPublic.publicArea.unique.rsa.size = STM32TPM_BENCHMARK_RSA_2048_KEY_BITS / 8;
     createPriIn.inPublic.publicArea.nameAlg = TPM_ALG_SHA256;
     createPriIn.inPublic.publicArea.objectAttributes = (
         TPMA_OBJECT_fixedTPM | TPMA_OBJECT_fixedParent |
         TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
         TPMA_OBJECT_restricted | TPMA_OBJECT_decrypt);
-    createPriIn.inPublic.publicArea.parameters.rsaDetail.keyBits = MAX_STM32TPM_BENCHMARK_RSA_KEY_BITS;
+    createPriIn.inPublic.publicArea.parameters.rsaDetail.keyBits = STM32TPM_BENCHMARK_RSA_2048_KEY_BITS;
     createPriIn.inPublic.publicArea.parameters.rsaDetail.exponent = 0;
     createPriIn.inPublic.publicArea.parameters.rsaDetail.scheme.scheme = TPM_ALG_NULL;
     createPriIn.inPublic.publicArea.parameters.rsaDetail.symmetric.algorithm = TPM_ALG_AES;
@@ -79,7 +81,7 @@ static int create_primary_null_rsa_2048(TpmRsaKey *null_primary_key)
     return TPM_RC_SUCCESS;
 }
 
-static int create_enc_key_rsa_2048(TpmRsaKey const *parent_key)
+static int create_enc_key_rsa_1024(TpmRsaKey const *parent_key)
 {
     int rc;
     Create_In createIn;
@@ -95,14 +97,14 @@ static int create_enc_key_rsa_2048(TpmRsaKey const *parent_key)
     
     // For the key creation benchmark, we use only 1024 bit keys to speed up the process
     createIn.inPublic.publicArea.type = TPM_ALG_RSA;
-    createIn.inPublic.publicArea.unique.rsa.size = MAX_STM32TPM_BENCHMARK_RSA_KEY_BITS / 8;
+    createIn.inPublic.publicArea.unique.rsa.size = STM32TPM_BENCHMARK_RSA_1024_KEY_BITS / 8;
     createIn.inPublic.publicArea.nameAlg = TPM_ALG_SHA256;
     createIn.inPublic.publicArea.objectAttributes = (
         TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
         TPMA_OBJECT_decrypt | TPMA_OBJECT_sign | TPMA_OBJECT_noDA );
     createIn.inPublic.publicArea.parameters.rsaDetail.symmetric.algorithm = TPM_ALG_NULL;
     createIn.inPublic.publicArea.parameters.rsaDetail.scheme.scheme = TPM_ALG_NULL;
-    createIn.inPublic.publicArea.parameters.rsaDetail.keyBits = MAX_STM32TPM_BENCHMARK_RSA_KEY_BITS;
+    createIn.inPublic.publicArea.parameters.rsaDetail.keyBits = STM32TPM_BENCHMARK_RSA_1024_KEY_BITS;
     createIn.outsideInfo.size = sizeof(keyCreationNonce)-1;
 
     // FIXME: Randomize the nonce, or use a different one each loop?
@@ -111,6 +113,119 @@ static int create_enc_key_rsa_2048(TpmRsaKey const *parent_key)
     // We dont to anthing with the key here; we just measure the time it takes to create it
     rc = TPM2_Create(&createIn, &createOut);
     return rc;
+}
+
+static int rsa_encrypt_decrypt(TpmRsaKey const *parent_key, size_t num_loops)
+{
+    int rc;
+    Create_In createIn;
+    Create_Out createOut;
+
+    Load_In loadIn;
+    Load_Out loadOut;
+
+    const char keyCreationNonce[] = "RandomServerPickedCreationNonce";
+    printf("Creating a 2048 bit RSA key pair...\n");
+
+    /* Create an RSA key for encrypt/decrypt, below the primary key of the NULL hierarchy */
+    XMEMSET(&createIn, 0, sizeof(createIn));
+    createIn.parentHandle = parent_key->handle;
+    
+    // We use a zero-size password for accessing the NULL hierarchy
+    createIn.inSensitive.sensitive.userAuth.size = 0;
+    
+    // For the key creation benchmark, we use only 1024 bit keys to speed up the process
+    createIn.inPublic.publicArea.type = TPM_ALG_RSA;
+    createIn.inPublic.publicArea.unique.rsa.size = STM32TPM_BENCHMARK_RSA_2048_KEY_BITS / 8;
+    createIn.inPublic.publicArea.nameAlg = TPM_ALG_SHA256;
+    createIn.inPublic.publicArea.objectAttributes = (
+        TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
+        TPMA_OBJECT_decrypt | TPMA_OBJECT_sign | TPMA_OBJECT_noDA );
+    createIn.inPublic.publicArea.parameters.rsaDetail.symmetric.algorithm = TPM_ALG_NULL;
+    createIn.inPublic.publicArea.parameters.rsaDetail.scheme.scheme = TPM_ALG_NULL;
+    createIn.inPublic.publicArea.parameters.rsaDetail.keyBits = STM32TPM_BENCHMARK_RSA_2048_KEY_BITS;
+    createIn.outsideInfo.size = sizeof(keyCreationNonce)-1;
+
+    // FIXME: Randomize the nonce, or use a different one each loop?
+    XMEMCPY(createIn.outsideInfo.buffer, keyCreationNonce, createIn.outsideInfo.size);
+
+    // We are now using the key to decrypt and encrypt data
+    rc = TPM2_Create(&createIn, &createOut);
+
+    if (rc != TPM_RC_SUCCESS)
+    {
+        return rc;
+    }
+
+    /* Load the newly created key */
+    XMEMSET(&loadIn, 0, sizeof(loadIn));
+    loadIn.parentHandle = parent_key->handle;
+    loadIn.inPrivate = createOut.outPrivate;
+    loadIn.inPublic = createOut.outPublic;
+    rc = TPM2_Load(&loadIn, &loadOut);
+    if (rc != TPM_RC_SUCCESS)
+    {
+        return rc;
+    }
+
+    // Configure Label and Cleartext properly
+    const char label[] = "ThisIsMyLabel";
+
+    printf("Running encryption/decryption loops...\n");
+    for (size_t idx = 0; idx < num_loops; idx++)
+    {
+        RSA_Encrypt_In rsaEncIn;
+        RSA_Encrypt_Out rsaEncOut;
+
+        RSA_Decrypt_In rsaDecIn;
+        RSA_Decrypt_Out rsaDecOut;
+
+        // Cleartext message: (keylen[bit] / 8) bytes all holding the current loop index
+        TPM2B_PUBLIC_KEY_RSA message;
+        XMEMSET(message.buffer, idx % 256, TPM_SHA256_DIGEST_SIZE);
+        message.size = TPM_SHA256_DIGEST_SIZE;
+
+        /* RSA Encrypt */
+        XMEMSET(&rsaEncIn, 0, sizeof(rsaEncIn));
+        rsaEncIn.keyHandle = loadOut.objectHandle;
+        rsaEncIn.message = message;
+        rsaEncIn.inScheme.scheme = TPM_ALG_OAEP;
+        rsaEncIn.inScheme.details.oaep.hashAlg = TPM_ALG_SHA256;
+        rsaEncIn.label.size = sizeof(label); /* Null term required */
+        XMEMCPY(rsaEncIn.label.buffer, label, rsaEncIn.label.size);
+        rc = TPM2_RSA_Encrypt(&rsaEncIn, &rsaEncOut);
+        if (rc != TPM_RC_SUCCESS)
+        {
+            return rc;
+        }
+
+        /* RSA Decrypt */
+        XMEMSET(&rsaDecIn, 0, sizeof(rsaDecIn));
+        rsaDecIn.keyHandle = loadOut.objectHandle;
+        rsaDecIn.cipherText = rsaEncOut.outData;
+        rsaDecIn.inScheme.scheme = TPM_ALG_OAEP;
+        rsaDecIn.inScheme.details.oaep.hashAlg = TPM_ALG_SHA256;
+        rsaDecIn.label.size = sizeof(label); /* Null term required */
+        XMEMCPY(rsaDecIn.label.buffer, label, rsaDecIn.label.size);
+        rc = TPM2_RSA_Decrypt(&rsaDecIn, &rsaDecOut);
+        if (rc != TPM_RC_SUCCESS) 
+        {
+            return rc;
+        }
+
+        if (rsaDecOut.message.size != message.size || 
+            XMEMCMP(rsaDecOut.message.buffer, message.buffer, rsaDecOut.message.size))
+        {
+            // We got something different out than we put in...
+            return 1;
+        }
+
+        printf(".");
+    }
+
+    printf("\n");
+
+    return TPM_RC_SUCCESS;
 }
 
 static int create_key_ecc_nistp_256(TpmRsaKey const *parent_key)
@@ -139,17 +254,10 @@ static int create_key_ecc_nistp_256(TpmRsaKey const *parent_key)
     createIn.inPublic.publicArea.parameters.eccDetail.scheme.details.ecdsa.hashAlg = TPM_ALG_SHA256;
     createIn.inPublic.publicArea.parameters.eccDetail.curveID = TPM_ECC_NIST_P256;
     createIn.inPublic.publicArea.parameters.eccDetail.kdf.scheme = TPM_ALG_NULL;
-    
+
+    // We just measure the time to create the ECC key here
     rc = TPM2_Create(&createIn, &createOut);
     return rc;
-    // if (is_curve_or_cmd_unsupported(rc, mayBeUnsupported)) {
-    //     printf("TPM2_Create ECDH curve 0x%04x not supported, skipping\n",
-    //         TPM_ECC_NIST_P256);
-    //     rc = 0;
-    //     goto done;
-    // }
-
-
 }
 
 static int hashing(char const *hashData, size_t hashDataSize)
@@ -226,6 +334,13 @@ int main(int argc, char *argv[])
     int rc;
     TPM2_CTX tpm2Ctx;
 
+    // Configure stdout as unbuffered, relieves us from fflush()-ing
+    // after each printf
+    if (setvbuf(stdout, NULL, _IONBF, 0) != 0)
+    {
+        printf("Failed to configure stdout as unbuffered\n");
+    }
+
     printf("Accessing TPM using wolfTPM library");
     rc = TPM2_Init(&tpm2Ctx, TPM2_IoCb, NULL);
     if (rc != TPM_RC_SUCCESS) {
@@ -253,7 +368,6 @@ int main(int argc, char *argv[])
         goto exit;        
     }
     printf("TPM2_Startup pass\n");
-
     printf("Benchmarking SHA256\n");
     for (size_t loop = 0; loop < BENCHMARK_NUM_LOOPS; ++loop)
     {
@@ -264,7 +378,6 @@ int main(int argc, char *argv[])
             break;
         }
         printf(".");
-        fflush(stdout);
     }
     printf("\n");
 
@@ -287,14 +400,13 @@ int main(int argc, char *argv[])
     printf("Benchmarking RSA 1024 Key generation\n");
     for (size_t loop = 0; loop < BENCHMARK_NUM_LOOPS; ++loop)
     {
-        rc = create_enc_key_rsa_2048(&null_primary_key);
+        rc = create_enc_key_rsa_1024(&null_primary_key);
         if (rc != TPM_RC_SUCCESS)
         {
             printf("Create Key failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
             break;
         }
         printf(".");
-        fflush(stdout);
     }
     printf("\n");
 
@@ -315,10 +427,22 @@ int main(int argc, char *argv[])
             break;
         }
         printf(".");
-        fflush(stdout);
     }
     printf("\n");
 
+    rc = startup_tpm();
+    if (rc != TPM_RC_SUCCESS)
+    {
+        printf("TPM2_Startup failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+        goto exit;        
+    }
+    printf("Benchmarking RSA 2048 encryption/decryption\n");
+
+    rc = rsa_encrypt_decrypt(&null_primary_key, BENCHMARK_NUM_LOOPS);
+    if (rc != TPM_RC_SUCCESS)
+    {
+        printf("RSA 2048 encryption and decryption failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+    }
 
     printf("TPM2 Benchmark finished successfully.\n");
 

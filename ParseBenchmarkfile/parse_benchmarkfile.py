@@ -23,6 +23,8 @@ TPM_CC_SEQUENCECOMPLETE = 0x0000013E
 TPM_CC_CREATE = 0x00000153
 TPM_CC_STARTUP = 0x00000144
 TPM_CC_SHUTDOWN = 0x00000145
+TPM_CC_RSA_ENCRYPT = 0x00000174
+TPM_CC_RSA_DECRYPT = 0x00000159
 
 
 CMD_CODE_TO_NAME_MAP = {
@@ -277,6 +279,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     _print_table_row(TPM_CC_SEQUENCECOMPLETE, benchmarks[0])
     _print_table_row(TPM_CC_CREATE, benchmarks[1])
     _print_table_row(TPM_CC_CREATE, benchmarks[2])
+    _print_table_row(TPM_CC_CREATE, benchmarks[2])
+    _print_table_row(TPM_CC_CREATE, benchmarks[2])
+    _print_table_row(TPM_CC_RSA_ENCRYPT, benchmarks[3])
+    _print_table_row(TPM_CC_RSA_DECRYPT, benchmarks[3])
+
     print(TABLE_FOOTER)
 
     return 0
