@@ -29,13 +29,7 @@ typedef struct tpmKey {
 
 typedef TpmKey TpmRsaKey;
 
-
-const char storagePwd[] = "WolfTPMPassword";
-const char usageAuth[] = "ThisIsASecretUsageAuth";
 TPM2_AUTH_SESSION session[MAX_SESSION_NUM];
-
-const char* hashTestData =
-    "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
 
 char const *hashInputData = "The quick brown fox jumps over the lazy dog";
 
@@ -120,7 +114,6 @@ static int create_key_ecc_nistp_256(TpmRsaKey const *parent_key)
     int rc;
     Create_In createIn;
     Create_Out createOut;
-    const char keyCreationNonce[] = "RandomServerPickedCreationNonce";
 
     /* Create an ECC key for ECDH */
     /* Create an ECC key for encrypt/decrypt, below the primary key of the NULL hierarchy */
@@ -129,8 +122,6 @@ static int create_key_ecc_nistp_256(TpmRsaKey const *parent_key)
     
     // We use a zero-size password for accessing the NULL hierarchy
     createIn.inSensitive.sensitive.userAuth.size = 0;
-    // XMEMCPY(createIn.inSensitive.sensitive.userAuth.buffer, usageAuth,
-    //     usageAuthSz);
     createIn.inPublic.publicArea.type = TPM_ALG_ECC;
     createIn.inPublic.publicArea.nameAlg = TPM_ALG_SHA256;
     createIn.inPublic.publicArea.objectAttributes = (
@@ -152,7 +143,6 @@ static int create_enc_key_aes_256(TpmRsaKey const *parent_key)
     int rc;
     Create_In createIn;
     Create_Out createOut;
-    const char keyCreationNonce[] = "RandomServerPickedCreationNonce";
 
     /* Create a symmetric key */
     XMEMSET(&createIn, 0, sizeof(createIn));
@@ -204,7 +194,7 @@ static int rsa_encrypt_decrypt(TpmRsaKey const *parent_key, size_t num_loops)
     createIn.inPublic.publicArea.parameters.rsaDetail.keyBits = STM32TPM_BENCHMARK_RSA_2048_KEY_BITS;
     createIn.outsideInfo.size = sizeof(keyCreationNonce)-1;
 
-    // FIXME: Randomize the nonce, or use a different one each loop?
+    // We only create one key using a fixed nonce (we dont measure key creation here)
     XMEMCPY(createIn.outsideInfo.buffer, keyCreationNonce, createIn.outsideInfo.size);
 
     // We are now using the key to decrypt and encrypt data
@@ -226,7 +216,7 @@ static int rsa_encrypt_decrypt(TpmRsaKey const *parent_key, size_t num_loops)
         return rc;
     }
 
-    // Configure Label and Cleartext properly
+    // FIXME: Configure Label and Cleartext properly
     const char label[] = "ThisIsMyLabel";
 
     printf("Running encryption/decryption loops...\n");
@@ -286,6 +276,101 @@ static int rsa_encrypt_decrypt(TpmRsaKey const *parent_key, size_t num_loops)
     return TPM_RC_SUCCESS;
 }
 
+static int ecc_sign_validate(TpmRsaKey const *parent_key, size_t num_loops)
+{
+    int rc;
+    Create_In createIn;
+    Create_Out createOut;
+
+    Load_In loadIn;
+    Load_Out loadOut;
+
+    /* Create an ECC key for ECDH */
+    /* Create an ECC key for encrypt/decrypt, below the primary key of the NULL hierarchy */
+    XMEMSET(&createIn, 0, sizeof(createIn));
+    createIn.parentHandle = parent_key->handle;
+    
+    // We use a zero-size password for accessing the NULL hierarchy
+    createIn.inSensitive.sensitive.userAuth.size = 0;
+    createIn.inPublic.publicArea.type = TPM_ALG_ECC;
+    createIn.inPublic.publicArea.nameAlg = TPM_ALG_SHA256;
+    createIn.inPublic.publicArea.objectAttributes = (
+        TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
+        TPMA_OBJECT_sign | TPMA_OBJECT_noDA);
+    createIn.inPublic.publicArea.parameters.eccDetail.symmetric.algorithm = TPM_ALG_NULL;
+    createIn.inPublic.publicArea.parameters.eccDetail.scheme.scheme = TPM_ALG_ECDSA;
+    createIn.inPublic.publicArea.parameters.eccDetail.scheme.details.ecdsa.hashAlg = TPM_ALG_SHA256;
+    createIn.inPublic.publicArea.parameters.eccDetail.curveID = TPM_ECC_NIST_P256;
+    createIn.inPublic.publicArea.parameters.eccDetail.kdf.scheme = TPM_ALG_NULL;
+
+    rc = TPM2_Create(&createIn, &createOut);
+
+    if (rc != TPM_RC_SUCCESS)
+    {
+        return rc;
+    }
+
+    /* Load the newly created key */
+    XMEMSET(&loadIn, 0, sizeof(loadIn));
+    loadIn.parentHandle = parent_key->handle;
+    loadIn.inPrivate = createOut.outPrivate;
+    loadIn.inPublic = createOut.outPublic;
+    rc = TPM2_Load(&loadIn, &loadOut);
+    if (rc != TPM_RC_SUCCESS)
+    {
+        return rc;
+    }
+
+    printf("Running signing/verification loops...\n");
+    for (size_t idx = 0; idx < num_loops; idx++)
+    {
+        Sign_In signIn;
+        Sign_Out signOut;
+
+        VerifySignature_In verifySignIn;
+        VerifySignature_Out verifySignOut;
+
+        // Message to sign : (keylen[bit] / 8) bytes all holding the current loop index
+        TPM2B_PUBLIC_KEY_RSA message;
+        XMEMSET(message.buffer, idx % 256, TPM_SHA256_DIGEST_SIZE);
+        message.size = TPM_SHA256_DIGEST_SIZE;
+
+        XMEMSET(&signIn, 0, sizeof(signIn));
+        signIn.keyHandle = loadOut.objectHandle;
+        signIn.digest.size = message.size;
+        XMEMCPY(signIn.digest.buffer, message.buffer, message.size);
+        signIn.inScheme.scheme = TPM_ALG_ECDSA;
+        signIn.inScheme.details.ecdsa.hashAlg = TPM_ALG_SHA256;
+        signIn.validation.tag = TPM_ST_HASHCHECK;
+        signIn.validation.hierarchy = TPM_RH_NULL;
+
+        rc = TPM2_Sign(&signIn, &signOut);
+        if (rc != TPM_RC_SUCCESS)
+        {
+            return rc;
+        }
+
+        // Verify signature
+        XMEMSET(&verifySignIn, 0, sizeof(verifySignIn));
+        verifySignIn.keyHandle = loadOut.objectHandle;
+        verifySignIn.digest.size = message.size;
+        XMEMCPY(verifySignIn.digest.buffer, message.buffer, message.size);
+        verifySignIn.signature = signOut.signature;
+        rc = TPM2_VerifySignature(&verifySignIn, &verifySignOut);
+
+        if (rc != TPM_RC_SUCCESS)
+        {
+            return rc;
+        }
+
+        printf(".");
+    }
+
+    printf("\n");
+
+    return TPM_RC_SUCCESS;
+}
+
 static int aes_encrypt_decrypt(TpmRsaKey const *parent_key, size_t num_loops)
 {
     int rc;
@@ -331,9 +416,6 @@ static int aes_encrypt_decrypt(TpmRsaKey const *parent_key, size_t num_loops)
         return rc;
     }
 
-    // Configure Label and Cleartext properly
-    const char label[] = "ThisIsMyLabel";
-
     printf("Running encryption/decryption loops...\n");
     for (size_t idx = 0; idx < num_loops; idx++)
     {
@@ -349,6 +431,7 @@ static int aes_encrypt_decrypt(TpmRsaKey const *parent_key, size_t num_loops)
         /* AES Encrypt */
         XMEMSET(&encDecIn, 0, sizeof(encDecIn));
         encDecIn.keyHandle = loadOut.objectHandle;
+        // FIXME: Provide a non-zero IV (check: do we need an IV in counter mode, anyways?)
         encDecIn.ivIn.size = MAX_AES_BLOCK_SIZE_BYTES; /* zeros */
         encDecIn.inData.size = message.size;
         XMEMCPY(encDecIn.inData.buffer, message.buffer, encDecIn.inData.size);
@@ -364,6 +447,7 @@ static int aes_encrypt_decrypt(TpmRsaKey const *parent_key, size_t num_loops)
         /* AES Decrypt */
         XMEMSET(&encDecIn, 0, sizeof(encDecIn));
         encDecIn.keyHandle = loadOut.objectHandle;
+        // FIXME: Same as above: IV in counter mode?
         encDecIn.ivIn.size = MAX_AES_BLOCK_SIZE_BYTES; /* zeros */
         encDecIn.inData.size = message.size;
         XMEMCPY(encDecIn.inData.buffer, encDecOut.outData.buffer, encDecOut.outData.size);
@@ -607,7 +691,6 @@ int main(int argc, char *argv[])
     {
         printf("RSA 2048 encryption and decryption failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
     }
-#endif
 
     // AES-256 encryption/decryption -----------------------------------------
 
@@ -624,6 +707,25 @@ int main(int argc, char *argv[])
     {
         printf("AES-256 encryption and decryption failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
     }
+#endif
+
+    // --- ECC P-256 sign/validate --------------------------------------------
+
+    rc = startup_tpm();
+    if (rc != TPM_RC_SUCCESS)
+    {
+        printf("TPM2_Startup failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+        goto exit;        
+    }
+    printf("Benchmarking ECC P-256 signing/validation\n");
+
+    rc = ecc_sign_validate(&null_primary_key, BENCHMARK_NUM_LOOPS);
+    if (rc != TPM_RC_SUCCESS)
+    {
+        printf("ECC P-256 signing/validation failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+    }
+
+    printf("ECC P-256 signing/validation finished successfully.\n");
 
     printf("TPM2 Benchmark finished successfully.\n");
 
