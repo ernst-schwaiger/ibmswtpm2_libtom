@@ -1,5 +1,5 @@
 CC=gcc
-CCOPTS=-I/home/ernst/projects/wolfTPM -O0 -ggdb3  
+CCOPTS=-I/home/ernst/projects/wolfTPM -O0 -ggdb3 -Wall
 
 all: benchmark
 

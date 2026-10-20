@@ -276,6 +276,113 @@ static int rsa_encrypt_decrypt(TpmRsaKey const *parent_key, size_t num_loops)
     return TPM_RC_SUCCESS;
 }
 
+static int rsa_sign_validate(TpmRsaKey const *parent_key, size_t num_loops)
+{
+    int rc;
+    Create_In createIn;
+    Create_Out createOut;
+
+    Load_In loadIn;
+    Load_Out loadOut;
+
+    const char keyCreationNonce[] = "RandomServerPickedCreationNonce";
+
+    /* Create an RSA key for encrypt/decrypt, below the primary key of the NULL hierarchy */
+    XMEMSET(&createIn, 0, sizeof(createIn));
+    createIn.parentHandle = parent_key->handle;
+    
+    // We use a zero-size password for accessing the NULL hierarchy
+    createIn.inSensitive.sensitive.userAuth.size = 0;
+    
+    // For the key creation benchmark, we use only 1024 bit keys to speed up the process
+    createIn.inPublic.publicArea.type = TPM_ALG_RSA;
+    createIn.inPublic.publicArea.unique.rsa.size = STM32TPM_BENCHMARK_RSA_2048_KEY_BITS / 8;
+    createIn.inPublic.publicArea.nameAlg = TPM_ALG_SHA256;
+    createIn.inPublic.publicArea.objectAttributes = (
+        TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
+        /*TPMA_OBJECT_decrypt |*/ TPMA_OBJECT_sign | TPMA_OBJECT_noDA );
+    createIn.inPublic.publicArea.parameters.rsaDetail.symmetric.algorithm = TPM_ALG_NULL;
+    createIn.inPublic.publicArea.parameters.rsaDetail.scheme.scheme = TPM_ALG_RSASSA;
+    createIn.inPublic.publicArea.parameters.rsaDetail.scheme.details.rsassa.hashAlg = TPM_ALG_SHA256;
+    createIn.inPublic.publicArea.parameters.rsaDetail.keyBits = STM32TPM_BENCHMARK_RSA_2048_KEY_BITS;
+    createIn.outsideInfo.size = sizeof(keyCreationNonce)-1;
+
+    // We only create one key using a fixed nonce (we dont measure key creation here)
+    XMEMCPY(createIn.outsideInfo.buffer, keyCreationNonce, createIn.outsideInfo.size);
+
+    // We are now using the key to decrypt and encrypt data
+    rc = TPM2_Create(&createIn, &createOut);
+
+    if (rc != TPM_RC_SUCCESS)
+    {
+        return rc;
+    }
+
+    /* Load the newly created key */
+    XMEMSET(&loadIn, 0, sizeof(loadIn));
+    loadIn.parentHandle = parent_key->handle;
+    loadIn.inPrivate = createOut.outPrivate;
+    loadIn.inPublic = createOut.outPublic;
+    rc = TPM2_Load(&loadIn, &loadOut);
+    if (rc != TPM_RC_SUCCESS)
+    {
+        return rc;
+    }
+
+    printf("Running signing/verification loops...\n");
+    for (size_t idx = 0; idx < num_loops; idx++)
+    {
+        Sign_In signIn;
+        Sign_Out signOut;
+
+        VerifySignature_In verifySignIn;
+        VerifySignature_Out verifySignOut;
+
+        // Message to sign : (keylen[bit] / 8) bytes all holding the current loop index
+        TPM2B_PUBLIC_KEY_RSA message;
+        XMEMSET(message.buffer, idx % 256, TPM_SHA256_DIGEST_SIZE);
+        message.size = TPM_SHA256_DIGEST_SIZE;
+
+        XMEMSET(&signIn, 0, sizeof(signIn));
+        signIn.keyHandle = loadOut.objectHandle;
+        signIn.digest.size = message.size;
+        XMEMCPY(signIn.digest.buffer, message.buffer, message.size);
+        signIn.inScheme.scheme = TPM_ALG_RSASSA;
+        signIn.inScheme.details.rsassa.hashAlg = TPM_ALG_SHA256;
+        signIn.validation.tag = TPM_ST_HASHCHECK;
+        signIn.validation.hierarchy = TPM_RH_NULL;
+
+        rc = TPM2_Sign(&signIn, &signOut);
+        if (rc != TPM_RC_SUCCESS)
+        {
+            return rc;
+        }
+
+        // Verify signature
+        XMEMSET(&verifySignIn, 0, sizeof(verifySignIn));
+        verifySignIn.keyHandle = loadOut.objectHandle;
+        verifySignIn.digest.size = message.size;
+        XMEMCPY(verifySignIn.digest.buffer, message.buffer, message.size);
+        verifySignIn.signature = signOut.signature;
+        rc = TPM2_VerifySignature(&verifySignIn, &verifySignOut);
+
+        if (rc != TPM_RC_SUCCESS)
+        {
+            return rc;
+        }
+
+        printf(".");
+    }
+
+    printf("\n");
+
+    return TPM_RC_SUCCESS;
+
+
+
+
+}
+
 static int ecc_sign_validate(TpmRsaKey const *parent_key, size_t num_loops)
 {
     int rc;
@@ -707,7 +814,6 @@ int main(int argc, char *argv[])
     {
         printf("AES-256 encryption and decryption failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
     }
-#endif
 
     // --- ECC P-256 sign/validate --------------------------------------------
 
@@ -726,6 +832,25 @@ int main(int argc, char *argv[])
     }
 
     printf("ECC P-256 signing/validation finished successfully.\n");
+#endif
+
+    // --- RSA 2048 sign/validate --------------------------------------------
+
+    rc = startup_tpm();
+    if (rc != TPM_RC_SUCCESS)
+    {
+        printf("TPM2_Startup failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+        goto exit;        
+    }
+    printf("Benchmarking RSA 2048 signing/validation\n");
+
+    rc = rsa_sign_validate(&null_primary_key, BENCHMARK_NUM_LOOPS);
+    if (rc != TPM_RC_SUCCESS)
+    {
+        printf("RSA 2048 signing/validation failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+    }
+
+    printf("RSA 2048 signing/validation finished successfully.\n");
 
     printf("TPM2 Benchmark finished successfully.\n");
 
