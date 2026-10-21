@@ -658,6 +658,127 @@ static int aes_hmac(TpmRsaKey const *parent_key, size_t num_loops)
     return TPM_RC_SUCCESS;
 }
 
+static int create_storage_key(TpmRsaKey const *parent_key,
+                              TpmRsaKey *storage_key)
+{
+    int rc;
+    Create_In createIn = {0};
+    Create_Out createOut = {0};
+    Load_In loadIn = {0};
+    Load_Out loadOut = {0};
+
+    createIn.parentHandle = parent_key->handle;
+    createIn.inSensitive.sensitive.userAuth.size = 0;
+
+    createIn.inPublic.publicArea.type = TPM_ALG_RSA;
+    createIn.inPublic.publicArea.nameAlg = TPM_ALG_SHA256;
+    createIn.inPublic.publicArea.objectAttributes =
+        TPMA_OBJECT_fixedTPM |
+        TPMA_OBJECT_fixedParent |
+        TPMA_OBJECT_sensitiveDataOrigin |
+        TPMA_OBJECT_userWithAuth |
+        TPMA_OBJECT_restricted |
+        TPMA_OBJECT_decrypt |
+        TPMA_OBJECT_noDA;
+
+    createIn.inPublic.publicArea.parameters.rsaDetail.keyBits = 2048;
+    createIn.inPublic.publicArea.parameters.rsaDetail.exponent = 0;
+    createIn.inPublic.publicArea.parameters.rsaDetail.scheme.scheme =
+        TPM_ALG_NULL;
+    createIn.inPublic.publicArea.parameters.rsaDetail.symmetric.algorithm =
+        TPM_ALG_AES;
+    createIn.inPublic.publicArea.parameters.rsaDetail.symmetric.keyBits.aes =
+        128;
+    createIn.inPublic.publicArea.parameters.rsaDetail.symmetric.mode.aes =
+        TPM_ALG_CFB;
+
+    rc = TPM2_Create(&createIn, &createOut);
+    if (rc != TPM_RC_SUCCESS) {
+        return rc;
+    }
+
+    loadIn.parentHandle = parent_key->handle;
+    loadIn.inPrivate = createOut.outPrivate;
+    loadIn.inPublic = createOut.outPublic;
+
+    rc = TPM2_Load(&loadIn, &loadOut);
+    if (rc != TPM_RC_SUCCESS) {
+        return rc;
+    }
+
+    storage_key->handle = loadOut.objectHandle;
+    storage_key->auth = createIn.inSensitive.sensitive.userAuth;
+    storage_key->priv = createOut.outPrivate;
+    storage_key->pub = createOut.outPublic;
+    storage_key->name = loadOut.name;
+    storage_key->symmetric =
+        createIn.inPublic.publicArea.parameters.rsaDetail.symmetric;
+
+    return TPM_RC_SUCCESS;
+}
+
+static int seal_unseal(TpmRsaKey const *parent_key, size_t num_loops)
+{
+    Create_In createIn = {0};
+    Create_Out createOut = {0};
+    Load_In loadIn = {0};
+    Load_Out loadOut = {0};
+    Unseal_In unsealIn = {0};
+    Unseal_Out unsealOut = {0};
+
+    const BYTE payload[] = {1, 2, 3, 4, 5, 6 , 7, 8};
+    UINT16 payloadSize = sizeof(payloadSize);
+
+    TpmRsaKey storage_key;
+    int rc = create_storage_key(parent_key, &storage_key);
+    if (rc != TPM_RC_SUCCESS)
+    {
+        return rc;
+    }
+
+    /* Create a sealed object under an existing parent/storage key. */
+    createIn.parentHandle = storage_key.handle;
+    createIn.inSensitive.sensitive.userAuth.size = 0;  /* or set an object auth value */
+    createIn.inSensitive.sensitive.data.size = payloadSize;
+    XMEMCPY(createIn.inSensitive.sensitive.data.buffer, payload, payloadSize);
+
+    createIn.inPublic.publicArea.type = TPM_ALG_KEYEDHASH;
+    createIn.inPublic.publicArea.nameAlg = TPM_ALG_SHA256;
+    createIn.inPublic.publicArea.objectAttributes =
+        TPMA_OBJECT_fixedTPM |
+        TPMA_OBJECT_fixedParent |
+        TPMA_OBJECT_userWithAuth |
+        TPMA_OBJECT_noDA;
+
+    createIn.inPublic.publicArea.parameters.keyedHashDetail.scheme.scheme =
+        TPM_ALG_NULL;
+
+    rc = TPM2_Create(&createIn, &createOut);
+    if (rc != TPM_RC_SUCCESS)
+    {
+        return rc;
+    }
+
+    /* Load the object before unsealing it. */
+    loadIn.parentHandle = storage_key.handle;
+    loadIn.inPrivate = createOut.outPrivate;
+    loadIn.inPublic = createOut.outPublic;
+    rc = TPM2_Load(&loadIn, &loadOut);
+    if (rc != TPM_RC_SUCCESS)
+    {
+        return rc;
+    }
+
+    /* Unseal using the loaded object's handle. */
+    unsealIn.itemHandle = loadOut.objectHandle;
+    rc = TPM2_Unseal(&unsealIn, &unsealOut);
+    if (rc != TPM_RC_SUCCESS)
+    {
+        return rc;
+    }
+    
+    return TPM_RC_SUCCESS;
+}
 
 static int hashing(char const *hashData, size_t hashDataSize)
 {
@@ -930,7 +1051,6 @@ int main(int argc, char *argv[])
     }
 
     printf("RSA 2048 signing/validation finished successfully.\n");
-#endif
 
     // --- AES 256 HMAC -------------------------------------------------------
 
@@ -950,6 +1070,9 @@ int main(int argc, char *argv[])
     }
 
     printf("AES 256 HMAC generation finished successfully.\n");
+#endif
+
+    seal_unseal(&null_primary_key, BENCHMARK_NUM_LOOPS);
 
     printf("TPM2 Benchmark finished successfully.\n");
 
