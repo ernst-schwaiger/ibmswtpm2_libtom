@@ -377,10 +377,6 @@ static int rsa_sign_validate(TpmRsaKey const *parent_key, size_t num_loops)
     printf("\n");
 
     return TPM_RC_SUCCESS;
-
-
-
-
 }
 
 static int ecc_sign_validate(TpmRsaKey const *parent_key, size_t num_loops)
@@ -582,6 +578,86 @@ static int aes_encrypt_decrypt(TpmRsaKey const *parent_key, size_t num_loops)
     return TPM_RC_SUCCESS;
 }
 
+static int aes_hmac(TpmRsaKey const *parent_key, size_t num_loops)
+{
+    int rc;
+    Create_In createIn;
+    Create_Out createOut;
+
+    Load_In loadIn;
+    Load_Out loadOut;
+
+    printf("Creating an AES-256 key...\n");
+    /* Create an AES-256 key for HMAC, below the primary key of the NULL hierarchy */
+    XMEMSET(&createIn, 0, sizeof(createIn));
+    createIn.parentHandle = parent_key->handle;
+    
+    // We use a zero-size password for accessing the NULL hierarchy
+    createIn.inSensitive.sensitive.userAuth.size = 0;
+    
+    createIn.inPublic.publicArea.type = TPM_ALG_KEYEDHASH;
+    createIn.inPublic.publicArea.nameAlg = TPM_ALG_SHA256;
+    createIn.inPublic.publicArea.objectAttributes = (
+        TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
+        TPMA_OBJECT_noDA | /*TPMA_OBJECT_decrypt |*/ TPMA_OBJECT_sign);
+    createIn.inPublic.publicArea.parameters.keyedHashDetail.scheme.scheme = TPM_ALG_HMAC; // TPM_ALG_AES;
+    createIn.inPublic.publicArea.parameters.keyedHashDetail.scheme.details.hmac.hashAlg = TPM_ALG_SHA256;
+
+    // We are now using the key to decrypt and encrypt data
+    rc = TPM2_Create(&createIn, &createOut);
+
+    if (rc != TPM_RC_SUCCESS)
+    {
+        return rc;
+    }
+
+    /* Load the newly created key */
+    XMEMSET(&loadIn, 0, sizeof(loadIn));
+    loadIn.parentHandle = parent_key->handle;
+    loadIn.inPrivate = createOut.outPrivate;
+    loadIn.inPublic = createOut.outPublic;
+    rc = TPM2_Load(&loadIn, &loadOut);
+    if (rc != TPM_RC_SUCCESS)
+    {
+        return rc;
+    }
+
+    printf("Running signing/verification loops...\n");
+    for (size_t idx = 0; idx < num_loops; idx++)
+    {
+        HMAC_In hmacIn;
+        HMAC_Out hmacOut;
+
+        // Message to sign : (keylen[bit] / 8) bytes all holding the current loop index
+        TPM2B_PUBLIC_KEY_RSA message;
+        XMEMSET(message.buffer, idx % 256, TPM_SHA256_DIGEST_SIZE);
+        message.size = TPM_SHA256_DIGEST_SIZE;
+
+        XMEMSET(&hmacIn, 0, sizeof(hmacIn));
+        hmacIn.handle = loadOut.objectHandle;
+        XMEMCPY(hmacIn.buffer.buffer, message.buffer, message.size);
+        hmacIn.buffer.size = message.size;
+        hmacIn.hashAlg = TPM_ALG_SHA256;
+
+        rc = TPM2_HMAC(&hmacIn, &hmacOut);
+        if (rc != TPM_RC_SUCCESS)
+        {
+            return rc;
+        }
+
+        if (rc != TPM_RC_SUCCESS)
+        {
+            return rc;
+        }
+
+        printf(".");
+    }
+
+    printf("\n");
+
+    return TPM_RC_SUCCESS;
+}
+
 
 static int hashing(char const *hashData, size_t hashDataSize)
 {
@@ -701,7 +777,7 @@ int main(int argc, char *argv[])
         if (rc != TPM_RC_SUCCESS)
         {
             printf("Hash benchmark failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
-            break;
+            goto exit;        
         }
         printf(".");
     }
@@ -733,7 +809,7 @@ int main(int argc, char *argv[])
         if (rc != TPM_RC_SUCCESS)
         {
             printf("Create Key failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
-            break;
+            goto exit;        
         }
         printf(".");
     }
@@ -797,6 +873,7 @@ int main(int argc, char *argv[])
     if (rc != TPM_RC_SUCCESS)
     {
         printf("RSA 2048 encryption and decryption failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+        goto exit;        
     }
 
     // AES-256 encryption/decryption -----------------------------------------
@@ -813,6 +890,7 @@ int main(int argc, char *argv[])
     if (rc != TPM_RC_SUCCESS)
     {
         printf("AES-256 encryption and decryption failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+        goto exit;
     }
 
     // --- ECC P-256 sign/validate --------------------------------------------
@@ -829,10 +907,10 @@ int main(int argc, char *argv[])
     if (rc != TPM_RC_SUCCESS)
     {
         printf("ECC P-256 signing/validation failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+        goto exit;
     }
 
     printf("ECC P-256 signing/validation finished successfully.\n");
-#endif
 
     // --- RSA 2048 sign/validate --------------------------------------------
 
@@ -848,9 +926,30 @@ int main(int argc, char *argv[])
     if (rc != TPM_RC_SUCCESS)
     {
         printf("RSA 2048 signing/validation failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+        goto exit;
     }
 
     printf("RSA 2048 signing/validation finished successfully.\n");
+#endif
+
+    // --- AES 256 HMAC -------------------------------------------------------
+
+    rc = startup_tpm();
+    if (rc != TPM_RC_SUCCESS)
+    {
+        printf("TPM2_Startup failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+        goto exit;        
+    }
+    printf("Benchmarking AES 256 HMAC generation\n");
+
+    rc = aes_hmac(&null_primary_key, BENCHMARK_NUM_LOOPS);
+    if (rc != TPM_RC_SUCCESS)
+    {
+        printf("AES 256 HMAC generation failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+        goto exit;
+    }
+
+    printf("AES 256 HMAC generation finished successfully.\n");
 
     printf("TPM2 Benchmark finished successfully.\n");
 
