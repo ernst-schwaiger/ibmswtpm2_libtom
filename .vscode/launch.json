@@ -27,6 +27,27 @@
             ]
         },
         {
+            "name": "TPM Benchmark",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/tpm_benchmark/benchmark",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [ 
+                {"name": "LD_LIBRARY_PATH", "value" : "/home/ernst/projects/wolfTPM/src/.libs:/usr/local/lib"}
+            ]
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
             "name": "Python: Firmware Report Reader",
             "type": "debugpy",
             "request": "launch",
@@ -57,7 +78,7 @@
             //"python": "${workspaceFolder}/ParseSPI/venv/bin/python",
             //"python": "${workspaceFolder}/../../OpenMapFileViewerVenv/bin/python",
             "program": "${workspaceFolder}/ParseBenchmarkfile/parse_benchmarkfile.py",
-            "args": ["${workspaceFolder}/ParseBenchmarkfile/measure_events.bin"],
+            "args": ["${workspaceFolder}/ParseBenchmarkfile/command_benchmark.csv"],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "justMyCode": true
