@@ -1,5 +1,5 @@
 CC=gcc
-CCOPTS=-I/home/ernst/projects/wolfTPM -O0 -ggdb3 -Wall
+CCOPTS=-I/home/ernst/projects/wolfTPM -O2 -ggdb3 -Wall
 
 all: benchmark
 
@@ -8,9 +8,3 @@ benchmark: benchmark.c
 
 clean:
 	rm -f benchmark
-
-# gcc benchmark.c -o benchmark \
-#   -I/home/ernst/projects/wolfTPM/ \
-#   -L/home/ernst/projects/wolfTPM/src/.libs -lwolftpm \
-#   -L/home/ernst/wolfssl_local/lib -lwolfssl \
-#   -lm -lpthread
