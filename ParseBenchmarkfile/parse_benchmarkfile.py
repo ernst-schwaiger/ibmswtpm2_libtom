@@ -25,7 +25,11 @@ TPM_CC_STARTUP = 0x00000144
 TPM_CC_SHUTDOWN = 0x00000145
 TPM_CC_RSA_ENCRYPT = 0x00000174
 TPM_CC_RSA_DECRYPT = 0x00000159
-
+TPM_CC_ENCRYPTDECRYPT2 = 0x00000193
+TPM_CC_SIGN = 0x0000015D
+TPM_CC_VERIFYSIGNATURE = 0x00000177
+TPM_CC_HMAC = 0x00000155
+TPM_CC_UNSEAL = 0x0000015E
 
 CMD_CODE_TO_NAME_MAP = {
     0x0000011F : "TPM_CC_FIRST",
@@ -187,14 +191,13 @@ TABLE_FOOTER = r"""\end{tabularx}
 """
 
 class TpmCommandExec:
-    """Tracks a TPM command, its start/finish us timestamp and the command code"""
-    def __init__(self, start: int, finish: int, command_code: int):
-        self.start = start
-        self.finish = finish
+    """Tracks a TPM command, its duration in us and the command code"""
+    def __init__(self, duration: int, command_code: int):
+        self.duration = duration
         self.command_code = command_code
 
     def print_self(self):
-        print(f"Command: {_lookup_command(self.command_code)}, start: {self.start}, duration: {self.finish - self.start}")
+        print(f"Command: {_lookup_command(self.command_code)}, duration: {self.duration}")
 
 def _lookup_command(cmd_code: int) -> str:
     return CMD_CODE_TO_NAME_MAP[cmd_code]
@@ -203,7 +206,7 @@ def _extract_duration_samples(cmd_code: int, tpm_commands: list[TpmCommandExec])
     ret = []
     for cmd in tpm_commands:
         if cmd.command_code == cmd_code:
-            ret.append(cmd.finish - cmd.start)
+            ret.append(cmd.duration)
     return ret
 
 def _split_benchmark_list(cmds: list[TpmCommandExec]) -> list[list[TpmCommandExec]]:
@@ -218,21 +221,6 @@ def _split_benchmark_list(cmds: list[TpmCommandExec]) -> list[list[TpmCommandExe
             curr_benchmark.append(cmd)
 
     return ret
-
-def _std_deviation_by_mean_str(stddev: float, mean: float) -> str:
-    dev_by_mean = stddev / mean
-    return f"{dev_by_mean:.2f}"
-
-def iter_records(file: BinaryIO) -> Iterator[Record]:
-    """Yield start timestamp/context and end timestamp/context values."""
-    while record_bytes := file.read(RECORD_SIZE):
-        if len(record_bytes) != RECORD_SIZE:
-            raise ValueError(
-                f"incomplete record: expected {RECORD_SIZE} bytes, "
-                f"got {len(record_bytes)}"
-            )
-        fields = RECORD_STRUCT.unpack(record_bytes)
-        yield (fields[0], fields[1], fields[2], fields[3])
 
 def _print_table_row(command_code: int, tpm_commands:list[TpmCommandExec]):
     values = _extract_duration_samples(command_code, tpm_commands)
@@ -259,10 +247,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         with args.input_file.open("r") as input_file:
             csv_reader = csv.reader(input_file, delimiter=',')
             for row in csv_reader:
-                start_time = int(row[0])
-                command_code = int(row[1])
-                finish_time = int(row[2])
-                tpm_commands.append(TpmCommandExec(start_time, finish_time, command_code))
+                duration = int(row[0])
+                command_code = int(row[1],16)
+                tpm_commands.append(TpmCommandExec(duration, command_code))
     except OSError as error:
         parser.error(f"cannot read {args.input_file}: {error}")
     except ValueError as error:
@@ -274,17 +261,37 @@ def main(argv: Sequence[str] | None = None) -> int:
     benchmarks = _split_benchmark_list(tpm_commands)
 
     print(TABLE_HEADER)
-    _print_table_row(TPM_CC_HASHSEQUENCESTART, benchmarks[0])
+    _print_table_row(TPM_CC_HASHSEQUENCESTART, benchmarks[0]) # SHA 256
     _print_table_row(TPM_CC_SEQUENCEUPDATE, benchmarks[0])
     _print_table_row(TPM_CC_SEQUENCECOMPLETE, benchmarks[0])
-    _print_table_row(TPM_CC_CREATE, benchmarks[1])
-    _print_table_row(TPM_CC_CREATE, benchmarks[2])
-    _print_table_row(TPM_CC_CREATE, benchmarks[2])
-    _print_table_row(TPM_CC_CREATE, benchmarks[2])
-    _print_table_row(TPM_CC_RSA_ENCRYPT, benchmarks[3])
-    _print_table_row(TPM_CC_RSA_DECRYPT, benchmarks[3])
+
+    _print_table_row(TPM_CC_CREATE, benchmarks[1]) # RSA 1024 Key Generation
+
+    _print_table_row(TPM_CC_CREATE, benchmarks[2]) # ECC P-256 Key Generation
+
+    _print_table_row(TPM_CC_CREATE, benchmarks[3]) # AES-256 Key Generation
+
+    _print_table_row(TPM_CC_RSA_ENCRYPT, benchmarks[4]) # RSA 2048 encrypt decrypt
+    _print_table_row(TPM_CC_RSA_DECRYPT, benchmarks[4])
+
+    _print_table_row(TPM_CC_ENCRYPTDECRYPT2, benchmarks[5]) # AES 2048 encrypt decrypt
+
+    _print_table_row(TPM_CC_SIGN, benchmarks[6]) # ECC P-256 Sign/Verify Signature
+    _print_table_row(TPM_CC_VERIFYSIGNATURE, benchmarks[6]) # ECC P-256 Sign/Verify Signature
+
+    _print_table_row(TPM_CC_SIGN, benchmarks[7]) # RSA 2048 Sign/Verify Signature
+    _print_table_row(TPM_CC_VERIFYSIGNATURE, benchmarks[7]) # RSA 2048 Sign/Verify Signature
+
+    _print_table_row(TPM_CC_HMAC, benchmarks[8]) # AES 256 HMAC Generation
+
+    # skip the first create since this produces the RSA 2048 key to seal/unseal
+    _print_table_row(TPM_CC_CREATE, benchmarks[9]) # Create a selaed object
+    _print_table_row(TPM_CC_UNSEAL, benchmarks[9]) # RSA 2048 Seal/Unseal
 
     print(TABLE_FOOTER)
+
+    # for tpm_command in tpm_commands:
+    #     tpm_command.print_self()
 
     return 0
 
