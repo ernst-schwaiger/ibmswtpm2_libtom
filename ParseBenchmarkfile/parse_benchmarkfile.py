@@ -6,6 +6,9 @@ from __future__ import annotations
 import argparse
 import struct
 import csv
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 from collections.abc import Iterator, Sequence
 from pathlib import Path
@@ -161,6 +164,26 @@ CMD_CODE_TO_NAME_MAP = {
     0x20000213 : "NTC2_CC_GetConfig"
 }
 
+BM_TFM_O0 = "command_benchmark_O0_TFM.csv"
+BM_TFM_O0_CLIENT = "command_benchmark_client_O0_TFM.csv"
+BM_TFM_O2 = "command_benchmark_O2_TFM.csv"
+BM_TFM_O2_CLIENT = "command_benchmark_client_O2_TFM.csv"
+BM_TFM_O2_UNROLLED = "command_benchmark_O2_TFM_unrolled.csv"
+BM_TFM_O2_UNROLLED_CLIENT = "command_benchmark_client_O2_TFM_unrolled.csv"
+BM_TFM_OS = "command_benchmark_OS_TFM.csv"
+BM_TFM_OS_CLIENT = "command_benchmark_client_OS_TFM.csv"
+
+BENCHMARK_FILES = {
+    BM_TFM_O0,
+    BM_TFM_O0_CLIENT,
+    BM_TFM_O2,
+    BM_TFM_O2_CLIENT,
+    BM_TFM_O2_UNROLLED,
+    BM_TFM_O2_UNROLLED_CLIENT,
+    BM_TFM_OS,
+    BM_TFM_OS_CLIENT
+}
+
 TABLE_HEADER = r"""
 \begin{table}[htbp]
 \small
@@ -222,7 +245,7 @@ def _split_benchmark_list(cmds: list[TpmCommandExec]) -> list[list[TpmCommandExe
 
     return ret
 
-def _print_table_row(command_code: int, tpm_commands:list[TpmCommandExec]):
+def _print_table_row(command_code: int, tpm_commands:list[TpmCommandExec], rowtext: str = None):
     values = _extract_duration_samples(command_code, tpm_commands)
 
     # Only create a table entry if the command was actually found
@@ -233,30 +256,135 @@ def _print_table_row(command_code: int, tpm_commands:list[TpmCommandExec]):
         mean = round(stats.mean(values), 2)
         median = stats.median(values)
         std_dev = round(stats.pstdev(values), 2)
-        print(fr"{command_str} & {minimum} & {maximum} & {mean} & {int(median)} & {std_dev} \\ \hline")
+        print(fr"{rowtext if rowtext is not None else command_str} & {minimum} & {maximum} & {mean} & {int(median)} & {std_dev} \\ \hline")
+
+def _extract_rsa_creation_data(tpm_commands:list[TpmCommandExec], offset: float = 0.0) -> list[int]:
+    ret = []
+    for cmd in tpm_commands:
+        ret.append((cmd.duration / 1000000.0) + offset)
+    return ret
+
+def read_benchmark_files(folder: Path, parser: ArgumentParser) -> dict[str,list[TpmCommandExec]]:
+
+    ret = {}
+
+    for benchmark_file in BENCHMARK_FILES:
+        file_path = folder / benchmark_file
+        tpm_commands = []
+        if file_path.is_file():
+            try:
+                with file_path.open("r") as input_file:
+                    csv_reader = csv.reader(input_file, delimiter=',')
+                    for row in csv_reader:
+                        duration = int(row[0])
+                        command_code = int(row[1],16)
+                        tpm_commands.append(TpmCommandExec(duration, command_code))
+            except OSError as error:
+                parser.error(f"cannot read {file_path}: {error}")
+            except ValueError as error:
+                parser.error(f"{file_path}: {error}")
+            ret[benchmark_file] = tpm_commands
+
+    return ret
+
+
+def _plot_violin(data: list[list[float]], ticks: list[str], save_file: Path):
+    plt.style.use('_mpl-gallery')
+    colors = ["blue", "orange", "green", "purple", "cyan", "olive"]
+
+    # plot:
+    fig, ax = plt.subplots(figsize=(7, 5))
+
+    fig.subplots_adjust(
+        left=0.16,
+        bottom=0.1,
+        right=1.0,
+        top=1.0,
+        wspace=0.2,
+        hspace=0.2,
+    )
+
+    x = range(1, len(data) + 1)
+
+    vp = ax.violinplot(
+        data,
+        positions=x,
+        widths=0.8,
+        showmeans=False,
+        showmedians=True,
+        showextrema=False,
+    )
+
+    # configuree colors, plot mean marker
+    for idx, _ in enumerate(data):
+        vp["bodies"][idx].set_facecolor(colors[idx])
+        vp["bodies"][idx].set_edgecolor("black")
+        ax.scatter(x[idx], np.mean(data[idx]), marker="D", color="red",
+            label="Mean", zorder=3)
+
+    # set ticks
+    ax.set_xticks(x, ticks)
+
+    ax.set_ylabel("Execution time [s]", fontsize=10)
+    ax.tick_params(axis="both", labelsize=8)
+
+    fig.savefig(save_file, format="pdf", bbox_inches="tight")
+
+def _plot_box(data: list[list[float]], ticks: list[str], save_file: Path):
+    plt.style.use('_mpl-gallery')
+    #colors = ["blue", "orange", "green", "purple", "cyan", "olive"]
+
+    # plot:
+    fig, ax = plt.subplots(figsize=(7, 5))
+
+    fig.subplots_adjust(
+        left=0.16,
+        bottom=0.1,
+        right=1.0,
+        top=1.0,
+        wspace=0.2,
+        hspace=0.2,
+    )
+
+    x = range(1, len(data) + 1)
+
+    vp = ax.boxplot(
+        data,
+        positions=x,
+        patch_artist=True,
+        showmeans=False,
+        #showmedians=True,
+        #showextrema=True,
+    )
+
+    # configuree colors, plot mean marker
+    for idx, _ in enumerate(data):
+        #vp["boxes"][idx].set_facecolor(colors[idx])
+        vp["boxes"][idx].set_edgecolor("black")
+        ax.scatter(x[idx], np.mean(data[idx]), marker="D", color="red",
+            label="Mean", zorder=3)
+
+    # set ticks
+    ax.set_xticks(x, ticks)
+
+    ax.set_ylabel("Execution time [s]", fontsize=10)
+    ax.tick_params(axis="both", labelsize=8)
+
+    fig.savefig(save_file, format="pdf", bbox_inches="tight")
+
+
+
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Decode benchmark records (four little-endian 32-bit fields each)."
     )
-    parser.add_argument("input_file", type=Path, help="binary file to decode")
+    parser.add_argument("input_folder", type=Path, help="folder holding benchmark files")
     args = parser.parse_args(argv)
 
-    tpm_commands = []
-    try:
-        with args.input_file.open("r") as input_file:
-            csv_reader = csv.reader(input_file, delimiter=',')
-            for row in csv_reader:
-                duration = int(row[0])
-                command_code = int(row[1],16)
-                tpm_commands.append(TpmCommandExec(duration, command_code))
-    except OSError as error:
-        parser.error(f"cannot read {args.input_file}: {error}")
-    except ValueError as error:
-        parser.error(f"{args.input_file}: {error}")
+    tpm_benchmarks = read_benchmark_files(args.input_folder, parser)
 
-    for cmd in tpm_commands:
-        cmd.print_self()
+    tpm_commands = tpm_benchmarks[BM_TFM_O2]
 
     benchmarks = _split_benchmark_list(tpm_commands)
 
@@ -265,33 +393,48 @@ def main(argv: Sequence[str] | None = None) -> int:
     _print_table_row(TPM_CC_SEQUENCEUPDATE, benchmarks[0])
     _print_table_row(TPM_CC_SEQUENCECOMPLETE, benchmarks[0])
 
-    _print_table_row(TPM_CC_CREATE, benchmarks[1]) # RSA 1024 Key Generation
+    _print_table_row(TPM_CC_CREATE, benchmarks[1], r"TPM\_CC\_CREATE RSA 2048") # RSA 1024 Key Generation
 
-    _print_table_row(TPM_CC_CREATE, benchmarks[2]) # ECC P-256 Key Generation
+    _print_table_row(TPM_CC_CREATE, benchmarks[2], r"TPM\_CC\_CREATE ECC P-256") # ECC P-256 Key Generation
 
-    _print_table_row(TPM_CC_CREATE, benchmarks[3]) # AES-256 Key Generation
+    _print_table_row(TPM_CC_CREATE, benchmarks[3], r"TPM\_CC\_CREATE AES-256") # AES-256 Key Generation
 
     _print_table_row(TPM_CC_RSA_ENCRYPT, benchmarks[4]) # RSA 2048 encrypt decrypt
     _print_table_row(TPM_CC_RSA_DECRYPT, benchmarks[4])
 
     _print_table_row(TPM_CC_ENCRYPTDECRYPT2, benchmarks[5]) # AES 2048 encrypt decrypt
 
-    _print_table_row(TPM_CC_SIGN, benchmarks[6]) # ECC P-256 Sign/Verify Signature
-    _print_table_row(TPM_CC_VERIFYSIGNATURE, benchmarks[6]) # ECC P-256 Sign/Verify Signature
+    _print_table_row(TPM_CC_SIGN, benchmarks[6], r"TPM\_CC\_SIGN ECC P-256") # ECC P-256 Sign/Verify Signature
+    _print_table_row(TPM_CC_VERIFYSIGNATURE, benchmarks[6], r"TPM\_CC\_VERIFYSIGNATURE ECC P-256") # ECC P-256 Sign/Verify Signature
 
-    _print_table_row(TPM_CC_SIGN, benchmarks[7]) # RSA 2048 Sign/Verify Signature
-    _print_table_row(TPM_CC_VERIFYSIGNATURE, benchmarks[7]) # RSA 2048 Sign/Verify Signature
+    _print_table_row(TPM_CC_SIGN, benchmarks[7], r"TPM\_CC\_SIGN RSA 2048") # RSA 2048 Sign/Verify Signature
+    _print_table_row(TPM_CC_VERIFYSIGNATURE, benchmarks[7], r"TPM\_CC\_VERIFYSIGNATURE RSA 2048") # RSA 2048 Sign/Verify Signature
 
-    _print_table_row(TPM_CC_HMAC, benchmarks[8]) # AES 256 HMAC Generation
+    _print_table_row(TPM_CC_HMAC, benchmarks[8], r"TPM\_CC\_HMAC AES 256") # AES 256 HMAC Generation
 
     # skip the first create since this produces the RSA 2048 key to seal/unseal
-    _print_table_row(TPM_CC_CREATE, benchmarks[9]) # Create a selaed object
-    _print_table_row(TPM_CC_UNSEAL, benchmarks[9]) # RSA 2048 Seal/Unseal
+    _print_table_row(TPM_CC_CREATE, (benchmarks[9])[1:], r"TPM\_CC\_CREATE RSA 2048") # Create a selaed object
+    _print_table_row(TPM_CC_UNSEAL, benchmarks[9], r"TPM\_CC\_UNSEAL RSA 2048") # RSA 2048 Seal/Unseal
 
     print(TABLE_FOOTER)
 
-    # for tpm_command in tpm_commands:
-    #     tpm_command.print_self()
+    benchmarks_tfm_o2 = _split_benchmark_list(tpm_benchmarks[BM_TFM_O2])
+    benchmarks_tfm_o2_unrolled = _split_benchmark_list(tpm_benchmarks[BM_TFM_O2_UNROLLED])
+    benchmarks_tfm_os = _split_benchmark_list(tpm_benchmarks[BM_TFM_OS])
+
+    rsa_tfm_o2 = _extract_rsa_creation_data(benchmarks_tfm_o2[1])
+    rsa_tfm_o2_unrolled = _extract_rsa_creation_data(benchmarks_tfm_o2_unrolled[1])
+    rsa_tfm_os = _extract_rsa_creation_data(benchmarks_tfm_os[1])
+
+
+    # _plot_violin([rsa_tfm_o2, rsa_tfm_o2_unrolled, rsa_tfm_os], 
+    #              ["LTM O2", "LTM O2 unrolled", "LTM OS"],
+    #              args.input_folder / "rsa_create_violin.pdf")
+
+    _plot_box([rsa_tfm_o2, rsa_tfm_o2_unrolled, rsa_tfm_os], 
+                 ["LTM O2", "LTM O2 unrolled", "LTM OS"],
+                 args.input_folder / "rsa_create_key_whisker.pdf")
+    
 
     return 0
 

@@ -72,13 +72,12 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Parse Benchmarkfile",
+            "name": "Python: Parse Benchmarkfiles",
             "type": "debugpy",
             "request": "launch",
-            //"python": "${workspaceFolder}/ParseSPI/venv/bin/python",
-            //"python": "${workspaceFolder}/../../OpenMapFileViewerVenv/bin/python",
+            "python": "${workspaceFolder}/.venv/bin/python",
             "program": "${workspaceFolder}/ParseBenchmarkfile/parse_benchmarkfile.py",
-            "args": ["${workspaceFolder}/ParseBenchmarkfile/command_benchmark.csv"],
+            "args": ["/home/ernst/projects/DiplomaThesis/STM32TPM/Doc/Thesis/benchmark"],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "justMyCode": true

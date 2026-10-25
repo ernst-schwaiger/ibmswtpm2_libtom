@@ -25,3 +25,4 @@ ParseSPI/venv
 ParseSPI/example
 ParseBenchmarkfile/*.bin
 ParseBenchmarkfile/*.txt
+.venv/*
