@@ -19,10 +19,11 @@
 #define STM32TPM_BENCHMARK_RSA_2048_OAEP_ENC_BYTES ((STM32TPM_BENCHMARK_RSA_2048_KEY_BITS - (2 * 256) - 16) / 8)
 #define STM32TPM_BENCHMARK_RSA_2048_SEAL_BYTES  (128U)
 #define STM32TPM_BENCHMARK_AES_256_ENC_BYTES    (256U)
+#define STM32TPM_BENCHMARK_AES_256_HMAC_BYTES   (256U)
 #define STM32TPM_BENCHMARK_SHA_256_DATA_BYTES   (256U)
 
-#define BENCHMARK_NUM_LOOPS                     (505U)
-#define MAX_NUM_MEASURED_COMMANDS               (8000U)
+#define BENCHMARK_NUM_LOOPS                     (500U)
+#define MAX_NUM_MEASURED_COMMANDS               (10000U)
 
 /* Commands to measure */
 #define TPM_CC_HASHSEQUENCESTART    0x00000186
@@ -193,7 +194,7 @@ static int create_primary_null_rsa_2048(TpmRsaKey *null_primary_key)
     return TPM_RC_SUCCESS;
 }
 
-static int create_enc_key_rsa_1024(TpmRsaKey const *parent_key)
+static int create_enc_key_rsa(TpmRsaKey const *parent_key,size_t rsa_key_length)
 {
     int rc;
     Create_In createIn;
@@ -210,14 +211,14 @@ static int create_enc_key_rsa_1024(TpmRsaKey const *parent_key)
     
     // For the key creation benchmark, we use only 1024 bit keys to speed up the process
     createIn.inPublic.publicArea.type = TPM_ALG_RSA;
-    createIn.inPublic.publicArea.unique.rsa.size = STM32TPM_BENCHMARK_RSA_1024_KEY_BITS / 8;
+    createIn.inPublic.publicArea.unique.rsa.size = rsa_key_length / 8;
     createIn.inPublic.publicArea.nameAlg = TPM_ALG_SHA256;
     createIn.inPublic.publicArea.objectAttributes = (
         TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
         TPMA_OBJECT_decrypt | TPMA_OBJECT_sign | TPMA_OBJECT_noDA );
     createIn.inPublic.publicArea.parameters.rsaDetail.symmetric.algorithm = TPM_ALG_NULL;
     createIn.inPublic.publicArea.parameters.rsaDetail.scheme.scheme = TPM_ALG_NULL;
-    createIn.inPublic.publicArea.parameters.rsaDetail.keyBits = STM32TPM_BENCHMARK_RSA_1024_KEY_BITS;
+    createIn.inPublic.publicArea.parameters.rsaDetail.keyBits = rsa_key_length;
     createIn.outsideInfo.size = sizeof(keyCreationNonce)-1;
     XMEMCPY(createIn.outsideInfo.buffer, keyCreationNonce, createIn.outsideInfo.size);
 
@@ -799,8 +800,8 @@ static int aes_hmac(TpmRsaKey const *parent_key, size_t num_loops)
 
         XMEMSET(&hmacIn, 0, sizeof(hmacIn));
         hmacIn.handle = loadOut.objectHandle;
-        generate_unique_message(hmacIn.buffer.buffer, MAX_AES_BLOCK_SIZE_BYTES, idx); 
-        hmacIn.buffer.size = MAX_AES_BLOCK_SIZE_BYTES;
+        generate_unique_message(hmacIn.buffer.buffer, STM32TPM_BENCHMARK_AES_256_HMAC_BYTES, idx); 
+        hmacIn.buffer.size = STM32TPM_BENCHMARK_AES_256_HMAC_BYTES;
         hmacIn.hashAlg = TPM_ALG_SHA256;
         
         MEASURE_START(TPM_CC_HMAC);
@@ -1057,6 +1058,22 @@ int main(int argc, char *argv[])
 {
     int rc;
     TPM2_CTX tpm2Ctx;
+    size_t rsa_create_key_length = STM32TPM_BENCHMARK_RSA_1024_KEY_BITS; /* default for debug mode */
+
+    if ((argc != 2) || 
+        (   
+            (strncmp("debug", argv[1], strlen("debug")) != 0) && 
+            (strncmp("release", argv[1], strlen("release")) != 0)
+        ))
+    {
+        fprintf(stderr, "Usage %s [debug|release]\n", argv[0]);
+        return 1;
+    }
+
+    if (strncmp("release", argv[1], strlen("release")) == 0)
+    {
+        rsa_create_key_length = STM32TPM_BENCHMARK_RSA_2048_KEY_BITS; /* For release mode, we use 2048 bit keys*/
+    }
 
     init_random(); /* for generating nonces */
 
@@ -1114,7 +1131,7 @@ int main(int argc, char *argv[])
     LOG("\n");
     LOG("Hash benchmark finished successfully.\n");
 
-    // --- RSA 1024 key generation --------------------------------------------
+    // --- RSA key generation --------------------------------------------
 
     rc = startup_tpm();
     if (rc != TPM_RC_SUCCESS)
@@ -1123,10 +1140,17 @@ int main(int argc, char *argv[])
         goto exit;        
     }    
 
-    LOG("Benchmarking RSA 1024 Key generation\n");
+    if (rsa_create_key_length == STM32TPM_BENCHMARK_RSA_1024_KEY_BITS)
+    {
+        LOG("Benchmarking RSA 1024 Key generation\n");
+    }
+    else
+    {
+        LOG("Benchmarking RSA 2048 Key generation\n");
+    }
     for (size_t loop = 0; loop < BENCHMARK_NUM_LOOPS; ++loop)
     {
-        rc = create_enc_key_rsa_1024(&null_primary_key);
+        rc = create_enc_key_rsa(&null_primary_key, rsa_create_key_length);
         if (rc != TPM_RC_SUCCESS)
         {
             fprintf(stderr, "Create Key failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
