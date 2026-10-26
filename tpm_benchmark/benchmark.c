@@ -1054,6 +1054,76 @@ static int startup_tpm()
     return TPM_RC_SUCCESS;
 }
 
+#if 0
+static TPM_RC print_supported_command_codes(void)
+{
+    GetCapability_In capIn;
+    GetCapability_Out capOut;
+    TPM_RC rc;
+    UINT32 nextProperty = 0;
+    UINT32 i;
+    int hasEncryptDecrypt = 0;
+    int hasEncryptDecrypt2 = 0;
+
+    printf("TPM-supported command codes:\n");
+
+    do {
+        UINT32 lastCommandCode = 0;
+
+        XMEMSET(&capIn, 0, sizeof(capIn));
+        XMEMSET(&capOut, 0, sizeof(capOut));
+
+        capIn.capability = TPM_CAP_COMMANDS;
+        capIn.property = nextProperty;
+        capIn.propertyCount = 64;
+
+        rc = TPM2_GetCapability(&capIn, &capOut);
+        if (rc != TPM_RC_SUCCESS) {
+            printf("TPM2_GetCapability failed 0x%x: %s\n",
+                   (unsigned int)rc, TPM2_GetRCString(rc));
+            return rc;
+        }
+
+        for (i = 0; i < capOut.capabilityData.data.command.count; i++) {
+            TPMA_CC attributes =
+                capOut.capabilityData.data.command.commandAttributes[i];
+
+            /* TPMA_CC contains the command index and vendor-command bit. */
+            UINT32 commandCode =
+                ((UINT32)attributes & 0x0000FFFFU) |
+                ((UINT32)attributes & (UINT32)TPMA_CC_V);
+
+            printf("  0x%08x\n", (unsigned int)commandCode);
+            lastCommandCode = commandCode;
+
+            if (commandCode == (UINT32)TPM_CC_EncryptDecrypt) {
+                hasEncryptDecrypt = 1;
+            }
+            if (commandCode == (UINT32)TPM_CC_EncryptDecrypt2) {
+                hasEncryptDecrypt2 = 1;
+            }
+        }
+
+        if (capOut.moreData) {
+            if (capOut.capabilityData.data.command.count == 0) {
+                fprintf(stderr, "TPM returned more data but no command codes\n");
+                return TPM_RC_FAILURE;
+            }
+            nextProperty = lastCommandCode + 1U;
+        }
+    } while (capOut.moreData);
+
+    printf("EncryptDecrypt (0x%08x): %s\n",
+           (unsigned int)TPM_CC_EncryptDecrypt,
+           hasEncryptDecrypt ? "supported" : "not listed");
+    printf("EncryptDecrypt2 (0x%08x): %s\n",
+           (unsigned int)TPM_CC_EncryptDecrypt2,
+           hasEncryptDecrypt2 ? "supported" : "not listed");
+
+    return TPM_RC_SUCCESS;
+}
+#endif
+
 int main(int argc, char *argv[])
 {
     int rc;
@@ -1224,8 +1294,15 @@ int main(int argc, char *argv[])
         fprintf(stderr, "RSA 2048 encryption and decryption failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
         goto exit;        
     }
-    
+
     LOG("RSA 2048 encryption and decryption finished successfully.\n");
+
+#if 0
+    rc = print_supported_command_codes();
+    if (rc != TPM_RC_SUCCESS) {
+        goto exit;
+    }
+#endif
 
     // AES-256 encryption/decryption -----------------------------------------
 
