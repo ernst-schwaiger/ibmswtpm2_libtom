@@ -73,6 +73,43 @@
 |thesis|Reformat numbers in the thesis according to copilot, esp space between number and unit see below|OPEN|
 |thesis|The length of several symbols is incorrect, they may be changed by the linker (size before relaxing), resolved by only looking at tpm and library binaries.|DONE|
 
+## Revision Numbers of the Discrete TPMs
+
+GC TPM 2.0
+TPM version information:
+  Family: 0x322e3000
+  Specification level: 0
+  Specification revision: 159
+  Specification day of year: 170
+  Specification year: 2020
+  Manufacturer: 0x49465800
+  Vendor TPM type: 0x00000000
+  Vendor string 1: 0x534c4239 "SLB9"
+  Vendor string 2: 0x36373200 "672"
+  Vendor string 3: 0x00000000
+  Vendor string 4: 0x00000000
+  Firmware version 1: 0x000f0017 Version 15.23
+  Firmware version 2: 0x00450000 69.0
+
+LetsEncrypt:
+Accessing TPM using wolfTPM libraryTPM2_Startup pass
+TPM version information:
+  Family: 0x322e3000
+  Specification level: 0
+  Specification revision: 159
+  Specification day of year: 172
+  Specification year: 2024
+  Manufacturer: 0x49465800
+  Vendor TPM type: 0x00000000
+  Vendor string 1: 0x534c4239
+  Vendor string 2: 0x36373200
+  Vendor string 3: 0x00000000
+  Vendor string 4: 0x00000000
+  Firmware version 1: 0x000f0018 Version 15.24
+  Firmware version 2: 0x004a0a00 112.2560
+Stored measured command durations in command_benchmark_client.csv
+
+
 ## Number formatting rules
 
 There is no single universal rule; follow your university or journal’s style guide. A good default for scientific writing is:
