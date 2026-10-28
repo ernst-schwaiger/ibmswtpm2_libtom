@@ -20,7 +20,7 @@
 |ibmswtpm2LibTom|Remove unused, but linked LibTom functions via tomcrypt_custom.h, tommath_class.h, tommath_superclass.h|DONE|
 |ibmswtpm2LibTom|Add support for TomsFastMath as an alternative to LibTomMath|DONE|
 |ibmswtpm2LibTom|Find segfault in "Release" ibmswtpm when compiled in WSL2 or Kali: It was the printMallocInfo()|DONE|
-|ibmswtpm2LibTom|Optimize CurveInitialize: Return a curve if it is already statically initialized, only create a curve if it is not present yet.|OPEN|
+|ibmswtpm2LibTom|Optimize CurveInitialize: Return a curve if it is already statically initialized, only create a curve if it is not present yet.|CANCELED|
 |ibmswtpm2LibTom|Verify compile flags for LibTom*, ensure memory leaks are detected by ASAN|DONE|
 |ibmswtpm2LibTom|Verify if we turned off all block cipher modes, except ECB (since the other modes are implemented in ibmswtpm2). That is already done in tomcrypt_custom.h|DONE|
 |crossCompileARM|Compile tpm server on ARM32 Platform, for getting code size estimations|DONE|
@@ -33,25 +33,25 @@
 |portToSTM32|In App\tpm\PlatformData.h, set `FILE_BACKED_NV` back to `YES`, after file-based state is implemented|DONE|
 |portToSTM32|In NVMem.c, check the functions needed for saving the TPM state. Can we use an Sd card on the STM32 board instead?, Static state is stored in variable s_NV|DONE|
 |portToSTM32|When using TomsFastMath and TFM_ARM, the assembler macro INNERMUL in tomsfastmath\src\mont\fp_montgomery_reduce.c, line 279 ff cant be assembled, find a solution |DONE|
-|portToSTM32|Integrate usage of TomsFastMath on STM32 project, experiment with compile flags, e.g unrolled multiplications|OPEN|
+|portToSTM32|Integrate usage of TomsFastMath on STM32 project, experiment with compile flags, e.g unrolled multiplications|DONE|
 |portToSTM32|In Clock.c, go through the functions and adapt them to use the HW timers of the STM32 board|DONE|
 |portToSTM32|Find out which function requires that we have to provide _gettimeofday|DONE|
 |portToSTM32|Compare the STM32 linker output with the function symbols in the Linux Tpm server binary: Are we missing parts of the STM functions?|DONE|
-|portToSTM32|Check all the FIXMEs in the STM32 Tpm Code|OPEN|
+|portToSTM32|Check all the FIXMEs in the STM32 Tpm Code|CANCELED|
 |portToSTM32|Find source code that writes tpm state to file system, check if redirection to sd card is possible. fopen, fprintf do not crash, but files are not written to sd card. Can fprintf be redirected to SD card API?|DONE|
 |portToSTM32|Integrate RNG to tpm code (they are using different RNGs than libtomcrypt)|DONE|
 |portToSTM32|Optimize SD card access like outlined in https://www.youtube.com/watch?v=KNuMM7NdgYw (HW flow control is turned on here (we have set it to off))|DONE|
 |portToSTM32|Use PLL clock for system clock, increase clock rate to 224MHz|DONE|
 |portToSTM32|Document that the TPM 2.0 cancel() operation cannot be implemented, as our impl is bare-metal, only one thread. That function is specified in the TCG PC Client Platform TPM Profile (PTP), other platforms may not include the cancel() operation|DONE|
 |portToSTM32|Fix timer configuration to support 224MHz system clock. Use 64bit counter, since 32bit counter can only provide 71 minutes, verify if timer-related regression tests pass after adaptation.|DONE|
-|portToSTM32|Check if there are functions that provide the maximum length of input and output buffers of the TPM. If so, adapt the functions so they return the real value.|OPEN|
+|portToSTM32|Check if there are functions that provide the maximum length of input and output buffers of the TPM. If so, adapt the functions so they return the real value.|CANCELED|
 |portToSTM32|Find documentation on locking/unlocking shared variables with ISRs, apply to functions RS232/Timer APIs|DONE|
 |portToSTM32|Add functions to receive and send bytes via SPI|DONE|
 |portToSTM32|Extend SPI server to process incoming commands from SPI transport layer, and to pass replies back to transport layer|DONE|
-|portToSTM32|Find cause of last failing test case 51 (most likely caused by only using locality zero in UARTServer)|OPEN|
-|portToSTM32|In Clock.c, find out if we really have to use the clock sync mechanism implemented there. If not, remove|OPEN|
+|portToSTM32|Find cause of last failing test case 51 (most likely caused by only using locality zero in UARTServer)|CANCELED|
+|portToSTM32|In Clock.c, find out if we really have to use the clock sync mechanism implemented there. We keep the simulation as it is|DONE|
 |portToSTM32|Analyze SPI clock cycle and traffic, check whether shorter wires resole issue with missing bits. Done, the issue was the missing wait-state bit |DONE|
-|portToSTM32|Cleanly separate TPM logic from specific hardware function, make STM32TPM portable to other platforms|OPEN|
+|portToSTM32|Cleanly separate TPM logic from specific hardware function, make STM32TPM portable to other platforms|CANCELED|
 |portToSTM32|According to wolfTPM native test, the clock count is not stored before reset and reloaded afterwards, reading it reveals a low clock count|OPEN|
 |portToSTM32|Create dedicated timer function for ACT service, give the ISR a lower prio than the 40us task to avoid assertions|DONE|
 |portToSTM32|Lock interrupts when accessing global time variables, done without locking, just reading a seond time|DONE|
@@ -62,9 +62,9 @@
 |portToSTM32|Check input Philipp Grassl: Add I/O Pin for simulating power loss, call dedicated shutdown functions for that|OPEN|
 |portToSTM32|Check input Philipp Grassl: Implement handler of Cancel() operation. Execute the _rpc__Signal_CancelOn() function if a cancel operation was detected via SPI. After receiving any response buffer from the software TPM, set _rpc__Signal_CancelOff().|DONE|
 |parse.py|Extend csv logfile parser to use the tpmstream library https://github.com/joholl/tpmstream for extraction of command/response data|DONE|
-|wolftpm|Create an app which implements key generation, encryption/decryption on the TPM|OPEN|
+|wolftpm|Create an app which implements key generation, encryption/decryption on the TPM|DONE|
 |ibmtss|Compile ibmtss assuming a HW TPM, check if SPI data arrives at the STM32 node. This does not work, reg.sh does not accept /dev/tpm* interfaces |DONE|
-|general|Ensure all my added source files have LF endings, introduce code formatter, standard function names, i.e. snake case|OPEN|
+|general|Ensure all my added source files have LF endings, introduce code formatter, standard function names, i.e. snake case|CANCELED|
 |thesis|Verify that the list of abbreviations re-appears|DONE|
 |thesis|Move Limitations and Conclusions as subchapters into Discussions chapter|DONE|
 |thesis|Add chapter "Future Work" after Discussions chapter|DONE|

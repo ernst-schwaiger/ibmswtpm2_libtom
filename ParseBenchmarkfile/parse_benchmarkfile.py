@@ -164,16 +164,27 @@ CMD_CODE_TO_NAME_MAP = {
     0x20000213 : "NTC2_CC_GetConfig"
 }
 
-BM_TFM_O0 = "command_benchmark_O0_TFM.csv"
-BM_TFM_O0_CLIENT = "command_benchmark_client_O0_TFM.csv"
-BM_TFM_O2 = "command_benchmark_O2_TFM.csv"
-BM_TFM_O2_CLIENT = "command_benchmark_client_O2_TFM.csv"
-BM_TFM_O2_UNROLLED = "command_benchmark_O2_TFM_unrolled.csv"
-BM_TFM_O2_UNROLLED_CLIENT = "command_benchmark_client_O2_TFM_unrolled.csv"
-BM_TFM_OS = "command_benchmark_OS_TFM.csv"
-BM_TFM_OS_CLIENT = "command_benchmark_client_OS_TFM.csv"
+BM_TFM_O0                   = "command_benchmark_O0_TFM.csv"
+BM_TFM_O0_CLIENT            = "command_benchmark_client_O0_TFM.csv"
+BM_TFM_O2                   = "command_benchmark_O2_TFM.csv"
+BM_TFM_O2_CLIENT            = "command_benchmark_client_O2_TFM.csv"
+BM_TFM_O2_UNROLLED          = "command_benchmark_O2_TFM_unrolled.csv"
+BM_TFM_O2_UNROLLED_CLIENT   = "command_benchmark_client_O2_TFM_unrolled.csv"
+BM_TFM_OS                   = "command_benchmark_OS_TFM.csv"
+BM_TFM_OS_CLIENT            = "command_benchmark_client_OS_TFM.csv"
+
+BM_LTM_O0                   = "command_benchmark_O0_LTM.csv"
+BM_LTM_O0_CLIENT            = "command_benchmark_client_O0_LTM.csv"
+BM_LTM_O2                   = "command_benchmark_O2_LTM.csv"
+BM_LTM_O2_CLIENT            = "command_benchmark_client_O2_LTM.csv"
+BM_LTM_OS                   = "command_benchmark_OS_LTM.csv"
+BM_LTM_OS_CLIENT            = "command_benchmark_client_OS_LTM.csv"
+
+BM_LETSTRUST_CLIENT         = "command_benchmark_client_letstrust.csv"
+BM_GCTPM20_CLIENT           = "command_benchmark_client_gctpm20.csv"
 
 BENCHMARK_FILES = {
+    # TOMSFASTMATH configs
     BM_TFM_O0,
     BM_TFM_O0_CLIENT,
     BM_TFM_O2,
@@ -181,7 +192,17 @@ BENCHMARK_FILES = {
     BM_TFM_O2_UNROLLED,
     BM_TFM_O2_UNROLLED_CLIENT,
     BM_TFM_OS,
-    BM_TFM_OS_CLIENT
+    BM_TFM_OS_CLIENT,
+    # LIBTOMMATH configs
+    BM_LTM_O0,
+    BM_LTM_O0_CLIENT,
+    BM_LTM_O2,
+    BM_LTM_O2_CLIENT,
+    BM_LTM_OS,
+    BM_LTM_OS_CLIENT,
+    # Discrete TPM configs
+    BM_LETSTRUST_CLIENT,
+    BM_GCTPM20_CLIENT
 }
 
 TABLE_HEADER = r"""
@@ -243,6 +264,9 @@ def _split_benchmark_list(cmds: list[TpmCommandExec]) -> list[list[TpmCommandExe
         else:
             curr_benchmark.append(cmd)
 
+    if len(curr_benchmark) > 0:
+        ret.append(curr_benchmark)
+
     return ret
 
 def _print_table_row(command_code: int, tpm_commands:list[TpmCommandExec], rowtext: str = None):
@@ -258,10 +282,10 @@ def _print_table_row(command_code: int, tpm_commands:list[TpmCommandExec], rowte
         std_dev = round(stats.pstdev(values), 2)
         print(fr"{rowtext if rowtext is not None else command_str} & {minimum} & {maximum} & {mean} & {int(median)} & {std_dev} \\ \hline")
 
-def _extract_rsa_creation_data(tpm_commands:list[TpmCommandExec], offset: float = 0.0) -> list[int]:
+def _extract_rsa_creation_data(tpm_commands:list[TpmCommandExec]) -> list[int]:
     ret = []
     for cmd in tpm_commands:
-        ret.append((cmd.duration / 1000000.0) + offset)
+        ret.append(cmd.duration / 1000000.0)
     return ret
 
 def read_benchmark_files(folder: Path, parser: ArgumentParser) -> dict[str,list[TpmCommandExec]]:
@@ -275,7 +299,7 @@ def read_benchmark_files(folder: Path, parser: ArgumentParser) -> dict[str,list[
             try:
                 with file_path.open("r") as input_file:
                     csv_reader = csv.reader(input_file, delimiter=',')
-                    for row in csv_reader:
+                    for idx, row in enumerate(csv_reader):
                         duration = int(row[0])
                         command_code = int(row[1],16)
                         tpm_commands.append(TpmCommandExec(duration, command_code))
@@ -330,7 +354,7 @@ def _plot_violin(data: list[list[float]], ticks: list[str], save_file: Path):
 
     fig.savefig(save_file, format="pdf", bbox_inches="tight")
 
-def _plot_box(data: list[list[float]], ticks: list[str], save_file: Path):
+def _plot_box(data: list[list[float]], ticks: list[str], diag_title: str, save_file: Path, show_fliers: bool):
     plt.style.use('_mpl-gallery')
     #colors = ["blue", "orange", "green", "purple", "cyan", "olive"]
 
@@ -353,6 +377,7 @@ def _plot_box(data: list[list[float]], ticks: list[str], save_file: Path):
         positions=x,
         patch_artist=True,
         showmeans=False,
+        showfliers=show_fliers,
         #showmedians=True,
         #showextrema=True,
     )
@@ -367,11 +392,53 @@ def _plot_box(data: list[list[float]], ticks: list[str], save_file: Path):
     # set ticks
     ax.set_xticks(x, ticks)
 
-    ax.set_ylabel("Execution time [s]", fontsize=10)
-    ax.tick_params(axis="both", labelsize=8)
+    ax.set_ylabel(diag_title, fontsize=12)
+    ax.tick_params(axis="both", labelsize=12)
 
     fig.savefig(save_file, format="pdf", bbox_inches="tight")
+    plt.close(fig)
 
+
+
+def _plot_data(benchmarks: dict[str, list[TpmCommandExec]],
+               sel_benchmarks: list[str],
+               sel_measurements: list[int],
+               command_code_filter: int,
+               duration_conv_func: function,
+               labels: list[str],
+               diag_title: str,
+               diagram_to_save: Path,
+               show_fliers: bool = True,
+               start_index: int = 0):
+    """
+        plots a subset of the benchmark data
+        benchmarks: the whole benchmark map
+        sel_benchmarks key list of the benchmarks that are to be shown (number of columns in the diagram)
+        sel_measurements: The index of the measurement of the respective benchmark (same number of elements as sel_benchmarks)
+    """
+
+    assert len(sel_benchmarks) == len(sel_measurements), "sel_benchmarks and sel_measurements must have the same number of elements"
+    assert len(sel_benchmarks) == len(labels), "sel_benchmarks and labels must have the same number of elements"
+
+    # extract the benchmarks we must show
+    benchmarks_to_show = []
+    for sel_benchmark in sel_benchmarks:
+        benchmarks_to_show.append(benchmarks[sel_benchmark])
+
+    # Extract the particular measurements
+    extracted_benchmark_tpm_cmds = []
+    for idx, bm_to_show in enumerate(benchmarks_to_show):
+        extracted_benchmark_tpm_cmds.append(_split_benchmark_list(bm_to_show)[sel_measurements[idx]])
+
+
+    # Extract the data out of the Command Execution lists
+
+    extracted_benchmark_data = []
+    for idx, cmd_execs in enumerate(extracted_benchmark_tpm_cmds):
+        cmd_execs_index_filter = cmd_execs[start_index:]
+        extracted_benchmark_data.append([duration_conv_func(cmd_exec.duration) for cmd_exec in cmd_execs_index_filter if command_code_filter == cmd_exec.command_code])
+
+    _plot_box(extracted_benchmark_data, labels, diag_title, diagram_to_save, show_fliers)
 
 
 
@@ -418,23 +485,384 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     print(TABLE_FOOTER)
 
-    benchmarks_tfm_o2 = _split_benchmark_list(tpm_benchmarks[BM_TFM_O2])
-    benchmarks_tfm_o2_unrolled = _split_benchmark_list(tpm_benchmarks[BM_TFM_O2_UNROLLED])
-    benchmarks_tfm_os = _split_benchmark_list(tpm_benchmarks[BM_TFM_OS])
+    # benchmarks_tfm_o2 = _split_benchmark_list(tpm_benchmarks[BM_TFM_O2])
+    # benchmarks_tfm_o2_unrolled = _split_benchmark_list(tpm_benchmarks[BM_TFM_O2_UNROLLED])
+    # benchmarks_tfm_os = _split_benchmark_list(tpm_benchmarks[BM_TFM_OS])
 
-    rsa_tfm_o2 = _extract_rsa_creation_data(benchmarks_tfm_o2[1])
-    rsa_tfm_o2_unrolled = _extract_rsa_creation_data(benchmarks_tfm_o2_unrolled[1])
-    rsa_tfm_os = _extract_rsa_creation_data(benchmarks_tfm_os[1])
+    # rsa_tfm_o2 = _extract_rsa_creation_data(benchmarks_tfm_o2[1])
+    # rsa_tfm_o2_unrolled = _extract_rsa_creation_data(benchmarks_tfm_o2_unrolled[1])
+    # rsa_tfm_os = _extract_rsa_creation_data(benchmarks_tfm_os[1])
 
 
-    # _plot_violin([rsa_tfm_o2, rsa_tfm_o2_unrolled, rsa_tfm_os], 
+    # _plot_violin([rsa_tfm_o2, rsa_tfm_o2_unrolled, rsa_tfm_os],
     #              ["LTM O2", "LTM O2 unrolled", "LTM OS"],
     #              args.input_folder / "rsa_create_violin.pdf")
 
-    _plot_box([rsa_tfm_o2, rsa_tfm_o2_unrolled, rsa_tfm_os], 
-                 ["LTM O2", "LTM O2 unrolled", "LTM OS"],
-                 args.input_folder / "rsa_create_key_whisker.pdf")
+    # _plot_box([rsa_tfm_o2, rsa_tfm_o2_unrolled, rsa_tfm_os], 
+    #              ["LTM O2", "LTM O2 unrolled", "LTM OS"],
+    #              args.input_folder / "rsa_create_key_whisker.pdf")
     
+
+    # # compare RSA 2048 key creation of discrete tpms with TFM Unrolled variant, all client
+    # bms_letstrust_client = _split_benchmark_list(tpm_benchmarks[BM_LETSTRUST_CLIENT])
+    # bms_gctpm20_client = _split_benchmark_list(tpm_benchmarks[BM_GCTPM20_CLIENT])
+    # bms_tfm_o2_unrolled_client = _split_benchmark_list(tpm_benchmarks[BM_TFM_O2_UNROLLED_CLIENT])
+    # bms_tfm_o2_client = _split_benchmark_list(tpm_benchmarks[BM_TFM_O2_CLIENT])
+    # bms_ltm_o2_client = _split_benchmark_list(tpm_benchmarks[BM_LTM_O2_CLIENT])
+    # bms_tfm_os_client = _split_benchmark_list(tpm_benchmarks[BM_TFM_OS_CLIENT])
+    # bms_ltm_os_client = _split_benchmark_list(tpm_benchmarks[BM_LTM_OS_CLIENT])
+
+
+
+    # rsa_letstrust_client = _extract_rsa_creation_data(bms_letstrust_client[1])
+    # rsa_gctpm20_client = _extract_rsa_creation_data(bms_gctpm20_client[1])
+    # rsa_tfm_o2_unrolled_client = _extract_rsa_creation_data(bms_tfm_o2_unrolled_client[1])
+    # rsa_tfm_o2_client = _extract_rsa_creation_data(bms_tfm_o2_client[1])
+    # rsa_ltm_o2_client = _extract_rsa_creation_data(bms_ltm_o2_client[1])
+    # rsa_tfm_os_client = _extract_rsa_creation_data(bms_tfm_os_client[1])
+    # rsa_ltm_os_client = _extract_rsa_creation_data(bms_ltm_os_client[1])
+
+    # _plot_box([rsa_letstrust_client, rsa_gctpm20_client, rsa_tfm_o2_unrolled_client, rsa_tfm_o2_client, rsa_ltm_o2_client, rsa_tfm_os_client, rsa_ltm_os_client],
+    #              ["LetsTrust", "GCTPM 2.0", "TFM O2 Unrolled", "TFM O2", "LTM O2", "TFM OS", "LTM_OS"],
+    #              args.input_folder / "rsa_create_client_whisker.pdf")
+
+
+# TPM_CC_HASHSEQUENCESTART = 0x00000186
+# TPM_CC_SEQUENCEUPDATE = 0x0000015C
+# TPM_CC_SEQUENCECOMPLETE = 0x0000013E
+# TPM_CC_CREATE = 0x00000153
+# TPM_CC_STARTUP = 0x00000144
+# TPM_CC_SHUTDOWN = 0x00000145
+# TPM_CC_RSA_ENCRYPT = 0x00000174
+# TPM_CC_RSA_DECRYPT = 0x00000159
+# TPM_CC_ENCRYPTDECRYPT2 = 0x00000193
+# TPM_CC_SIGN = 0x0000015D
+# TPM_CC_VERIFYSIGNATURE = 0x00000177
+# TPM_CC_HMAC = 0x00000155
+# TPM_CC_UNSEAL = 0x0000015E
+
+    # Compares all SHA256 hash sequence start execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED, BM_TFM_O2, BM_LTM_O2, BM_TFM_OS, BM_LTM_OS],
+               [0,0,0,0,0],
+               TPM_CC_HASHSEQUENCESTART,
+               lambda x: x,
+               ["TFM O2 UR", "TFM O2", "LTM O2", "TFM OS", "LTM OS"],
+               "SHA-256 Hash Sequence Start[us] (STM32)",
+               args.input_folder / "sha256_seq_start_whisker.pdf",
+               show_fliers=False)
+
+    # Compares all SHA256 sequence update execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED, BM_TFM_O2, BM_LTM_O2, BM_TFM_OS, BM_LTM_OS],
+               [0,0,0,0,0],
+               TPM_CC_SEQUENCECOMPLETE,
+               lambda x: x,
+               ["TFM O2 UR", "TFM O2", "LTM O2", "TFM OS", "LTM OS"],
+               "SHA-256 Sequence Complete[us] (STM32)",
+               args.input_folder / "sha256_seq_complete_whisker.pdf",
+               show_fliers=False)
+
+    # Compares all SHA256 sequence complete execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED, BM_TFM_O2, BM_LTM_O2, BM_TFM_OS, BM_LTM_OS],
+               [0,0,0,0,0],
+               TPM_CC_SEQUENCEUPDATE,
+               lambda x: x,
+               ["TFM O2 UR", "TFM O2", "LTM O2", "TFM OS", "LTM OS"],
+               "SHA-256 Sequence Update[us] (STM32)",
+               args.input_folder / "sha256_seq_update_whisker.pdf",
+               show_fliers=False)
+
+
+    # Compares all RSA 2048 creation execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED, BM_TFM_O2, BM_LTM_O2, BM_TFM_OS, BM_LTM_OS],
+               [1,1,1,1,1],
+               TPM_CC_CREATE,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "TFM O2", "LTM O2", "TFM OS", "LTM OS"],
+               "RSA 2048 Key Creation[s] (STM32)",
+               args.input_folder / "rsa_2048_create_whisker.pdf" )
+
+    # Compares all ECC P-256 Key Creation execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED, BM_TFM_O2, BM_LTM_O2, BM_TFM_OS, BM_LTM_OS],
+               [2,2,2,2,2],
+               TPM_CC_CREATE,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "TFM O2", "LTM O2", "TFM OS", "LTM OS"],
+               "ECC P-256 Key Creation[s] (STM32)",
+               args.input_folder / "p256_create_whisker.pdf",
+               show_fliers=False)
+
+    # Compares all AES-256 Key Creation execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED, BM_TFM_O2, BM_LTM_O2, BM_TFM_OS, BM_LTM_OS],
+               [3,3,3,3,3],
+               TPM_CC_CREATE,
+               lambda x: x,
+               ["TFM O2 UR", "TFM O2", "LTM O2", "TFM OS", "LTM OS"],
+               "AES-256 Key Creation[us] (STM32)",
+               args.input_folder / "aes256_create_whisker.pdf",
+               show_fliers=False)
+
+    # Compares all RSA-2048 Encrypt execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED, BM_TFM_O2, BM_LTM_O2, BM_TFM_OS, BM_LTM_OS],
+               [4,4,4,4,4],
+               TPM_CC_RSA_ENCRYPT,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "TFM O2", "LTM O2", "TFM OS", "LTM OS"],
+               "RSA 2048 Encrypt[s] (STM32)",
+               args.input_folder / "rsa_2048_encrypt_whisker.pdf",
+               show_fliers=True)
+
+    # Compares all RSA-2048 Decrypt execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED, BM_TFM_O2, BM_LTM_O2, BM_TFM_OS, BM_LTM_OS],
+               [4,4,4,4,4],
+               TPM_CC_RSA_DECRYPT,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "TFM O2", "LTM O2", "TFM OS", "LTM OS"],
+               "RSA 2048 Decrypt[s] (STM32)",
+               args.input_folder / "rsa_2048_decrypt_whisker.pdf",
+               show_fliers=True)
+
+    # Compares all AES-256 Encrypt/Decrypt execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED, BM_TFM_O2, BM_LTM_O2, BM_TFM_OS, BM_LTM_OS],
+               [5,5,5,5,5],
+               TPM_CC_ENCRYPTDECRYPT2,
+               lambda x: x,
+               ["TFM O2 UR", "TFM O2", "LTM O2", "TFM OS", "LTM OS"],
+               "AES-256 Encrypt/Decrypt[us] (STM32)",
+               args.input_folder / "aes_256_encrypt_decrypt_whisker.pdf",
+               show_fliers=False)
+
+    # Compares all P-256 Sign execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED, BM_TFM_O2, BM_LTM_O2, BM_TFM_OS, BM_LTM_OS],
+               [6,6,6,6,6],
+               TPM_CC_SIGN,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "TFM O2", "LTM O2", "TFM OS", "LTM OS"],
+               "ECC P-256 Sign[s] (STM32)",
+               args.input_folder / "p256_sign_whisker.pdf",
+               show_fliers=False)
+
+    # Compares all P-256 verify execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED, BM_TFM_O2, BM_LTM_O2, BM_TFM_OS, BM_LTM_OS],
+               [6,6,6,6,6],
+               TPM_CC_VERIFYSIGNATURE,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "TFM O2", "LTM O2", "TFM OS", "LTM OS"],
+               "ECC P-256 Verify[s] (STM32)",
+               args.input_folder / "p256_verify_whisker.pdf",
+               show_fliers=False)
+
+    # Compares all RSA 2048 Sign execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED, BM_TFM_O2, BM_LTM_O2, BM_TFM_OS, BM_LTM_OS],
+               [7,7,7,7,7],
+               TPM_CC_SIGN,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "TFM O2", "LTM O2", "TFM OS", "LTM OS"],
+               "RSA 2048 Sign[s] (STM32)",
+               args.input_folder / "rsa_2048_sign_whisker.pdf",
+               show_fliers=True)
+
+    # Compares all RSA 2048 verify execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED, BM_TFM_O2, BM_LTM_O2, BM_TFM_OS, BM_LTM_OS],
+               [7,7,7,7,7],
+               TPM_CC_VERIFYSIGNATURE,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "TFM O2", "LTM O2", "TFM OS", "LTM OS"],
+               "RSA 2048 Verify[s] (STM32)",
+               args.input_folder / "rsa_2048_verify_whisker.pdf",
+               show_fliers=True)
+
+    # Compares all AES-256 HMAC execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED, BM_TFM_O2, BM_LTM_O2, BM_TFM_OS, BM_LTM_OS],
+               [8,8,8,8,8],
+               TPM_CC_HMAC,
+               lambda x: x,
+               ["TFM O2 UR", "TFM O2", "LTM O2", "TFM OS", "LTM OS"],
+               "AES-256 HMAC[us] (STM32)",
+               args.input_folder / "aes_256_hmac_whisker.pdf",
+               show_fliers=False)
+
+    # Compares all Create operations for a sealed object
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED, BM_TFM_O2, BM_LTM_O2, BM_TFM_OS, BM_LTM_OS],
+               [9,9,9,9,9],
+               TPM_CC_CREATE,
+               lambda x: x,
+               ["TFM O2 UR", "TFM O2", "LTM O2", "TFM OS", "LTM OS"],
+               "Create Sealed[us] (STM32)",
+               args.input_folder / "create_sealed_whisker.pdf",
+               show_fliers=False,
+               start_index=1)  # We filter out the first create, which produces the objects parent key
+
+    # Compares all Unseal operations for a sealed object
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED, BM_TFM_O2, BM_LTM_O2, BM_TFM_OS, BM_LTM_OS],
+               [9,9,9,9,9],
+               TPM_CC_UNSEAL,
+               lambda x: x,
+               ["TFM O2 UR", "TFM O2", "LTM O2", "TFM OS", "LTM OS"],
+               "Unseal Sealed[us] (STM32)",
+               args.input_folder / "unseal_sealed_whisker.pdf",
+               show_fliers=False)
+
+    # Compares all AES-256 Encrypt/Decrypt execution times at the client using the TPM to find out turnarounf times!
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED, BM_TFM_O2, BM_LTM_O2, BM_TFM_OS, BM_LTM_OS],
+               [5,5,5,5,5],
+               TPM_CC_ENCRYPTDECRYPT2,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "TFM O2", "LTM O2", "TFM OS", "LTM OS"],
+               "AES-256 Encrypt/Decrypt[s] (Client)",
+               args.input_folder / "aes_256_encrypt_decrypt_whisker_client.pdf",
+               show_fliers=False)
+
+    # Compares ECC P-256 key creation LTM O2, TFM O2 UR, discrete TPM Operations
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED_CLIENT, BM_LTM_O2_CLIENT, BM_LETSTRUST_CLIENT, BM_GCTPM20_CLIENT],
+               [2,2,2,2],
+               TPM_CC_CREATE,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "LTM O2", "LetsTrust", "GCTPM20"],
+               "ECC P-256 Key Creation[s] (Client)",
+               args.input_folder / "p256_create_whisker_client.pdf",
+               show_fliers=False)
+
+    # Compares all P-256 Sign execution times LTM O2, TFM O2 UR, discrete TPM Operations
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED_CLIENT, BM_LTM_O2_CLIENT, BM_LETSTRUST_CLIENT, BM_GCTPM20_CLIENT],
+               [6,6,6,6],
+               TPM_CC_SIGN,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "LTM O2", "LetsTrust", "GCTPM20"],
+               "ECC P-256 Sign[s] (Client)",
+               args.input_folder / "p256_sign_whisker_client.pdf",
+               show_fliers=False)
+
+    # Compares all P-256 verify execution times LTM O2, TFM O2 UR, discrete TPM Operations
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED_CLIENT, BM_LTM_O2_CLIENT, BM_LETSTRUST_CLIENT, BM_GCTPM20_CLIENT],
+               [6,6,6,6],
+               TPM_CC_VERIFYSIGNATURE,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "LTM O2", "LetsTrust", "GCTPM20"],
+               "ECC P-256 Verify[s] (Client)",
+               args.input_folder / "p256_verify_whisker_client.pdf",
+               show_fliers=False)
+
+
+    # Compares all AES-256 Key Creation execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED_CLIENT, BM_LTM_O2_CLIENT, BM_LETSTRUST_CLIENT, BM_GCTPM20_CLIENT],
+               [3,3,3,3],
+               TPM_CC_CREATE,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "LTM O2", "LetsTrust", "GCTPM20"],
+               "AES-256 Key Creation[s] (Client)",
+               args.input_folder / "aes256_create_whisker_client.pdf",
+               show_fliers=False)
+
+    # Compares all AES-256 Encrypt/Decrypt execution times at the client
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED_CLIENT, BM_LTM_O2_CLIENT, BM_LETSTRUST_CLIENT, BM_GCTPM20_CLIENT],
+               [5,5,5,5],
+               TPM_CC_ENCRYPTDECRYPT2,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "LTM O2", "LetsTrust", "GCTPM20"],
+               "AES-256 Encrypt/Decrypt[s] (Client)",
+               args.input_folder / "aes_256_encrypt_decrypt_whisker_client2.pdf",
+               show_fliers=False)
+
+    # Compares all AES-256 HMAC execution times on the client
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED_CLIENT, BM_LTM_O2_CLIENT, BM_LETSTRUST_CLIENT, BM_GCTPM20_CLIENT],
+               [8,8,8,8],
+               TPM_CC_HMAC,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "LTM O2", "LetsTrust", "GCTPM20"],
+               "AES-256 HMAC[s] (Client)",
+               args.input_folder / "aes_256_hmac_whisker_client.pdf",
+               show_fliers=False)
+
+    # Compares all RSA 2048 creation execution times on client side
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED_CLIENT, BM_LTM_O2_CLIENT, BM_LETSTRUST_CLIENT, BM_GCTPM20_CLIENT],
+               [1,1,1,1],
+               TPM_CC_CREATE,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "LTM O2", "LetsTrust", "GCTPM20"],
+               "RSA 2048 Key Creation[s] (Client)",
+               args.input_folder / "rsa_create_whisker_client.pdf")
+
+
+    # RSA 2048 operations at client side ---------------------------
+
+    # Compares all RSA-2048 Encrypt execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED_CLIENT, BM_LTM_O2_CLIENT, BM_LETSTRUST_CLIENT, BM_GCTPM20_CLIENT],
+               [4,4,4,4],
+               TPM_CC_RSA_ENCRYPT,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "LTM O2", "LetsTrust", "GCTPM20"],
+               "RSA 2048 Encrypt[s] (Client)",
+               args.input_folder / "rsa_2048_encrypt_whisker_client.pdf",
+               show_fliers=True)
+
+    # Compares all RSA-2048 Decrypt execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED_CLIENT, BM_LTM_O2_CLIENT, BM_LETSTRUST_CLIENT, BM_GCTPM20_CLIENT],
+               [4,4,4,4],
+               TPM_CC_RSA_DECRYPT,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "LTM O2", "LetsTrust", "GCTPM20"],
+               "RSA 2048 Decrypt[s] (Client)",
+               args.input_folder / "rsa_2048_decrypt_whisker_client.pdf",
+               show_fliers=True)
+
+    # Compares all RSA 2048 Sign execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED_CLIENT, BM_LTM_O2_CLIENT, BM_LETSTRUST_CLIENT, BM_GCTPM20_CLIENT],
+               [7,7,7,7],
+               TPM_CC_SIGN,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "LTM O2", "LetsTrust", "GCTPM20"],
+               "RSA 2048 Sign[s] (Client)",
+               args.input_folder / "rsa_2048_sign_whisker_client.pdf",
+               show_fliers=True)
+
+    # Compares all RSA 2048 verify execution times on tpm
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O2_UNROLLED_CLIENT, BM_LTM_O2_CLIENT, BM_LETSTRUST_CLIENT, BM_GCTPM20_CLIENT],
+               [7,7,7,7],
+               TPM_CC_VERIFYSIGNATURE,
+               lambda x: x / 1000000.0,
+               ["TFM O2 UR", "LTM O2", "LetsTrust", "GCTPM20"],
+               "RSA 2048 Verify[s] (Client)",
+               args.input_folder / "rsa_2048_verify_whisker_client.pdf",
+               show_fliers=True)
+
+    # Compares the RSA 1024 debug execution times on client side
+    _plot_data(tpm_benchmarks,
+               [BM_TFM_O0, BM_LTM_O0],
+               [1,1],
+               TPM_CC_CREATE,
+               lambda x: x / 1000000.0,
+               ["TFM O0", "LTM O0"],
+               "RSA 1024 Key Creation[s] (Client)",
+               args.input_folder / "rsa_create_whisker_client_O0.pdf")
+
 
     return 0
 
